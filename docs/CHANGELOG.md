@@ -12,6 +12,17 @@
 
 All notable changes to Heimdall are documented in this file.
 
+## 2026-09-14: crash evidence survives an update (v2026.091402)
+
+### Updates
+
+- The application relaunched after an update inherits the standard output and error streams of the
+  session it replaces, instead of being given a new console. A session started with its error
+  stream redirected to a file keeps writing to that file across updates. Environment variables
+  already traversed the relaunch, so the loss affected only redirection and was silent.
+- The installer is still started the other way, which is what lets an update that needs
+  administrator rights ask for consent.
+
 ## 2026-09-14: embedded RDP stability during connection bursts (v2026.091401)
 
 ### Embedded RDP
