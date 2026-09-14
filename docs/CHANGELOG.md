@@ -12,6 +12,16 @@
 
 All notable changes to Heimdall are documented in this file.
 
+## Unreleased
+
+### Embedded RDP
+
+- A burst of disconnections no longer closes the application without a message. When every
+  transport dropped at once, because a network adapter was recreated underneath the tunnels or the
+  machine entered sleep with sessions open, each notification could start a connection attempt from
+  inside the previous one until the process ran out of stack and Windows ended it. Connection
+  attempts that arrive during another one now wait for it to finish instead.
+
 ## 2026-09-09: session tree navigation and organization (v2026.090902)
 
 ### Session tree
