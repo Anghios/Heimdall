@@ -325,8 +325,25 @@ public static class UpdateRelaunchScript
         sb.AppendLine(
             "        Write-Output ('heimdall-update: relaunch starting after stage ' + $updateStage)");
         sb.AppendLine("        try {");
+
+        // -NoNewWindow is what makes the relaunched application inherit this script's standard
+        // handles, and it is not cosmetic. Start-Process defaults to UseShellExecute, which hands
+        // the child a fresh console: measured on 2026-09-14, a marker written to stderr by a child
+        // started that way lands in a new FILE_TYPE_CHAR handle and is lost, while the same child
+        // started -NoNewWindow writes into the parent's FILE_TYPE_DISK handle. Environment
+        // variables traverse either way, so the loss is silent and affects only what was redirected.
+        //
+        // What depends on it: the .NET runtime prints the repeating frame cycle of a stack overflow
+        // to stderr, and that is the only evidence such a crash leaves - no exception, no log line,
+        // and no dump on a machine whose Windows Error Reporting is disabled by policy. A session
+        // launched with its stderr redirected to a file kept that evidence until the first update,
+        // and then silently stopped.
+        //
+        // Inheriting rather than redeclaring also keeps the file in append mode. Re-establishing it
+        // here with -RedirectStandardError would TRUNCATE the target, erasing the crash that was
+        // written before the update - which is exactly the record worth keeping.
         sb.AppendLine(
-            $"            $relaunchProcess = Start-Process -FilePath '{EscapeSingleQuoted(spec.TargetExecutablePath)}' -PassThru");
+            $"            $relaunchProcess = Start-Process -FilePath '{EscapeSingleQuoted(spec.TargetExecutablePath)}' -NoNewWindow -PassThru");
         sb.AppendLine("        } catch {");
         sb.AppendLine("            Write-Warning $_");
         sb.AppendLine("        }");
@@ -463,7 +480,11 @@ public static class UpdateRelaunchScript
         sb.AppendLine("} finally {");
         sb.AppendLine($"    if (-not ${RelaunchOwnedVariable}) {{");
         sb.AppendLine("        try {");
-        sb.AppendLine("            Start-Process -FilePath $relaunchTarget");
+
+        // Same property, same reason as the relaunch inside the script: this bootstrap path is the
+        // one that runs when the script never started, and a session that comes back through it
+        // must not lose its standard handles either.
+        sb.AppendLine("            Start-Process -FilePath $relaunchTarget -NoNewWindow");
         sb.AppendLine("        } catch {");
         sb.AppendLine("            Write-Warning $_");
         sb.AppendLine("        }");

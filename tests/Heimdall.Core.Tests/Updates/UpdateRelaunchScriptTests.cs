@@ -670,4 +670,85 @@ public sealed class UpdateRelaunchScriptTests
                 "not-a-hash",
                 RelaunchTarget));
     }
+
+    /// <summary>
+    /// Both ways back into the application inherit this script's standard handles.
+    /// </summary>
+    /// <remarks>
+    /// <para><c>Start-Process</c> defaults to <c>UseShellExecute</c>, which hands the child a new
+    /// console: measured on 2026-09-14, a marker written to stderr by a child started that way goes
+    /// to a fresh <c>FILE_TYPE_CHAR</c> handle and is lost, while <c>-NoNewWindow</c> gives it the
+    /// parent's <c>FILE_TYPE_DISK</c> handle and the marker lands in the file. Environment
+    /// variables traverse either way, which is what makes the loss silent.</para>
+    /// <para>What rides on it: the .NET runtime prints the repeating frame cycle of a stack
+    /// overflow to stderr, and on a machine whose Windows Error Reporting is disabled by policy
+    /// that is the only evidence such a crash leaves. A session launched with stderr redirected to
+    /// a file kept it until the first update and then quietly stopped.</para>
+    /// </remarks>
+    [Fact]
+    public void Build_BothRelaunchPathsInheritTheStandardHandles()
+    {
+        string script = UpdateRelaunchScript.Build(SampleSpec());
+        string bootstrap = DecodeBootstrap(UpdateRelaunchScript.BuildPowerShellArguments(
+            @"C:\Temp\relaunch.ps1",
+            ScriptSha256,
+            RelaunchTarget,
+            FailureRecordPath));
+
+        Assert.Contains(
+            $"Start-Process -FilePath '{RelaunchTarget}' -NoNewWindow -PassThru",
+            script,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "Start-Process -FilePath $relaunchTarget -NoNewWindow",
+            bootstrap,
+            StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// The installer keeps <c>UseShellExecute</c>, which is what carries the elevation verb.
+    /// </summary>
+    /// <remarks>
+    /// This is the discriminating half of the pair above: applying <c>-NoNewWindow</c> to every
+    /// <c>Start-Process</c> in the script - the obvious way to "finish" the change - would force
+    /// <c>UseShellExecute = false</c> on the installer, and <c>-Verb RunAs</c> cannot be used
+    /// without ShellExecute. An elevated update would stop being able to ask for consent.
+    /// </remarks>
+    [Fact]
+    public void Build_TheInstallerLaunchIsNotGivenTheInheritingSwitch()
+    {
+        string script = UpdateRelaunchScript.Build(SampleSpec(requiresElevation: true));
+
+        int installerAt = script.IndexOf("$installerProcess = Start-Process", StringComparison.Ordinal);
+        Assert.True(installerAt >= 0, "the script no longer starts the installer");
+
+        int endOfStatement = script.IndexOf('\n', installerAt);
+        string statement = endOfStatement < 0 ? script[installerAt..] : script[installerAt..endOfStatement];
+
+        Assert.Contains("-Verb RunAs", statement, StringComparison.Ordinal);
+        Assert.DoesNotContain("-NoNewWindow", statement, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// The relaunch inherits the handle rather than reopening the file behind it.
+    /// </summary>
+    /// <remarks>
+    /// <c>-RedirectStandardError</c> is the other way to give the child a file, and it truncates
+    /// its target. Used here it would erase the crash written before the update, which is the one
+    /// record worth keeping. Inheriting costs nothing and preserves the append mode the file was
+    /// opened with.
+    /// </remarks>
+    [Fact]
+    public void Build_NoRelaunchReopensTheStandardStreams()
+    {
+        string script = UpdateRelaunchScript.Build(SampleSpec());
+        string bootstrap = DecodeBootstrap(UpdateRelaunchScript.BuildPowerShellArguments(
+            @"C:\Temp\relaunch.ps1",
+            ScriptSha256,
+            RelaunchTarget,
+            FailureRecordPath));
+
+        Assert.DoesNotContain("-RedirectStandardError", script, StringComparison.Ordinal);
+        Assert.DoesNotContain("-RedirectStandardError", bootstrap, StringComparison.Ordinal);
+    }
 }
