@@ -114,6 +114,81 @@ internal sealed class SystemUpdateInstallerHost : IUpdateInstallerHost
         return UpdateOutcomeStore.FailureRecordPathIn(updatesDirectory);
     }
 
+    /// <inheritdoc/>
+    /// <remarks>
+    /// Read from the operating system rather than from anything the application configured,
+    /// because nothing in the application configured it: the redirection is established by
+    /// whatever started the process, and this is the only place its destination is recorded.
+    /// Every failure answers null - a diagnostic that cannot be located is simply not carried
+    /// forward, and must never be allowed to interrupt an update.
+    /// </remarks>
+    public string? ResolveStandardErrorFilePath()
+    {
+        try
+        {
+            IntPtr handle = NativeMethods.GetStdHandle(NativeMethods.StdErrorHandle);
+            if (handle == IntPtr.Zero || handle == NativeMethods.InvalidHandleValue)
+            {
+                return null;
+            }
+
+            if (NativeMethods.GetFileType(handle) != NativeMethods.FileTypeDisk)
+            {
+                return null;
+            }
+
+            var buffer = new System.Text.StringBuilder(1024);
+            uint written = NativeMethods.GetFinalPathNameByHandle(
+                handle,
+                buffer,
+                (uint)buffer.Capacity,
+                NativeMethods.FileNameNormalized);
+
+            if (written == 0 || written >= buffer.Capacity)
+            {
+                return null;
+            }
+
+            string path = buffer.ToString();
+
+            // The call answers in the extended-length form. Left as it is the path would be
+            // handed to the command processor, which does not accept that prefix.
+            const string ExtendedLengthPrefix = @"\\?\";
+            return path.StartsWith(ExtendedLengthPrefix, StringComparison.Ordinal)
+                ? path[ExtendedLengthPrefix.Length..]
+                : path;
+        }
+        catch (Exception ex) when (ex is DllNotFoundException or EntryPointNotFoundException)
+        {
+            Core.Logging.FileLogger.Warn($"Standard error destination not resolved: {ex.Message}");
+            return null;
+        }
+    }
+
+    private static class NativeMethods
+    {
+        internal const int StdErrorHandle = -12;
+        internal const uint FileTypeDisk = 0x0001;
+        internal const uint FileNameNormalized = 0x0;
+        internal static readonly IntPtr InvalidHandleValue = new(-1);
+
+        [System.Runtime.InteropServices.DllImport("kernel32.dll", SetLastError = true)]
+        internal static extern IntPtr GetStdHandle(int nStdHandle);
+
+        [System.Runtime.InteropServices.DllImport("kernel32.dll", SetLastError = true)]
+        internal static extern uint GetFileType(IntPtr hFile);
+
+        [System.Runtime.InteropServices.DllImport(
+            "kernel32.dll",
+            CharSet = System.Runtime.InteropServices.CharSet.Unicode,
+            SetLastError = true)]
+        internal static extern uint GetFinalPathNameByHandle(
+            IntPtr hFile,
+            System.Text.StringBuilder lpszFilePath,
+            uint cchFilePath,
+            uint dwFlags);
+    }
+
     /// <summary>Names the PowerShell host the relauncher runs under.</summary>
     /// <remarks>
     /// Always the same one. See <see cref="WindowsPowerShell"/> for why the earlier

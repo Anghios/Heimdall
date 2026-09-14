@@ -16,10 +16,18 @@ All notable changes to Heimdall are documented in this file.
 
 ### Updates
 
-- The application relaunched after an update inherits the standard output and error streams of the
-  session it replaces, instead of being given a new console. A session started with its error
-  stream redirected to a file keeps writing to that file across updates. Environment variables
-  already traversed the relaunch, so the loss affected only redirection and was silent.
+- When the session being replaced has its error stream pointed at a file, the relauncher reopens
+  that same file, in append mode, for the session that replaces it. A session started through a
+  script that redirects its error stream keeps writing to that file across updates; previously the
+  relaunched application was given a new console and the file stopped receiving anything.
+  Environment variables already traversed the relaunch, so the loss affected only the redirection
+  and was silent.
+- A session whose error stream is not a file relaunches exactly as before, which is every session
+  started normally.
+- The paths travel to the command processor in environment variables rather than on its command
+  line, so they are unaffected by the quoting differences between Windows PowerShell 5.1 and
+  PowerShell 7. A path the command processor cannot carry is declined rather than mangled, and that
+  session keeps no diagnostic.
 - The installer is still started the other way, which is what lets an update that needs
   administrator rights ask for consent.
 
