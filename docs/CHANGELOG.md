@@ -12,7 +12,7 @@
 
 All notable changes to Heimdall are documented in this file.
 
-## Unreleased
+## 2026-09-14: embedded RDP stability during connection bursts (v2026.091401)
 
 ### Embedded RDP
 
@@ -21,6 +21,11 @@ All notable changes to Heimdall are documented in this file.
   machine entered sleep with sessions open, each notification could start a connection attempt from
   inside the previous one until the process ran out of stack and Windows ended it. Connection
   attempts that arrive during another one now wait for it to finish instead.
+
+### Dependencies
+
+- `System.Security.Cryptography.ProtectedData` updated from 10.0.11 to 10.0.12, a patch update of
+  the package that protects the local credential store. No advisory is attached to it.
 
 ## 2026-09-09: session tree navigation and organization (v2026.090902)
 
