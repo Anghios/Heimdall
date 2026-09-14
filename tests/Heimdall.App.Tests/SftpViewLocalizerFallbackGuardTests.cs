@@ -47,10 +47,19 @@ public sealed class SftpViewLocalizerFallbackGuardTests
     private const int MinimumHelperCalls = 20;
 
     /// <summary>
-    /// The column header, which falls back to the column identity, and the LF helper, which
-    /// falls back to the key it was handed.
+    /// The column header, which falls back to the column identity, and the two helpers, which
+    /// fall back to the key they were handed.
     /// </summary>
-    private const int PermittedExpressionFallbacks = 2;
+    /// <remarks>
+    /// Raised from two to three on 2026-09-14, and the reason is the defect this whole file was
+    /// meant to prevent. The rewrite that introduced <c>L</c> wrote it as <c>L(key) =&gt; L(key)</c>
+    /// - infinite recursion, a stack overflow on the first status message the file browser
+    /// produced. Every assertion here passed, because they all measure that the English fallbacks
+    /// were REMOVED and none measured that what replaced them worked. <c>L</c> now falls back to
+    /// its key, exactly as <c>LF</c> already did, which is a third arm of the permitted shape and
+    /// not a new exception to the rule: no English literal has come back.
+    /// </remarks>
+    private const int PermittedExpressionFallbacks = 3;
 
     /// <summary>
     /// A localizer-shaped expression whose null-coalescing arm falls back to a literal.
