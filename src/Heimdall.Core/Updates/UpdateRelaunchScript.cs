@@ -34,7 +34,8 @@ public sealed record UpdateRelaunchSpec(
     string InstallerArguments = UpdateRelaunchScript.DefaultInstallerArguments,
     int WaitTimeoutSeconds = UpdateRelaunchScript.DefaultWaitTimeoutSeconds,
     string? LogPath = null,
-    string? FailureRecordPath = null);
+    string? FailureRecordPath = null,
+    string? StandardErrorPath = null);
 
 /// <summary>
 /// Pure builder for the detached PowerShell relauncher used by the in-app updater.
@@ -106,6 +107,76 @@ public static class UpdateRelaunchScript
     {
         ArgumentNullException.ThrowIfNull(value);
         return value.Replace("'", "''", StringComparison.Ordinal);
+    }
+
+    /// <summary>Environment variable carrying the executable to the command processor.</summary>
+    public const string RelaunchTargetVariable = "HEIMDALL_RELAUNCH_TARGET";
+
+    /// <summary>Environment variable carrying the error-stream file to the command processor.</summary>
+    public const string RelaunchStandardErrorVariable = "HEIMDALL_RELAUNCH_STDERR";
+
+    /// <summary>
+    /// Whether a path can be handed to the command processor through an environment variable.
+    /// </summary>
+    /// <remarks>
+    /// The command processor expands <c>%NAME%</c> while parsing, so a path containing a percent
+    /// sign would be re-expanded against whatever else happens to be defined, and a path containing
+    /// a double quote would end the quoted argument early. Neither is worth handling: both are
+    /// refused, the relaunch falls back to the plain form, and the diagnostic is simply not
+    /// preserved for that session. A best-effort diagnostic that declines awkward input is better
+    /// than a relaunch that opens the wrong file - or none at all.
+    /// </remarks>
+    public static bool CanCarryThroughCommandProcessor(string? path) =>
+        !string.IsNullOrWhiteSpace(path)
+        && !path.Contains('%', StringComparison.Ordinal)
+        && !path.Contains('"', StringComparison.Ordinal);
+
+    /// <summary>
+    /// Writes the statement that starts the application again, preserving the error stream when
+    /// the session being replaced had one pointed at a file.
+    /// </summary>
+    /// <remarks>
+    /// <para><b>Why this is not simply <c>-NoNewWindow</c>.</b> That switch would make the child
+    /// inherit this script's standard handles, which does carry a redirected error stream - and
+    /// everything else with it. A handle that is a pipe would then be held open by an application
+    /// that outlives the script, and whoever is reading the other end waits for an end that never
+    /// comes. Measured on 2026-09-14: it deadlocks the relauncher's own execution tests, which read
+    /// the host's output to completion, and it would deadlock any caller that does the same.</para>
+    /// <para><b>Why not <c>-RedirectStandardError</c>.</b> It truncates its target, which would
+    /// erase the crash written before the update - the one record worth keeping.</para>
+    /// <para>So the file is reopened, in append mode, by the command processor, which then hands it
+    /// to the application and exits. Nothing is inherited from this script, and nothing is
+    /// truncated.</para>
+    /// <para><b>Why the paths travel in the environment.</b> A quoted path inside a single
+    /// <c>-ArgumentList</c> string is split differently by Windows PowerShell 5.1 and PowerShell 7,
+    /// and this script is executed under both. Carrying them as variables leaves the argument list
+    /// made of fixed tokens, which also means a hostile path cannot reach the command line at
+    /// all.</para>
+    /// </remarks>
+    private static void AppendRelaunchInvocation(StringBuilder sb, UpdateRelaunchSpec spec)
+    {
+        string target = EscapeSingleQuoted(spec.TargetExecutablePath);
+
+        if (!CanCarryThroughCommandProcessor(spec.StandardErrorPath)
+            || !CanCarryThroughCommandProcessor(spec.TargetExecutablePath))
+        {
+            sb.AppendLine(
+                $"            $relaunchProcess = Start-Process -FilePath '{target}' -PassThru");
+            return;
+        }
+
+        sb.AppendLine($"            $env:{RelaunchTargetVariable} = '{target}'");
+        sb.AppendLine(
+            $"            $env:{RelaunchStandardErrorVariable} = "
+                + $"'{EscapeSingleQuoted(spec.StandardErrorPath!)}'");
+
+        // -PassThru hands back the command processor, not the application: what follows logs the
+        // id descriptively and never acts on it, and the alternative - resolving the application's
+        // own id afterwards - would be a lookup by name racing every other instance.
+        sb.AppendLine(
+            "            $relaunchProcess = Start-Process -FilePath $env:ComSpec -ArgumentList "
+                + $"'/c','start','\"\"','/b','\"%{RelaunchTargetVariable}%\"',"
+                + $"'2>>\"%{RelaunchStandardErrorVariable}%\"' -WindowStyle Hidden -PassThru");
     }
 
     /// <summary>
@@ -325,8 +396,7 @@ public static class UpdateRelaunchScript
         sb.AppendLine(
             "        Write-Output ('heimdall-update: relaunch starting after stage ' + $updateStage)");
         sb.AppendLine("        try {");
-        sb.AppendLine(
-            $"            $relaunchProcess = Start-Process -FilePath '{EscapeSingleQuoted(spec.TargetExecutablePath)}' -PassThru");
+        AppendRelaunchInvocation(sb, spec);
         sb.AppendLine("        } catch {");
         sb.AppendLine("            Write-Warning $_");
         sb.AppendLine("        }");

@@ -73,6 +73,11 @@ public sealed class UpdateInstallerTests
 
         public string CreateFailureRecordPath() => FailureRecordPathValue;
 
+        /// <summary>What this session's error stream is pointed at, when it is a file.</summary>
+        public string? StandardErrorPathValue { get; set; }
+
+        public string? ResolveStandardErrorFilePath() => StandardErrorPathValue;
+
         public string ResolvePowerShellExecutable() => PowerShellExecutable;
 
         public bool IsDirectoryWritable(string directory) => DirectoryWritable;

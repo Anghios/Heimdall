@@ -87,7 +87,8 @@ internal sealed class UpdateInstaller : IUpdateInstaller
                 RequiresElevation: requiresElevation,
                 InstallerArguments: UpdateRelaunchScript.InstallerArgumentsFor(installDir),
                 LogPath: logPath,
-                FailureRecordPath: failureRecordPath);
+                FailureRecordPath: failureRecordPath,
+                StandardErrorPath: _host.ResolveStandardErrorFilePath());
 
             string script = UpdateRelaunchScript.Build(spec);
             string expectedScriptSha256 = ComputeTextSha256(script);

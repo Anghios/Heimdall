@@ -32,7 +32,8 @@ public sealed class UpdateRelaunchScriptTests
         string installerPath = @"C:\Temp\HeimdallSetup.exe",
         string targetExecutablePath = @"C:\Program Files\Heimdall\Heimdall.exe",
         string scriptPath = @"C:\Temp\heimdall_relaunch.ps1",
-        string? failureRecordPath = null) =>
+        string? failureRecordPath = null,
+        string? standardErrorPath = null) =>
         new(
             InstallerPath: installerPath,
             ExpectedInstallerSha256: InstallerSha256,
@@ -42,7 +43,8 @@ public sealed class UpdateRelaunchScriptTests
             StagingDirectory: @"C:\Temp\update-stage",
             RequiresElevation: requiresElevation,
             LogPath: logPath,
-            FailureRecordPath: failureRecordPath);
+            FailureRecordPath: failureRecordPath,
+            StandardErrorPath: standardErrorPath);
 
     [Fact]
     public void EscapeSingleQuoted_DoublesSingleQuotes()
@@ -670,4 +672,128 @@ public sealed class UpdateRelaunchScriptTests
                 "not-a-hash",
                 RelaunchTarget));
     }
+
+    private const string StandardErrorPath = @"C:\Users\someone\AppData\Local\Heimdall\crash\stderr.log";
+
+    /// <summary>
+    /// A session with nowhere to preserve emits exactly the script it emitted before.
+    /// </summary>
+    /// <remarks>
+    /// This is the ordinary case - no launcher, no redirection - and it is the one that must not
+    /// change. The whole design turns on it: the relaunch is only rewritten for a session that
+    /// actually has an error stream on disk, which is why nothing else in the updater, and no
+    /// existing test of it, has to move.
+    /// </remarks>
+    [Fact]
+    public void Build_NoErrorStreamOnDisk_RelaunchesExactlyAsBefore()
+    {
+        string script = UpdateRelaunchScript.Build(SampleSpec());
+
+        Assert.Contains(
+            $"$relaunchProcess = Start-Process -FilePath '{RelaunchTarget}' -PassThru",
+            script,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("ComSpec", script, StringComparison.Ordinal);
+        Assert.DoesNotContain(UpdateRelaunchScript.RelaunchStandardErrorVariable, script, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// A session whose error stream is a file hands that same file to its successor, in append mode.
+    /// </summary>
+    [Fact]
+    public void Build_ErrorStreamOnDisk_ReopensTheSameFileInAppendMode()
+    {
+        string script = UpdateRelaunchScript.Build(SampleSpec(standardErrorPath: StandardErrorPath));
+
+        Assert.Contains(
+            $"$env:{UpdateRelaunchScript.RelaunchTargetVariable} = '{RelaunchTarget}'",
+            script,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            $"$env:{UpdateRelaunchScript.RelaunchStandardErrorVariable} = '{StandardErrorPath}'",
+            script,
+            StringComparison.Ordinal);
+        Assert.Contains("-FilePath $env:ComSpec", script, StringComparison.Ordinal);
+        Assert.Contains(
+            $"'2>>\"%{UpdateRelaunchScript.RelaunchStandardErrorVariable}%\"'",
+            script,
+            StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Neither switch that was considered and rejected may appear.
+    /// </summary>
+    /// <remarks>
+    /// <c>-NoNewWindow</c> would make the child inherit every standard handle, including a pipe,
+    /// which an application outliving the script then holds open against a reader waiting for its
+    /// end - measured, it deadlocks the relauncher's own execution tests.
+    /// <c>-RedirectStandardError</c> truncates its target, erasing the crash written before the
+    /// update.
+    /// </remarks>
+    [Theory]
+    [InlineData(null)]
+    [InlineData(StandardErrorPath)]
+    public void Build_NeverInheritsEveryHandleAndNeverTruncates(string? standardErrorPath)
+    {
+        string script = UpdateRelaunchScript.Build(SampleSpec(standardErrorPath: standardErrorPath));
+
+        Assert.DoesNotContain("-NoNewWindow", script, StringComparison.Ordinal);
+        Assert.DoesNotContain("-RedirectStandardError", script, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// No path reaches the command line: the argument list is fixed tokens and variable names.
+    /// </summary>
+    /// <remarks>
+    /// Two reasons at once. A quoted path inside a single <c>-ArgumentList</c> string is split
+    /// differently by Windows PowerShell 5.1 and PowerShell 7, and this script runs under both;
+    /// and a path that never reaches the command line cannot carry anything into it.
+    /// </remarks>
+    [Fact]
+    public void Build_ErrorStreamOnDisk_KeepsThePathsOutOfTheArgumentList()
+    {
+        const string hostile = @"C:\Temp\a b\he said ''hi'' & echo\stderr.log";
+        string script = UpdateRelaunchScript.Build(SampleSpec(standardErrorPath: hostile));
+
+        int argumentsAt = script.IndexOf("-ArgumentList", StringComparison.Ordinal);
+        Assert.True(argumentsAt >= 0, "the relaunch no longer goes through the command processor");
+
+        int endOfStatement = script.IndexOf('\n', argumentsAt);
+        string statement = endOfStatement < 0 ? script[argumentsAt..] : script[argumentsAt..endOfStatement];
+
+        Assert.DoesNotContain("stderr.log", statement, StringComparison.Ordinal);
+        Assert.DoesNotContain("Heimdall.exe", statement, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// A path the command processor cannot carry is declined, not mangled.
+    /// </summary>
+    /// <remarks>
+    /// A percent sign would be re-expanded while the command line is parsed, and a double quote
+    /// would close the argument early. Both fall back to the plain relaunch: the session simply
+    /// keeps no diagnostic, which is what every session did before this existed.
+    /// </remarks>
+    [Theory]
+    [InlineData(@"C:\Temp\100%\stderr.log")]
+    [InlineData("C:\\Temp\\quote\"here\\stderr.log")]
+    public void Build_AnErrorStreamPathTheProcessorCannotCarry_FallsBack(string awkward)
+    {
+        string script = UpdateRelaunchScript.Build(SampleSpec(standardErrorPath: awkward));
+
+        Assert.Contains(
+            $"$relaunchProcess = Start-Process -FilePath '{RelaunchTarget}' -PassThru",
+            script,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("ComSpec", script, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(null, false)]
+    [InlineData("", false)]
+    [InlineData("   ", false)]
+    [InlineData(@"C:\Temp\stderr.log", true)]
+    [InlineData(@"C:\Temp\50%\stderr.log", false)]
+    [InlineData("C:\\Temp\\q\"uote.log", false)]
+    public void CanCarryThroughCommandProcessor_AnswersPerPath(string? path, bool expected)
+        => Assert.Equal(expected, UpdateRelaunchScript.CanCarryThroughCommandProcessor(path));
 }

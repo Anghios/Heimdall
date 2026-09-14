@@ -37,6 +37,20 @@ internal interface IUpdateInstallerHost
     /// <summary>Where the relauncher records what went wrong, when something does.</summary>
     string CreateFailureRecordPath();
 
+    /// <summary>
+    /// The file this session's error stream is pointed at, or null when it is not a file.
+    /// </summary>
+    /// <remarks>
+    /// The application has no console of its own, so its error stream goes nowhere unless the
+    /// session was started through something that redirected it. When it was, that file is where
+    /// the runtime writes the repeating frame cycle of a stack overflow - the only account such a
+    /// crash leaves, since no handler runs and no dump is written on a machine whose error
+    /// reporting is disabled by policy. Reported here so the relauncher can hand the same file to
+    /// the session that replaces this one; null whenever there is nothing to preserve, which is
+    /// the ordinary case.
+    /// </remarks>
+    string? ResolveStandardErrorFilePath();
+
     /// <summary>Resolves the absolute path of the PowerShell host the relauncher runs under.</summary>
     string ResolvePowerShellExecutable();
 
