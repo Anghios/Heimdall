@@ -2062,13 +2062,23 @@ public partial class EmbeddedSftpView : UserControl, IDisposable, ICloseGuard
 
     /// <summary>Resolves a locale key, degrading to the key itself when no localizer is set.</summary>
     /// <remarks>
-    /// The same helper the SSH view already uses. It replaces a dozen
-    /// <c>L("Key")</c> arms whose English half was never shown -
+    /// <para>The same helper the SSH view already uses. It replaces a dozen
+    /// <c>_localizer?[key] ?? "English"</c> arms whose English half was never shown -
     /// production always has a localizer - but which were, literally, user-facing text
     /// written in the code, and which drifted from the catalogue by construction: nothing
-    /// updated them when a message was reworded.
+    /// updated them when a message was reworded.</para>
+    /// <para><b>It was written as a call to itself when it was introduced on 2026-09-07</b>, which
+    /// is recursion with no way out. Every status message this view produced overflowed the stack
+    /// and killed the process where it stood: no exception, no log line, and no dump on a machine
+    /// whose error reporting is disabled by policy. It reached users in every release from
+    /// v2026.090701 to v2026.091402, and a burst of dropped transports - which makes this view
+    /// report a disconnection - is what triggered it. Named by the stack of a crash dump, from
+    /// three values repeated 32,040 times.</para>
+    /// <para>The rewrite that introduced it carried its own guard, and that guard passed: it
+    /// asserted the English halves had been removed, and nothing asserted that what replaced them
+    /// worked. <c>UnconditionalSelfRecursionGuardTests</c> now sweeps the tree for the shape.</para>
     /// </remarks>
-    private string L(string key) => L(key);
+    private string L(string key) => _localizer?[key] ?? key;
 
     /// <summary>As <see cref="L"/>, with the localizer applying the arguments.</summary>
     /// <remarks>
