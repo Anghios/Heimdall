@@ -1748,9 +1748,9 @@ public partial class EmbeddedRdpView
                     "RdpSurfaceNotReady"));
             }
 
-            FlushLayoutPipeline("pre-connect");
+            var preConnectFlush = FlushLayoutPipeline("pre-connect");
             EnsureHostHandle();
-            FlushLayoutPipeline("post-handle");
+            var postHandleFlush = FlushLayoutPipeline("post-handle");
 
             // Both flushes pump messages, and a tab close dispatched inside the pump tears this
             // view down: the host is handed back and the field is cleared. Re-read the field
@@ -1761,6 +1761,30 @@ public partial class EmbeddedRdpView
                 Core.Logging.FileLogger.Info(
                     "EmbeddedRDP BeginConnect abandoned: the attempt ended while its layout was flushed.");
                 return;
+            }
+
+            // A flush refused by the pump latch means this attempt is standing on somebody else's
+            // message pump, so the surface is not known to be realized and the stack already
+            // carries that pump. RdpLayoutFlushDeferralPolicy carries why that is the shape the
+            // connect path must not push further.
+            var deferral = RdpLayoutFlushDeferralPolicy.Decide(
+                preConnectFlush,
+                postHandleFlush,
+                _beginConnectAttempt,
+                BeginConnectMaxAttempts);
+
+            if (deferral == RdpFlushDeferralOutcome.RetryAfterRenderPass)
+            {
+                Core.Logging.FileLogger.Warn(
+                    "EmbeddedRDP layout flush deferred inside an open message pump; retrying after a render pass.");
+                _ = RetryBeginConnectAsync(attempt);
+                return;
+            }
+
+            if (deferral == RdpFlushDeferralOutcome.ConnectUnflushed)
+            {
+                Core.Logging.FileLogger.Warn(
+                    "EmbeddedRDP continuing even though no layout flush ever ran outside a message pump.");
             }
 
             var connectHost = ResolveConnectHost(_server);
@@ -2515,8 +2539,21 @@ public partial class EmbeddedRdpView
 
         if (!_rdpHost.IsHandleCreated)
         {
+            // Reading the property is what creates the handle, and it creates it synchronously.
+            // The pump below only lets the creation messages run, so refusing it inside an open
+            // pump costs the handle nothing.
             _ = _rdpHost.Handle;
-            WinForms.Application.DoEvents();
+
+            using var pump = UiMessagePumpGuard.ForCurrentThread.Acquire();
+            if (pump.Admission == UiMessagePumpAdmission.Open)
+            {
+                WinForms.Application.DoEvents();
+            }
+            else
+            {
+                Core.Logging.FileLogger.Warn(
+                    "EmbeddedRDP EnsureHostHandle did not pump: a message pump is already open on this thread.");
+            }
         }
 
         Core.Logging.FileLogger.Info(
@@ -4893,7 +4930,20 @@ public partial class EmbeddedRdpView
             && SurfaceContainer.ActualHeight >= 64;
     }
 
-    private void FlushLayoutPipeline(string stage)
+    /// <summary>Realizes the WPF and WinForms layout passes before the control is connected.</summary>
+    /// <param name="stage">The point of the connect path this flush runs at, for the log.</param>
+    /// <returns>
+    /// Whether the flush was able to pump. <see cref="UiMessagePumpAdmission.Defer"/> says the
+    /// layout calls ran but the queue was not drained here, so the caller has not been handed the
+    /// realized surface it asked for and must come back once the stack has unwound.
+    /// </returns>
+    /// <remarks>
+    /// The layout calls are unconditional: they are synchronous, they pump nothing, and they are
+    /// what the pump exists to publish. Only the two pumping statements are refused when a pump is
+    /// already open on this thread - <c>DoEvents</c>, and the dispatcher round trip below it, which
+    /// pushes a nested frame of its own. <see cref="UiMessagePumpGuard"/> carries why.
+    /// </remarks>
+    private UiMessagePumpAdmission FlushLayoutPipeline(string stage)
     {
         Core.Logging.FileLogger.Info(
             $"EmbeddedRDP layout flush ({stage}): viewVisible={IsVisible} formsVisible={FormsHost.IsVisible} formsSize={FormsHost.ActualWidth:0.##}x{FormsHost.ActualHeight:0.##} surfaceSize={SurfaceContainer.ActualWidth:0.##}x{SurfaceContainer.ActualHeight:0.##}");
@@ -4914,8 +4964,17 @@ public partial class EmbeddedRdpView
             control.Refresh();
         }
 
+        using var pump = UiMessagePumpGuard.ForCurrentThread.Acquire();
+        if (pump.Admission == UiMessagePumpAdmission.Defer)
+        {
+            Core.Logging.FileLogger.Warn(
+                $"EmbeddedRDP layout flush ({stage}) did not pump: a message pump is already open on this thread.");
+            return UiMessagePumpAdmission.Defer;
+        }
+
         WinForms.Application.DoEvents();
         Dispatcher.Invoke(DispatcherPriority.Render, new Action(delegate { }));
+        return UiMessagePumpAdmission.Open;
     }
 
     private void StartAntiIdleTimer(int intervalSeconds)
