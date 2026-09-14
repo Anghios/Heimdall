@@ -12,6 +12,18 @@
 
 All notable changes to Heimdall are documented in this file.
 
+## 2026-09-14: the file browser no longer closes the application (v2026.091403)
+
+### File browser
+
+- The file browser's locale helper called itself instead of reading the catalogue, so every status
+  message it produced ran out of stack and closed the application with no message, no entry in the
+  log and no error report. Losing several connections at once, or putting the machine to sleep with
+  sessions open, made the file browser report a disconnection and was therefore enough to trigger
+  it. Present since v2026.090701.
+- A check now refuses any method whose whole body is a call to itself, across the entire source
+  tree.
+
 ## 2026-09-14: crash evidence survives an update (v2026.091402)
 
 ### Updates
