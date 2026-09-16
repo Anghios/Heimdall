@@ -12,6 +12,72 @@
 
 All notable changes to Heimdall are documented in this file.
 
+## Unreleased: the diagram editor keeps your work
+
+### Diagram editor
+
+- Pressing Ctrl+S inside the editor saved nothing. The page hosting draw.io treated the editor's
+  save event exactly like its autosave event, so both did no more than hand the drawing back to
+  Heimdall to hold in memory. The two are now separate: autosave tracks the document, Ctrl+S writes
+  it to disk, and both take the same path as the Save button.
+- Pressing F5 or Ctrl+R discarded the drawing without asking. Browser shortcuts reloaded the page
+  the editor lives in; they are now off, as they already were in the SSH and VNC surfaces.
+- A diagram opened from Network Cartography wrote itself back into the Windows temporary folder.
+  The scan used to be saved there first and the editor then treated that file as its own, so Save
+  wrote somewhere the user never chose and nothing ever cleaned it up. The drawing is now handed
+  over as content with no file behind it, and the first save asks where to put it.
+- Closing the tab, or replacing the drawing with New or Open, threw away unsaved work in silence.
+  Each now asks whether to save, discard or cancel, and the header shows the current file name
+  followed by (modified) while there are changes that are not on disk.
+- New Save As button, and a new Export SVG button for an export path that the editor already
+  supported but no control reached. That path was also broken: the editor returns an SVG the same
+  way it returns a PNG, as an encoded image, and the code wrote it through as text. An exported
+  SVG would have been a file full of the characters of an encoded image. Nothing had ever reached
+  it, which is why nobody had seen it.
+- Failing to open, save or export raised the application's crash dialog. Each failure is now
+  reported in the tool, next to the toolbar, and written to the log.
+- Save could do nothing at all, with no message, when pressed before the editor had reported any
+  content. The editor is now asked for the drawing, and the save resumes when it answers. The
+  toolbar also stays disabled until the editor itself is ready, not merely until its page loads.
+
+### Security
+
+- The embedded draw.io was two years and seven major versions behind: the tree shipped 24.8.6 while
+  every manifest claimed 26.0.9. It is now 31.4.5, which carries upstream's fixes for three defects
+  reachable by opening a crafted .drawio file: cross-site scripting through the GraphML importer,
+  a tracking beacon through a CSS filter bypass, and a permanent freeze on extreme coordinates.
+- The editor could still call out. It is now loaded with draw.io's offline and stealth switches,
+  and the vendored page carries a content policy that keeps every request on Heimdall's local
+  host. Upstream's policy allowed any image host and the diagrams.net endpoints.
+- The editor's WebView2 surface now refuses messages that do not come from its own page, keeps the
+  iframe on the local host, hands external links to the default browser instead of opening a
+  window, and turns off script dialogs. The other WebView2 surfaces already did all of this.
+
+### Internationalization
+
+- The embedded editor followed the Windows language rather than Heimdall's. It now receives the
+  application locale and theme.
+- The file dialogs of the diagram editor, Network Cartography and the SecNumCloud audit spelled
+  their filters in English, three different ways for the same .drawio files. All of them now read
+  from the locale catalogue, and a check refuses any new hardcoded filter across the tool views.
+- The Draw.io network export wrote its group headings and node lines in English regardless of the
+  application language. They now go through the catalogue. Role names stay as the classifier
+  produces them, exactly as they appear in the scan results and the CSV export.
+
+### Fixed
+
+- In the Draw.io network export, a swimlane and the hosts inside it could disagree on colour: the
+  two were written from separate tables, and six roles were coloured in one and not the other, so
+  an SSH Server lane was green with grey hosts. Both now come from one palette per role.
+- The export's diagram name used the machine's regional settings to format its timestamp.
+
+### Documentation
+
+- `docs/TOOLS.md` and its French mirror gained a Diagram Editor section: the two ways into the
+  tool, what Save and Save As do, the offline guarantee, and how to upgrade the vendored editor.
+- `scripts/Vendor-DrawIo.ps1` performs that upgrade: it copies the shipped subset, re-applies the
+  two Heimdall edits and rewrites the version in all three manifests.
+
 ## 2026-09-14: the file browser no longer closes the application (v2026.091403)
 
 ### File browser

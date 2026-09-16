@@ -2,7 +2,28 @@
 <html>
 <head>
     <meta charset="UTF-8"/>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; frame-src 'self'; child-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'"/>
     <style>
+        :root {
+            --menu-border: #4c5168;
+            --menu-background: #20232d;
+            --menu-hover: #2e3342;
+            --menu-separator: #3a4053;
+            --menu-text: #f4f5f8;
+            --menu-text-disabled: #80879c;
+            --menu-shortcut: #9ea5bd;
+            --menu-shadow: rgba(0, 0, 0, 0.45);
+        }
+        body.theme-light {
+            --menu-border: #c9cdd8;
+            --menu-background: #ffffff;
+            --menu-hover: #eef0f5;
+            --menu-separator: #e1e4ec;
+            --menu-text: #1f2330;
+            --menu-text-disabled: #9aa0b2;
+            --menu-shortcut: #6c7389;
+            --menu-shadow: rgba(0, 0, 0, 0.18);
+        }
         * { margin: 0; padding: 0; }
         html, body { width: 100%; height: 100%; overflow: hidden; }
         iframe { width: 100%; height: 100%; border: none; }
@@ -11,13 +32,13 @@
             z-index: 2147483647;
             min-width: 220px;
             padding: 6px 0;
-            border: 1px solid #4c5168;
+            border: 1px solid var(--menu-border);
             border-radius: 8px;
-            background: #20232d;
-            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+            background: var(--menu-background);
+            box-shadow: 0 12px 32px var(--menu-shadow);
             display: none;
             font: 13px/1.2 "Segoe UI", sans-serif;
-            color: #f4f5f8;
+            color: var(--menu-text);
         }
         .heimdall-context-menu button {
             width: 100%;
@@ -33,20 +54,20 @@
             cursor: pointer;
         }
         .heimdall-context-menu button:hover:not(:disabled) {
-            background: #2e3342;
+            background: var(--menu-hover);
         }
         .heimdall-context-menu button:disabled {
-            color: #80879c;
+            color: var(--menu-text-disabled);
             cursor: default;
         }
         .heimdall-context-menu hr {
             height: 1px;
             border: 0;
             margin: 6px 0;
-            background: #3a4053;
+            background: var(--menu-separator);
         }
         .heimdall-context-menu .shortcut {
-            color: #9ea5bd;
+            color: var(--menu-shortcut);
             font-size: 12px;
         }
     </style>
@@ -55,6 +76,25 @@
     <iframe id="drawio-frame" allow="clipboard-read; clipboard-write"></iframe>
     <div id="heimdall-context-menu" class="heimdall-context-menu"></div>
     <script>
+        // Host page for the embedded draw.io editor.
+        //
+        // The WPF side (DiagramEditorView) talks to this page through WebView2
+        // string messages; this page talks to draw.io through the embed
+        // protocol (postMessage, proto=json). Every message is a string
+        // "<verb>:<payload>" so the C# side never parses JSON for routing.
+        //
+        // Host -> page:   load:<xml> | export-png: | export-svg: | export-xml: | command:<action>
+        // Page -> host:   ready: | editor-ready: | save:<xml> (autosave) | save-request:<xml> (Ctrl+S)
+        //                 export:<data uri or svg> | export-xml:<xml> | open-link:<json> | exit:
+        //
+        // The page is opened as heimdall-host.html?lang=<en|fr>&theme=<dark|light>;
+        // both values are forwarded to draw.io so the editor follows Heimdall's
+        // own locale and theme instead of the operating system's.
+        var hostParams = new URLSearchParams(window.location.search);
+        var editorLanguage = hostParams.get('lang') || 'en';
+        var editorTheme = hostParams.get('theme') === 'light' ? 'light' : 'dark';
+        var editorOrigin = window.location.origin;
+
         var currentXml = null;
         var frame = document.getElementById('drawio-frame');
         var contextMenu = document.getElementById('heimdall-context-menu');
@@ -81,6 +121,8 @@
             { action: 'clearWaypoints' }
         ];
 
+        document.body.classList.add(editorTheme === 'light' ? 'theme-light' : 'theme-dark');
+
         function postToHost(message) {
             if (window.chrome && window.chrome.webview) {
                 window.chrome.webview.postMessage(message);
@@ -89,7 +131,7 @@
 
         function postToEditor(payload) {
             if (!frame.contentWindow) return;
-            frame.contentWindow.postMessage(JSON.stringify(payload), '*');
+            frame.contentWindow.postMessage(JSON.stringify(payload), editorOrigin);
         }
 
         function loadDiagram(xml) {
@@ -371,11 +413,12 @@
             }
         }
 
-        // Listen for messages from draw.io iframe (embed protocol)
+        // Listen for messages from the draw.io iframe (embed protocol)
         window.addEventListener('message', function(evt) {
             if (!evt.data || typeof evt.data !== 'string') return;
             // Accept messages from the iframe only
             if (evt.source !== frame.contentWindow) return;
+            if (evt.origin !== editorOrigin) return;
 
             try {
                 var msg = JSON.parse(evt.data);
@@ -395,14 +438,23 @@
                     break;
 
                 case 'autosave':
-                case 'save':
+                    // Fired on every change: the host tracks it as the current document.
                     if (typeof msg.xml === 'string') {
                         postToHost('save:' + msg.xml);
                     }
                     break;
 
+                case 'save':
+                    // Fired by Ctrl+S inside the editor: the user asked for a write to disk.
+                    if (typeof msg.xml === 'string') {
+                        postToHost('save-request:' + msg.xml);
+                    }
+                    break;
+
                 case 'export':
-                    if (typeof msg.data === 'string') {
+                    if (msg.format === 'xml' && typeof msg.xml === 'string') {
+                        postToHost('export-xml:' + msg.xml);
+                    } else if (typeof msg.data === 'string') {
                         postToHost('export:' + msg.data);
                     }
                     break;
@@ -419,14 +471,14 @@
             }
         }
 
-        // Listen for messages from C# host
+        // Listen for messages from the C# host
         if (window.chrome && window.chrome.webview) {
             window.chrome.webview.addEventListener('message', function(evt) {
                 var msg = evt.data;
                 if (typeof msg !== 'string') return;
 
                 if (msg.indexOf('load:') === 0) {
-                    currentXml = msg.substring(5);
+                    currentXml = msg.substring('load:'.length);
                     if (editorReady) {
                         loadDiagram(currentXml);
                     }
@@ -443,8 +495,13 @@
                     return;
                 }
 
+                if (msg === 'export-xml:') {
+                    postToEditor({ action: 'export', format: 'xml' });
+                    return;
+                }
+
                 if (msg.indexOf('command:') === 0) {
-                    executeDrawioAction(msg.substring(8));
+                    executeDrawioAction(msg.substring('command:'.length));
                     return;
                 }
             });
@@ -452,7 +509,7 @@
             postToHost('ready:');
         }
 
-        // Hide draw.io's native menu and toolbar after iframe loads.
+        // Hide draw.io's native menu and toolbar after the iframe loads.
         // In the WebView2 iframe host these controls can appear interactive
         // while not dispatching reliably, so Heimdall provides the working
         // command surface in WPF instead.
@@ -468,10 +525,25 @@
         };
 
         // Load draw.io in embed mode inside the iframe.
-        // embed=1: required for the postMessage protocol
-        // noSaveBtn=1 & noExitBtn=1: hide embed-mode buttons
-        // saveAndExit=0: prevent "Save & Exit" prompt
-        frame.src = 'index.html?embed=1&proto=json&spin=1&libraries=1&ui=dark&noSaveBtn=1&noExitBtn=1&saveAndExit=0';
+        // embed=1 & proto=json: the postMessage protocol used above
+        // offline=1 & stealth=1: no online feature, no outbound request
+        // noSaveBtn=1 & noExitBtn=1 & saveAndExit=0: no embed-mode buttons or prompts
+        // lang / ui / dark: follow Heimdall's locale and theme
+        var editorParams = new URLSearchParams({
+            embed: '1',
+            proto: 'json',
+            spin: '1',
+            libraries: '1',
+            offline: '1',
+            stealth: '1',
+            noSaveBtn: '1',
+            noExitBtn: '1',
+            saveAndExit: '0',
+            lang: editorLanguage,
+            ui: editorTheme === 'light' ? 'kennedy' : 'dark',
+            dark: editorTheme === 'light' ? '0' : '1'
+        });
+        frame.src = 'index.html?' + editorParams.toString();
     </script>
 </body>
 </html>

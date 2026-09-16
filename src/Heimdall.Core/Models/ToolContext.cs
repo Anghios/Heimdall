@@ -20,6 +20,8 @@ namespace Heimdall.Core.Models;
 /// Carries optional context data when opening a tool tab.
 /// Enriched fields allow tools to prefill with server-specific values
 /// instead of generic placeholders like "example.com".
+/// <see cref="DocumentContent"/> hands the tool an unsaved document body (never a
+/// path): the receiving tool must ask for a location before its first write.
 /// </summary>
 public sealed record ToolContext(
     string? TargetHost = null,
@@ -37,4 +39,5 @@ public sealed record ToolContext(
     Action<string>? SendCommandAction = null,
     Func<bool>? CanSendToTerminal = null,
     string? InitialActionId = null,
-    IGatewayInventory? GatewayInventory = null);
+    IGatewayInventory? GatewayInventory = null,
+    string? DocumentContent = null);

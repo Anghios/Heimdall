@@ -254,6 +254,74 @@ Localization is injected into `SecNumCloudAuditEngine` through a
 `Func<string, string>` delegate. Keep audit output strings localizable and do
 not hardcode user-facing text in the engine.
 
+## Diagram Editor
+
+The `DIAGRAM` tool embeds the draw.io editor in a WebView2 surface. The editor
+is vendored under `src/Heimdall.App/Assets/drawio/` and never reaches the
+network: it is loaded with `offline=1&stealth=1`, and the vendored `index.html`
+carries a Content-Security-Policy that keeps every request on the local virtual
+host `heimdall-drawio.local`.
+
+### Two ways in
+
+- **From the Tools list**, with an empty canvas.
+- **From Network Cartography**, with the Edit Diagram button. The scan is turned
+  into a draw.io document and handed to the editor as unsaved content. It has no
+  file behind it, so the first save asks where to put it.
+
+### Toolbar
+
+draw.io's own menu bar and toolbar are hidden. Inside a WebView2 iframe they
+look interactive but do not dispatch reliably, so Heimdall provides the command
+surface: New, Open, Save, Save As, Export PNG, Export SVG, Line, Format, Undo,
+Redo, zoom out, 100%, zoom in, Duplicate, Delete. The shape library, the canvas
+and the format panel are draw.io's own and work normally. Right-clicking the
+canvas opens a Heimdall context menu that drives the same draw.io actions.
+
+### Saving
+
+The header shows the current file name, followed by `(modified)` while the
+editor holds changes that are not on disk. Save writes to the current file;
+Save As always asks for a new one. Ctrl+S inside the editor does the same thing
+as the Save button. Closing the tab, or replacing the document with New or
+Open, asks what to do with unsaved work.
+
+The editor state lives in `DiagramDocumentState`: it holds the file path, the
+content the editor last reported, and the content last read from or written to
+disk. Everything else reads that record, which is why a save, a Save As and the
+unsaved-changes prompt can never disagree.
+
+### Language, theme and WebView2
+
+The host page is opened as `heimdall-host.html?lang=<en|fr>&theme=<dark|light>`
+and forwards both to draw.io, so the editor follows Heimdall rather than the
+operating system locale. Browser accelerator keys are off: F5 would reload the
+host page and drop the diagram. Without a WebView2 runtime, the tool shows a
+fallback message instead of an editor.
+
+The assets are about 44 MB across 2300 files and are excluded from Debug builds
+(`Heimdall.App.csproj`), so the tool reports "Release builds only" when run from
+a Debug output.
+
+### Upgrading the vendored editor
+
+Run `scripts/Vendor-DrawIo.ps1` against an upstream `src/main/webapp` checkout.
+It copies the shipped subset, re-applies Heimdall's two edits (the
+`heimdallDrawioApp` hook in `js/bootstrap.js`, the Content-Security-Policy in
+`index.html`) and rewrites the version rows of `VENDORED.md` and both
+`THIRD-PARTY-NOTICES` files. `DiagramEditorGuardTests` then checks that those
+manifests match the version the bundle reports. Smoke-test the tool end to end
+before committing: the guards read source, not behaviour.
+
+### Draw.io export without the editor
+
+`DrawIoExporter` in `Heimdall.Core.Discovery` turns a `NetworkScanSnapshot` into
+draw.io XML, one swimlane per classified role plus one for hosts with no open
+port. It takes a `Func<string, string>` localizer: role names are the
+classifier's own identities and stay as they are, but the swimlane headings and
+the node lines go through the locale catalogue. The lane colour and its node style
+come from a single `RolePalette` record, so they cannot drift apart.
+
 ## Command Library And TwinShell
 
 The `CMDLIB` tool embeds the TwinShell command library inside Heimdall.

@@ -154,7 +154,9 @@ public sealed partial class NetworkCartographyViewModel : ObservableObject, IDis
 
     public string? GetDrawIoXml()
     {
-        return LastSnapshot is null ? null : DrawIoExporter.Generate(LastSnapshot);
+        return LastSnapshot is null
+            ? null
+            : DrawIoExporter.Generate(LastSnapshot, CreateLocalize());
     }
 
     public void CompareWithHistory(string fileName)
