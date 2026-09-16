@@ -262,34 +262,83 @@ network: it is loaded with `offline=1&stealth=1`, and the vendored `index.html`
 carries a Content-Security-Policy that keeps every request on the local virtual
 host `heimdall-drawio.local`.
 
-### Two ways in
+### Three ways in
 
-- **From the Tools list**, with an empty canvas.
+- **From the Tools list**, with an empty canvas, or from File > New from
+  template. Templates ship under `Assets/diagram-templates/`.
 - **From Network Cartography**, with the Edit Diagram button. The scan is turned
   into a draw.io document and handed to the editor as unsaved content. It has no
   file behind it, so the first save asks where to put it.
+- **From a recent diagram**, under File > Recent.
 
-### Toolbar
+### A scan is drawn as a topology
 
-draw.io's own menu bar and toolbar are hidden. Inside a WebView2 iframe they
-look interactive but do not dispatch reliably, so Heimdall provides the command
-surface: New, Open, Save, Save As, Export PNG, Export SVG, Line, Format, Undo,
-Redo, zoom out, 100%, zoom in, Duplicate, Delete. The shape library, the canvas
-and the format panel are draw.io's own and work normally. Right-clicking the
-canvas opens a Heimdall context menu that drives the same draw.io actions.
+`DrawIoExporter` turns a `NetworkScanSnapshot` into a drawing that says what
+talks to what, not only what exists:
 
-### Saving
+- One swimlane per classified role, plus one for hosts with no open port.
+- One segment node per detected VLAN, or one for the scanned subnet when no VLAN
+  was detected. A segment shows its gateway. VLAN membership and gateways come
+  from `VlanInfo`, which already carries both.
+- An edge from every host to its segment. A host that is itself the gateway is
+  joined the other way round, from the segment outwards, so it reads as the
+  centre.
+- Shapes that follow the role: a cylinder for a database, a hexagon for routing
+  equipment, a cube for a hypervisor. These are shapes built into mxGraph, never
+  stencils, because the vendored bundle is pruned and a missing stencil renders
+  as an empty box. `DrawIoExporterTopologyTests` fails if a style names anything
+  else.
+
+### Host nodes open sessions
+
+A host whose open ports offer a session Heimdall can open is written as a
+`UserObject` carrying a link such as `heimdall://session/RDP/10.0.0.5:3389`.
+Which session a host gets is decided by `SessionProtocolChoice`, the same
+decision the cartography context menu uses.
+
+Selecting such a node and choosing Open session from the canvas context menu
+connects. draw.io's editing mode follows a cell's link on no mouse gesture, so
+Heimdall gives the action its own entry rather than relying on a click.
+
+The link format is `SessionLaunchRequest`, which both writes and reads it.
+Everything in a link is untrusted, because a .drawio file can come from
+anywhere and the link is an instruction to reach a machine: only a protocol from
+a fixed list is accepted, the host must be an address or a plain host name, and
+the port must be in range. A valid request is then named to the user, protocol
+and destination, before anything connects.
+
+The session itself is opened through `ToolContext.OpenSessionAction`, wired by
+`MainViewModel` to `ConnectAdHocSessionAsync`. No profile is saved.
+
+### Merging a later scan
+
+File > Merge a scan reads a freshly exported scan into the diagram on screen
+instead of replacing it. `DiagramScanMerge` applies three rules:
+
+1. A cell both documents have keeps its geometry and takes the scan's label,
+   style and link. The layout is the user's decision, the data is the scan's.
+2. A cell the user drew is never touched. Heimdall's own cells are recognised by
+   their identifier prefix; anything else is the user's.
+3. A Heimdall cell the scan no longer reports is kept and greyed out, because a
+   host that has gone is a finding, not a mistake to erase.
+
+This works because cell identifiers are derived from the host address rather
+than from a counter, so the same host keeps the same identifier across exports.
+
+### Saving, drafts and recovery
 
 The header shows the current file name, followed by `(modified)` while the
 editor holds changes that are not on disk. Save writes to the current file;
 Save As always asks for a new one. Ctrl+S inside the editor does the same thing
-as the Save button. Closing the tab, or replacing the document with New or
-Open, asks what to do with unsaved work.
+as the Save button. Closing the tab, or replacing the document, asks what to do
+with unsaved work.
 
-The editor state lives in `DiagramDocumentState`: it holds the file path, the
-content the editor last reported, and the content last read from or written to
-disk. Everything else reads that record, which is why a save, a Save As and the
-unsaved-changes prompt can never disagree.
+Every change the editor reports is also written as a draft under the
+application's data directory, keyed by a hash of the document path. A draft is
+removed as soon as the document reaches its real file, so a draft that is still
+there on open means the previous run did not finish, and the editor offers it
+back. The state itself lives in `DiagramDocumentState`, which answers what a
+save must do next and whether there is unsaved work.
 
 ### Language, theme and WebView2
 
@@ -309,18 +358,9 @@ Run `scripts/Vendor-DrawIo.ps1` against an upstream `src/main/webapp` checkout.
 It copies the shipped subset, re-applies Heimdall's two edits (the
 `heimdallDrawioApp` hook in `js/bootstrap.js`, the Content-Security-Policy in
 `index.html`) and rewrites the version rows of `VENDORED.md` and both
-`THIRD-PARTY-NOTICES` files. `DiagramEditorGuardTests` then checks that those
+`THIRD-PARTY-NOTICES` files. `DrawioAssetGuardTests` then checks that those
 manifests match the version the bundle reports. Smoke-test the tool end to end
 before committing: the guards read source, not behaviour.
-
-### Draw.io export without the editor
-
-`DrawIoExporter` in `Heimdall.Core.Discovery` turns a `NetworkScanSnapshot` into
-draw.io XML, one swimlane per classified role plus one for hosts with no open
-port. It takes a `Func<string, string>` localizer: role names are the
-classifier's own identities and stay as they are, but the swimlane headings and
-the node lines go through the locale catalogue. The lane colour and its node style
-come from a single `RolePalette` record, so they cannot drift apart.
 
 ## Command Library And TwinShell
 

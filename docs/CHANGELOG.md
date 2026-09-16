@@ -12,7 +12,40 @@
 
 All notable changes to Heimdall are documented in this file.
 
-## Unreleased: the diagram editor keeps your work
+## Unreleased: the diagram tool keeps your work, and draws a real topology
+
+### Network diagrams
+
+- An exported network scan had no links in it. It drew a box per host, arranged them in columns by
+  role, and stopped there: a diagram of a network that never said what talks to what. Every host is
+  now joined to its network segment, one segment per detected VLAN or one for the scanned subnet,
+  each showing its gateway. A host that is itself a gateway is drawn as the centre of its segment
+  rather than hanging off it.
+- Host nodes now carry the session their open ports call for, and the canvas context menu connects
+  to them. Right-click a host, choose Open session, and Heimdall opens the SSH, RDP, VNC or Telnet
+  session without a saved profile. It names the protocol and the destination first, because a
+  diagram file can come from anywhere and a link in one is an instruction to reach a machine.
+- Shapes now follow the role: a cylinder for a database, a hexagon for routing equipment, a cube
+  for a hypervisor, and so on.
+- A later scan can be merged into a diagram instead of replacing it. Positions, colours and every
+  shape you added survive, the data is refreshed, and a host the new scan no longer reports is kept
+  and greyed out rather than deleted. This is what identifiers derived from the host address buy:
+  the same host is now the same cell from one export to the next.
+- The cartography context menu gained the same Connect entry, and its protocol choice now comes
+  from the same place as the diagram's, rather than being spelled out again inside a click handler.
+
+### Diagram editor
+
+- Work in progress is now kept on disk. The editor reported every change but only ever held it in
+  memory, so a crash took everything since the last save with it. A draft is written beside the
+  application's data, removed as soon as the document reaches its file, and offered back when
+  Heimdall reopens a diagram it did not finish saving.
+- New from template, with three starting points: a network segment, a three tier application and a
+  flow chart. An empty canvas is the least useful first screen a diagram tool can show.
+- Recently opened diagrams are remembered and offered again.
+- Printing.
+- The toolbar gave up five buttons to a File menu. It carried fifteen and already scrolled sideways
+  in French, and the tool has since gained templates, a merge, recents and printing.
 
 ### Diagram editor
 

@@ -272,39 +272,92 @@ le réseau : il est chargé avec `offline=1&stealth=1`, et le fichier `index.htm
 vendoré porte une Content-Security-Policy qui maintient toutes les requêtes sur
 l'hôte virtuel local `heimdall-drawio.local`.
 
-### Deux entrées
+### Trois entrées
 
-- **Depuis la liste des outils**, avec une toile vide.
+- **Depuis la liste des outils**, avec une toile vide, ou par Fichier > Nouveau
+  depuis un modèle. Les modèles sont livrés sous `Assets/diagram-templates/`.
 - **Depuis la cartographie réseau**, par le bouton Éditer le diagramme. Le scan
   est converti en document draw.io et remis à l'éditeur comme contenu non
   enregistré. Aucun fichier ne lui correspond, donc le premier enregistrement
   demande où le placer.
+- **Depuis un diagramme récent**, sous Fichier > Récents.
 
-### Barre d'outils
+### Un scan est dessiné comme une topologie
 
-La barre de menus et la barre d'outils de draw.io sont masquées. Dans une iframe
-WebView2 elles paraissent interactives sans répondre de manière fiable, donc
-Heimdall fournit la surface de commande : Nouveau, Ouvrir, Enregistrer,
-Enregistrer sous, Exporter PNG, Exporter SVG, Ligne, Format, Annuler, Rétablir,
-zoom arrière, 100%, zoom avant, Dupliquer, Supprimer. La bibliothèque de formes,
-la toile et le panneau de format sont ceux de draw.io et fonctionnent
-normalement. Un clic droit sur la toile ouvre un menu contextuel Heimdall qui
-déclenche les mêmes actions draw.io.
+`DrawIoExporter` transforme un `NetworkScanSnapshot` en un dessin qui dit ce qui
+parle à quoi, et pas seulement ce qui existe :
 
-### Enregistrement
+- Un couloir par rôle classifié, plus un pour les hôtes sans port ouvert.
+- Un noeud de segment par VLAN détecté, ou un seul pour le sous-réseau scanné
+  lorsque aucun VLAN n'a été détecté. Un segment affiche sa passerelle.
+  L'appartenance et les passerelles viennent de `VlanInfo`, qui porte déjà les
+  deux.
+- Une arête de chaque hôte vers son segment. Un hôte qui est lui-même la
+  passerelle est relie dans l'autre sens, depuis le segment, afin qu'il se lise
+  comme le centre.
+- Des formes qui suivent le role : un cylindre pour une base de données, un
+  hexagone pour un équipement de routage, un cube pour un hyperviseur. Ce sont
+  des formes intégrées a mxGraph, jamais des stencils, car le bundle vendoré est
+  élagué et un stencil manquant s'affiche en boite vide.
+  `DrawIoExporterTopologyTests` échoue si un style en nomme un autre.
+
+### Les noeuds d'hôte ouvrent des sessions
+
+Un hôte dont les ports ouverts offrent une session que Heimdall sait ouvrir est
+écrit comme un `UserObject` portant un lien tel que
+`heimdall://session/RDP/10.0.0.5:3389`. La session retenue est décidée par
+`SessionProtocolChoice`, la même décision que celle du menu contextuel de la
+cartographie.
+
+Sélectionner un tel noeud et choisir Ouvrir la session dans le menu contextuel
+de la toile connecte. Le mode edition de draw.io ne suit le lien d'une cellule
+sur aucun geste de souris, donc Heimdall donne son entrée propre a l'action
+plutôt que de compter sur un clic.
+
+Le format du lien est `SessionLaunchRequest`, qui l'écrit et le relit. Tout ce
+qu'un lien contient est non fiable, car un fichier .drawio peut venir de
+n'importe ou et le lien est une instruction pour atteindre une machine : seul un
+protocole d'une liste fixe est accepte, l'hôte doit être une adresse ou un nom
+d'hôte simple, et le port doit être dans la plage. Une demande valide est
+ensuite annoncée à l'utilisateur, protocole et destination, avant toute
+connexion.
+
+La session est ouverte par `ToolContext.OpenSessionAction`, câblé par
+`MainViewModel` vers `ConnectAdHocSessionAsync`. Aucun profil n'est enregistré.
+
+### Fusionner un scan ultérieur
+
+Fichier > Fusionner un scan lit un scan fraîchement exporté dans le diagramme à
+l'écran au lieu de le remplacer. `DiagramScanMerge` applique trois règles :
+
+1. Une cellule présente dans les deux documents conserve sa géométrie et prend
+   le libellé, le style et le lien du scan. La mise en page appartient a
+   l'utilisateur, les données au scan.
+2. Une cellule dessinée par l'utilisateur n'est jamais touchee. Les cellules de
+   Heimdall se reconnaissent à leur préfixe d'identifiant ; tout le reste
+   appartient à l'utilisateur.
+3. Une cellule Heimdall que le scan ne rapporte plus est conservée et grisée,
+   car un hôte disparu est un constat, pas une erreur à effacer.
+
+Cela fonctionne parce que les identifiants de cellule dérivent de l'adresse de
+l'hôte et non d'un compteur, si bien que le même hôte garde le même identifiant
+d'un export a l'autre.
+
+### Enregistrement, brouillons et reprise
 
 L'en-tête affiche le nom du fichier courant, suivi de `(modifié)` tant que
 l'éditeur porte des modifications absentes du disque. Enregistrer écrit dans le
 fichier courant ; Enregistrer sous en demande toujours un nouveau. Ctrl+S dans
-l'éditeur fait la meme chose que le bouton Enregistrer. Fermer l'onglet, ou
-remplacer le document par Nouveau ou Ouvrir, demande quoi faire du travail non
-enregistré.
+l'éditeur fait la même chose que le bouton Enregistrer. Fermer l'onglet, ou
+remplacer le document, demande quoi faire du travail non enregistré.
 
-L'état de l'éditeur vit dans `DiagramDocumentState` : il porte le chemin du
-fichier, le contenu que l'éditeur a signalé en dernier, et le contenu lu depuis
-le disque ou écrit sur le disque en dernier. Tout le reste lit cet
-enregistrement, et c'est pourquoi un enregistrement, un Enregistrer sous et
-l'invite de travail non enregistré ne peuvent pas se contredire.
+Chaque modification signalée par l'éditeur est aussi ecrite comme brouillon sous
+le répertoire de données de l'application, indexée par une empreinte du chemin
+du document. Un brouillon est supprime dès que le document atteint son vrai
+fichier ; un brouillon encore présent à l'ouverture signifie donc que la session
+précédente ne s'est pas terminée, et l'éditeur le repropose. L'état lui-même vit
+dans `DiagramDocumentState`, qui répond à ce qu'un enregistrement doit faire
+ensuite et s'il reste du travail non enregistré.
 
 ### Langue, theme et WebView2
 
@@ -326,19 +379,9 @@ Le script copie le sous-ensemble livré, réapplique les deux modifications
 Heimdall (le hook `heimdallDrawioApp` dans `js/bootstrap.js`, la
 Content-Security-Policy dans `index.html`) et réécrit les lignes de version de
 `VENDORED.md` et des deux fichiers `THIRD-PARTY-NOTICES`.
-`DiagramEditorGuardTests` vérifie ensuite que ces manifestes correspondent à la
+`DrawioAssetGuardTests` vérifie ensuite que ces manifestes correspondent à la
 version que le bundle declare. Faire un test de fumée complet de l'outil avant
 de commiter : les gardes lisent le source, pas le comportement.
-
-### Export Draw.io sans l'éditeur
-
-`DrawIoExporter`, dans `Heimdall.Core.Discovery`, transforme un
-`NetworkScanSnapshot` en XML draw.io : un couloir par rôle classifié, plus un
-pour les hôtes sans port ouvert. Il prend un localiseur `Func<string, string>` :
-les noms de rôle sont les identités produites par le classifieur et restent en
-l'état, mais les en-têtes de couloir et les lignes de noeud passent par le
-catalogue de locales. La couleur du couloir et le style de ses noeuds viennent
-d'un unique enregistrement `RolePalette`, ce qui leur interdit de diverger.
 
 ## Command Library et TwinShell
 
