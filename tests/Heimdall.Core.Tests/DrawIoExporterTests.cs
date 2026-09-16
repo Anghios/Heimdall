@@ -230,8 +230,7 @@ public class DrawIoExporterTests
 
             var lane = cells.Single(c => c.Attribute("style")?.Value.Contains("swimlane") == true);
             var node = cells.Single(c =>
-                c.Attribute("vertex")?.Value == "1"
-                && c.Attribute("style")?.Value.Contains("swimlane") != true);
+                c.Attribute("id")?.Value.StartsWith(DrawIoExporter.HostCellPrefix, StringComparison.Ordinal) == true);
 
             string laneFill = FillColor(lane.Attribute("style")!.Value);
             string nodeFill = FillColor(node.Attribute("style")!.Value);
@@ -294,8 +293,7 @@ public class DrawIoExporterTests
 
         string xml = DrawIoExporter.Generate(snapshot, Localize);
         var node = XDocument.Parse(xml).Descendants("mxCell")
-            .Single(c => c.Attribute("vertex")?.Value == "1"
-                && c.Attribute("style")?.Value.Contains("swimlane") != true);
+            .Single(c => c.Attribute("id")?.Value.StartsWith(DrawIoExporter.HostCellPrefix, StringComparison.Ordinal) == true);
 
         Assert.Contains("dashed=1", node.Attribute("style")!.Value);
     }
