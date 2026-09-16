@@ -31,7 +31,11 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <!-- Header with file operations -->
+        <!--
+            Header. File actions live behind one menu button rather than as
+            fifteen buttons in a row: the row already scrolled horizontally in
+            French, and the tool gained templates, a scan merge and printing.
+        -->
         <Border Grid.Row="0" Padding="{StaticResource ToolHeaderPadding}" Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1">
             <DockPanel>
@@ -39,7 +43,7 @@
                         Style="{DynamicResource ToolHelpButtonStyle}"
                         Padding="{StaticResource PaddingButtonHelp}" FontSize="{StaticResource FontSizeBody}" FontWeight="Bold"
                         Margin="{StaticResource MarginInlineControl}"
-                        TabIndex="15"/>
+                        TabIndex="11"/>
                 <!-- Current document name, with a modified marker when the editor holds unsaved work -->
                 <TextBlock x:Name="TxtDocumentName" DockPanel.Dock="Right" Text=""
                            FontSize="{StaticResource FontSizeCaption}"
@@ -50,51 +54,39 @@
                     <StackPanel Orientation="Horizontal">
                         <TextBlock x:Name="HeaderTitle" Text="" FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold"
                                    Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
-                        <Button x:Name="BtnNew" Content="" Click="OnNewClick"
+                        <Button x:Name="BtnFile" Content="" Click="OnFileMenuClick"
                                 Style="{DynamicResource SecondaryButtonStyle}" Padding="{StaticResource PaddingButtonToolbar}" Margin="{StaticResource MarginToolbarGroup}" FontSize="{StaticResource FontSizeCaption}"
                                 TabIndex="0"/>
-                        <Button x:Name="BtnOpen" Content="" Click="OnOpenClick"
-                                Style="{DynamicResource SecondaryButtonStyle}" Padding="{StaticResource PaddingButtonToolbar}" Margin="{StaticResource MarginInlineXs}" FontSize="{StaticResource FontSizeCaption}"
-                                TabIndex="1"/>
                         <Button x:Name="BtnSave" Content="" Click="OnSaveClick"
                                 Style="{DynamicResource PrimaryButtonStyle}" Padding="{StaticResource PaddingButtonToolbar}" Margin="{StaticResource MarginInlineXs}" FontSize="{StaticResource FontSizeCaption}"
-                                TabIndex="2"/>
-                        <Button x:Name="BtnSaveAs" Content="" Click="OnSaveAsClick"
-                                Style="{DynamicResource SecondaryButtonStyle}" Padding="{StaticResource PaddingButtonToolbar}" Margin="{StaticResource MarginInlineXs}" FontSize="{StaticResource FontSizeCaption}"
-                                TabIndex="3"/>
-                        <Button x:Name="BtnExportPng" Content="" Click="OnExportPngClick"
-                                Style="{DynamicResource SecondaryButtonStyle}" Padding="{StaticResource PaddingButtonToolbar}" Margin="{StaticResource MarginInlineXs}" FontSize="{StaticResource FontSizeCaption}"
-                                TabIndex="4"/>
-                        <Button x:Name="BtnExportSvg" Content="" Click="OnExportSvgClick"
-                                Style="{DynamicResource SecondaryButtonStyle}" Padding="{StaticResource PaddingButtonToolbar}" FontSize="{StaticResource FontSizeCaption}"
-                                TabIndex="5"/>
+                                TabIndex="1"/>
                         <Button x:Name="BtnInsertLine" Content="" Click="OnInsertLineClick"
                                 Style="{DynamicResource SecondaryButtonStyle}" Padding="{StaticResource PaddingButtonToolbar}" Margin="{StaticResource MarginToolbarGroup}" FontSize="{StaticResource FontSizeCaption}"
-                                TabIndex="6"/>
+                                TabIndex="2"/>
                         <Button x:Name="BtnFormat" Content="" Click="OnFormatClick"
                                 Style="{DynamicResource SecondaryButtonStyle}" Padding="{StaticResource PaddingButtonToolbar}" Margin="{StaticResource MarginInlineXs}" FontSize="{StaticResource FontSizeCaption}"
-                                TabIndex="7"/>
+                                TabIndex="3"/>
                         <Button x:Name="BtnUndo" Content="" Click="OnUndoClick"
                                 Style="{DynamicResource SecondaryButtonStyle}" Padding="{StaticResource PaddingButtonToolbar}" Margin="{StaticResource MarginToolbarGroup}" FontSize="{StaticResource FontSizeCaption}"
-                                TabIndex="8"/>
+                                TabIndex="4"/>
                         <Button x:Name="BtnRedo" Content="" Click="OnRedoClick"
                                 Style="{DynamicResource SecondaryButtonStyle}" Padding="{StaticResource PaddingButtonToolbar}" Margin="{StaticResource MarginInlineXs}" FontSize="{StaticResource FontSizeCaption}"
-                                TabIndex="9"/>
+                                TabIndex="5"/>
                         <Button x:Name="BtnZoomOut" Content="" Click="OnZoomOutClick"
                                 Style="{DynamicResource SecondaryButtonStyle}" Padding="{StaticResource PaddingButtonToolbar}" Margin="{StaticResource MarginInlineXs}" FontSize="{StaticResource FontSizeCaption}"
-                                TabIndex="10"/>
+                                TabIndex="6"/>
                         <Button x:Name="BtnActualSize" Content="" Click="OnActualSizeClick"
                                 Style="{DynamicResource SecondaryButtonStyle}" Padding="{StaticResource PaddingButtonToolbar}" Margin="{StaticResource MarginInlineXs}" FontSize="{StaticResource FontSizeCaption}"
-                                TabIndex="11"/>
+                                TabIndex="7"/>
                         <Button x:Name="BtnZoomIn" Content="" Click="OnZoomInClick"
                                 Style="{DynamicResource SecondaryButtonStyle}" Padding="{StaticResource PaddingButtonToolbar}" Margin="{StaticResource MarginInlineXs}" FontSize="{StaticResource FontSizeCaption}"
-                                TabIndex="12"/>
+                                TabIndex="8"/>
                         <Button x:Name="BtnDuplicate" Content="" Click="OnDuplicateClick"
                                 Style="{DynamicResource SecondaryButtonStyle}" Padding="{StaticResource PaddingButtonToolbar}" Margin="{StaticResource MarginInlineXs}" FontSize="{StaticResource FontSizeCaption}"
-                                TabIndex="13"/>
+                                TabIndex="9"/>
                         <Button x:Name="BtnDelete" Content="" Click="OnDeleteClick"
                                 Style="{DynamicResource SecondaryButtonStyle}" Padding="{StaticResource PaddingButtonToolbar}" FontSize="{StaticResource FontSizeCaption}"
-                                TabIndex="14"/>
+                                TabIndex="10"/>
                     </StackPanel>
                 </ScrollViewer>
             </DockPanel>
@@ -108,7 +100,7 @@
                         Click="OnCloseHelpClick"
                         Style="{DynamicResource ToolCloseHelpButtonStyle}"
                         VerticalAlignment="Top"
-                        TabIndex="16"/>
+                        TabIndex="12"/>
                 <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
                     <TextBlock x:Name="TxtHelpContent" Text="" TextWrapping="Wrap"
                                FontSize="{StaticResource FontSizeBody}"
@@ -118,7 +110,7 @@
             </DockPanel>
         </Border>
 
-        <!-- Inline error surface for open, save and export failures -->
+        <!-- Inline status and error surface for open, save, merge and export -->
         <TextBlock x:Name="TxtError" Grid.Row="2" Text=""
                    Style="{StaticResource ToolInlineErrorTextStyle}"
                    Visibility="Collapsed"/>

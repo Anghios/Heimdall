@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="Heimdall">
+  <diagram name="Three tier">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="t-web" value="Presentation" style="swimlane;startSize=30;html=1;fillColor=#16A34A;fontColor=#ffffff;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="40" width="200" height="200" as="geometry"/>
+        </mxCell>
+        <mxCell id="t-web1" value="Web server" style="shape=cloud;whiteSpace=wrap;html=1;fillColor=#16A34A;fontColor=#ffffff;strokeColor=#15803D;" vertex="1" parent="t-web">
+          <mxGeometry x="20" y="50" width="160" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="t-app" value="Application" style="swimlane;startSize=30;html=1;fillColor=#2563EB;fontColor=#ffffff;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="280" y="40" width="200" height="200" as="geometry"/>
+        </mxCell>
+        <mxCell id="t-app1" value="Service" style="shape=internalStorage;whiteSpace=wrap;html=1;fillColor=#2563EB;fontColor=#ffffff;strokeColor=#1D4ED8;" vertex="1" parent="t-app">
+          <mxGeometry x="20" y="50" width="160" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="t-data" value="Data" style="swimlane;startSize=30;html=1;fillColor=#D97706;fontColor=#ffffff;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="520" y="40" width="200" height="200" as="geometry"/>
+        </mxCell>
+        <mxCell id="t-data1" value="Database" style="shape=cylinder3;whiteSpace=wrap;html=1;fillColor=#D97706;fontColor=#ffffff;strokeColor=#B45309;size=8;" vertex="1" parent="t-data">
+          <mxGeometry x="20" y="50" width="160" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="t-e1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#6272A4;" edge="1" parent="1" source="t-web1" target="t-app1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="t-e2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#6272A4;" edge="1" parent="1" source="t-app1" target="t-data1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

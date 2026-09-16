@@ -102,7 +102,15 @@
         var chromeConfigured = false;
         var contextMenuBound = false;
         var contextMenuVisible = false;
+        // Labels for the entries Heimdall adds, sent by the host after 'ready:'.
+        // draw.io's own entries take their label from mxResources instead.
+        var heimdallLabels = {};
+
         var contextMenuItems = [
+            // Following a cell's link is not something draw.io's editing mode does
+            // on any mouse gesture, so Heimdall gives the session its own entry.
+            { heimdallAction: 'open-session', labelKey: 'openSession', fallbackLabel: 'Open session' },
+            { separator: true },
             { action: 'undo', shortcut: 'Ctrl+Z' },
             { action: 'redo', shortcut: 'Ctrl+Y' },
             { separator: true },
@@ -282,6 +290,50 @@
             contextMenuVisible = false;
         }
 
+        // Reads the Heimdall link carried by the one selected cell, if any.
+        // Anything else, including a web link, is left to draw.io.
+        function getSelectedSessionLink() {
+            var app = getDrawioApp();
+            if (!app || !app.editor || !app.editor.graph) {
+                return null;
+            }
+
+            try {
+                var graph = app.editor.graph;
+                var cells = graph.getSelectionCells();
+                if (!cells || cells.length !== 1) {
+                    return null;
+                }
+
+                var link = graph.getLinkForCell(cells[0]);
+                return link && link.indexOf('heimdall://') === 0 ? link : null;
+            } catch (e) {
+                return null;
+            }
+        }
+
+        function executeHeimdallAction(name) {
+            if (name !== 'open-session') {
+                return false;
+            }
+
+            var link = getSelectedSessionLink();
+            if (!link) {
+                return false;
+            }
+
+            postToHost('open-link:' + JSON.stringify({ href: link }));
+            return true;
+        }
+
+        function isHeimdallActionEnabled(name) {
+            return name === 'open-session' && getSelectedSessionLink() !== null;
+        }
+
+        function getHeimdallLabel(item) {
+            return heimdallLabels[item.labelKey] || item.fallbackLabel || item.heimdallAction;
+        }
+
         function buildContextMenu() {
             contextMenu.innerHTML = '';
 
@@ -291,13 +343,18 @@
                     return;
                 }
 
+                var isHeimdall = !!item.heimdallAction;
                 var button = document.createElement('button');
-                var enabled = isDrawioActionEnabled(item.action);
+                var enabled = isHeimdall
+                    ? isHeimdallActionEnabled(item.heimdallAction)
+                    : isDrawioActionEnabled(item.action);
 
                 button.disabled = !enabled;
 
                 var label = document.createElement('span');
-                label.textContent = getDrawioLabel(item.action, item.labelKey, item.fallbackLabel);
+                label.textContent = isHeimdall
+                    ? getHeimdallLabel(item)
+                    : getDrawioLabel(item.action, item.labelKey, item.fallbackLabel);
                 button.appendChild(label);
 
                 if (item.shortcut) {
@@ -316,6 +373,12 @@
                     }
 
                     hideContextMenu();
+
+                    if (isHeimdall) {
+                        executeHeimdallAction(item.heimdallAction);
+                        return;
+                    }
+
                     focusDrawio();
                     window.setTimeout(function() {
                         executeDrawioAction(item.action, evt);
@@ -497,6 +560,16 @@
 
                 if (msg === 'export-xml:') {
                     postToEditor({ action: 'export', format: 'xml' });
+                    return;
+                }
+
+                if (msg.indexOf('labels:') === 0) {
+                    // Labels for the entries Heimdall adds to the context menu.
+                    try {
+                        heimdallLabels = JSON.parse(msg.substring('labels:'.length)) || {};
+                    } catch (e) {
+                        heimdallLabels = {};
+                    }
                     return;
                 }
 

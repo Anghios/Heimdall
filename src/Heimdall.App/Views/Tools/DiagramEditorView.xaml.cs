@@ -21,6 +21,7 @@ using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
 using Heimdall.App.Services;
+using Heimdall.Core.Discovery;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Models;
 using Microsoft.Web.WebView2.Core;
@@ -58,7 +59,10 @@ public partial class DiagramEditorView : UserControl, IToolView
     private const byte DarkBackgroundThreshold = 128;
 
     private readonly DiagramDocumentState _document = new();
+    private readonly DiagramDraftStore _drafts = new();
+    private readonly DiagramRecentFiles _recentFiles = new();
     private LocalizationManager? _localizer;
+    private Action<SessionLaunchRequest>? _openSession;
     private WebViewDocumentPolicy? _hostPolicy;
     private bool _disposed;
     private bool _editorReady;
@@ -78,6 +82,7 @@ public partial class DiagramEditorView : UserControl, IToolView
     public void Initialize(ToolContext? context, LocalizationManager? localizer)
     {
         _localizer = localizer;
+        _openSession = ToolContextMenuHelper.GetOpenSessionAction(context);
         ApplyLocalization();
 
         // A caller can hand over either a file on disk or an unsaved document body.
@@ -91,6 +96,7 @@ public partial class DiagramEditorView : UserControl, IToolView
             TryOpenFile(context.Argument);
         }
 
+        OfferDraftRecovery();
         UpdateDocumentIndicator();
 
         _ = InitializeWebViewAsync();
@@ -233,7 +239,14 @@ public partial class DiagramEditorView : UserControl, IToolView
 
         if (message == "ready:")
         {
-            // The host page is alive; the editor itself is not ready yet.
+            // The host page is alive; the editor itself is not ready yet. Its
+            // context menu carries Heimdall's own entries, whose labels live in
+            // the locale catalogue rather than in draw.io's.
+            PostWebMessage("labels:" + JsonSerializer.Serialize(
+                new Dictionary<string, string>
+                {
+                    ["openSession"] = L("ToolDiagramCtxOpenSession")
+                }));
             return;
         }
 
@@ -256,7 +269,7 @@ public partial class DiagramEditorView : UserControl, IToolView
 
         if (message.StartsWith("open-link:", StringComparison.Ordinal))
         {
-            OpenExternalLinkPayload(message["open-link:".Length..]);
+            HandleLinkPayload(message["open-link:".Length..]);
             return;
         }
 
@@ -268,8 +281,14 @@ public partial class DiagramEditorView : UserControl, IToolView
 
         if (message.StartsWith("save:", StringComparison.Ordinal))
         {
-            // Autosave: track the content, do not touch the disk.
-            _document.EditorReported(message["save:".Length..]);
+            // Autosave: track the content and keep a draft, but do not touch the
+            // document's own file, which only an explicit save may write.
+            var xml = message["save:".Length..];
+            _document.EditorReported(xml);
+            if (_document.IsDirty)
+            {
+                _drafts.TryWrite(_document.FilePath, xml);
+            }
             UpdateDocumentIndicator();
             return;
         }
@@ -356,19 +375,117 @@ public partial class DiagramEditorView : UserControl, IToolView
         return stem + extension;
     }
 
-    private void OnNewClick(object sender, RoutedEventArgs e)
+    /// <summary>
+    /// Opens the file menu. Everything that acts on the document as a whole lives
+    /// here rather than on the toolbar, which already scrolled at French width.
+    /// </summary>
+    private void OnFileMenuClick(object sender, RoutedEventArgs e)
     {
-        if (!ConfirmDiscardUnsavedChanges()) return;
+        var menu = new ContextMenu
+        {
+            PlacementTarget = BtnFile,
+            Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom,
+            StaysOpen = false
+        };
 
-        _document.Reset();
-        UpdateDocumentIndicator();
-        HideInlineError();
-        PostWebMessage("load:");
+        AddMenuItem(menu, L("ToolDiagramBtnNew"), (_, _) => NewDocument());
+        AddMenuItem(menu, L("ToolDiagramBtnOpen"), (_, _) => OpenDocument());
+        menu.Items.Add(BuildRecentMenu());
+        menu.Items.Add(new Separator());
+        AddMenuItem(menu, L("ToolDiagramBtnSave"), (_, _) => PerformSave(chooseNewLocation: false));
+        AddMenuItem(menu, L("ToolDiagramBtnSaveAs"), (_, _) => PerformSave(chooseNewLocation: true));
+        menu.Items.Add(new Separator());
+        AddMenuItem(menu, L("ToolDiagramBtnMergeScan"), (_, _) => MergeScanIntoDocument());
+        menu.Items.Add(BuildTemplateMenu());
+        menu.Items.Add(new Separator());
+        AddMenuItem(menu, L("ToolDiagramBtnExportPng"), (_, _) => PostWebMessage("export-png:"));
+        AddMenuItem(menu, L("ToolDiagramBtnExportSvg"), (_, _) => PostWebMessage("export-svg:"));
+        AddMenuItem(menu, L("ToolDiagramBtnPrint"), (_, _) => PostEditorCommand("print"));
+
+        menu.IsOpen = true;
     }
 
-    private void OnOpenClick(object sender, RoutedEventArgs e)
+    private static void AddMenuItem(ItemsControl menu, string header, RoutedEventHandler onClick)
+    {
+        var item = new MenuItem { Header = header };
+        item.Click += onClick;
+        menu.Items.Add(item);
+    }
+
+    private MenuItem BuildRecentMenu()
+    {
+        var recent = new MenuItem { Header = L("ToolDiagramBtnRecent") };
+        var paths = _recentFiles.Read();
+
+        if (paths.Count == 0)
+        {
+            recent.IsEnabled = false;
+            return recent;
+        }
+
+        foreach (var path in paths)
+        {
+            var entry = new MenuItem { Header = Path.GetFileName(path), ToolTip = path };
+            var captured = path;
+            entry.Click += (_, _) => OpenDocument(captured);
+            recent.Items.Add(entry);
+        }
+
+        return recent;
+    }
+
+    private MenuItem BuildTemplateMenu()
+    {
+        var templates = new MenuItem { Header = L("ToolDiagramBtnTemplates") };
+        var available = DiagramTemplates.Available();
+
+        if (available.Count == 0)
+        {
+            templates.IsEnabled = false;
+            return templates;
+        }
+
+        foreach (var template in available)
+        {
+            var entry = new MenuItem { Header = L(template.NameKey) };
+            var captured = template;
+            entry.Click += (_, _) => ApplyTemplate(captured);
+            templates.Items.Add(entry);
+        }
+
+        return templates;
+    }
+
+    private void ApplyTemplate(DiagramTemplate template)
     {
         if (!ConfirmDiscardUnsavedChanges()) return;
+
+        var xml = template.TryRead();
+        if (xml is null)
+        {
+            ShowInlineError(string.Format(L("ToolDiagramErrorOpenFailed"), template.FileName));
+            return;
+        }
+
+        // A template is a starting point, not a document: it has no path, so the
+        // first save asks where the user's own copy belongs.
+        _document.OpenUnsaved(xml);
+        UpdateDocumentIndicator();
+        HideInlineError();
+        PostWebMessage($"load:{xml}");
+    }
+
+    /// <summary>
+    /// Merges a freshly exported scan into the diagram on screen, keeping the
+    /// layout and every shape the user added.
+    /// </summary>
+    private void MergeScanIntoDocument()
+    {
+        if (_document.EditorXml is not { } current)
+        {
+            ShowInlineError(L("ToolDiagramErrorEditorNotReady"));
+            return;
+        }
 
         var dialog = new Microsoft.Win32.OpenFileDialog
         {
@@ -376,7 +493,81 @@ public partial class DiagramEditorView : UserControl, IToolView
         };
 
         if (dialog.ShowDialog() != true) return;
-        if (!TryOpenFile(dialog.FileName)) return;
+
+        try
+        {
+            var incoming = File.ReadAllText(dialog.FileName);
+            var merged = DiagramScanMerge.Merge(current, incoming, out var summary);
+
+            _document.EditorReported(merged);
+            UpdateDocumentIndicator();
+            PostWebMessage($"load:{merged}");
+            ShowInlineStatus(DiagramScanMerge.Describe(summary, L));
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Warn($"[DiagramEditor] Merge failed: {ex.Message}");
+            ShowInlineError(string.Format(L("ToolDiagramErrorMergeFailed"), ex.Message));
+        }
+    }
+
+    /// <summary>
+    /// Offers the draft a previous run left behind, which only exists when that
+    /// run ended without saving.
+    /// </summary>
+    private void OfferDraftRecovery()
+    {
+        var draft = _drafts.TryRead(_document.FilePath);
+        if (draft is null || string.Equals(draft, _document.EditorXml, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        var restore = Dialogs.MessageDialog.ShowConfirm(
+            Window.GetWindow(this),
+            L("ToolDiagramTitle"),
+            L("ToolDiagramConfirmRestoreDraft"),
+            "warning",
+            L("ToolDiagramBtnRestoreDraft"),
+            L("BtnDiscard"));
+
+        if (restore)
+        {
+            _document.EditorReported(draft);
+        }
+        else
+        {
+            _drafts.Discard(_document.FilePath);
+        }
+    }
+
+    private void NewDocument()
+    {
+        if (!ConfirmDiscardUnsavedChanges()) return;
+
+        _drafts.Discard(_document.FilePath);
+        _document.Reset();
+        UpdateDocumentIndicator();
+        HideInlineError();
+        PostWebMessage("load:");
+    }
+
+    private void OpenDocument(string? path = null)
+    {
+        if (!ConfirmDiscardUnsavedChanges()) return;
+
+        if (path is null)
+        {
+            var dialog = new Microsoft.Win32.OpenFileDialog
+            {
+                Filter = L("FileDialogDrawioFilter")
+            };
+
+            if (dialog.ShowDialog() != true) return;
+            path = dialog.FileName;
+        }
+
+        if (!TryOpenFile(path)) return;
 
         UpdateDocumentIndicator();
         PostWebMessage($"load:{_document.EditorXml}");
@@ -388,6 +579,7 @@ public partial class DiagramEditorView : UserControl, IToolView
         try
         {
             _document.OpenFromDisk(path, File.ReadAllText(path));
+            _recentFiles.Remember(path);
             HideInlineError();
             return true;
         }
@@ -402,11 +594,6 @@ public partial class DiagramEditorView : UserControl, IToolView
     private void OnSaveClick(object sender, RoutedEventArgs e)
     {
         PerformSave(chooseNewLocation: false);
-    }
-
-    private void OnSaveAsClick(object sender, RoutedEventArgs e)
-    {
-        PerformSave(chooseNewLocation: true);
     }
 
     /// <summary>
@@ -454,6 +641,9 @@ public partial class DiagramEditorView : UserControl, IToolView
         {
             File.WriteAllText(path, xml, Encoding.UTF8);
             _document.MarkWritten(path, xml);
+            _drafts.Discard(path);
+            _drafts.Discard(null);
+            _recentFiles.Remember(path);
             UpdateDocumentIndicator();
             HideInlineError();
             return true;
@@ -495,16 +685,6 @@ public partial class DiagramEditorView : UserControl, IToolView
     public bool CanClose()
     {
         return ConfirmDiscardUnsavedChanges();
-    }
-
-    private void OnExportPngClick(object sender, RoutedEventArgs e)
-    {
-        PostWebMessage("export-png:");
-    }
-
-    private void OnExportSvgClick(object sender, RoutedEventArgs e)
-    {
-        PostWebMessage("export-svg:");
     }
 
     private void OnInsertLineClick(object sender, RoutedEventArgs e)
@@ -581,20 +761,64 @@ public partial class DiagramEditorView : UserControl, IToolView
         PostWebMessage($"command:{action}");
     }
 
-    private void OpenExternalLinkPayload(string payload)
+    private void HandleLinkPayload(string payload)
     {
         try
         {
             using var document = JsonDocument.Parse(payload);
             if (document.RootElement.TryGetProperty("href", out var hrefProperty))
             {
-                OpenExternalLink(hrefProperty.GetString());
+                FollowLink(hrefProperty.GetString());
             }
         }
         catch (JsonException ex)
         {
             Core.Logging.FileLogger.Debug($"[DiagramEditor] Malformed link payload: {ex.Message}");
         }
+    }
+
+    /// <summary>
+    /// Acts on a link a diagram cell carries: a Heimdall session, or a web page.
+    /// </summary>
+    /// <remarks>
+    /// A .drawio file can come from anywhere, and a session link is an instruction
+    /// to reach a machine and offer it credentials. The request is validated by
+    /// <see cref="SessionLaunchRequest.TryParse"/> and then confirmed by the user,
+    /// naming the protocol and the destination, because the document is not a
+    /// party Heimdall trusts.
+    /// </remarks>
+    private void FollowLink(string? href)
+    {
+        if (!SessionLaunchRequest.TryParse(href, out var request))
+        {
+            OpenExternalLink(href);
+            return;
+        }
+
+        if (_openSession is null)
+        {
+            Core.Logging.FileLogger.Warn(
+                "[DiagramEditor] A diagram asked for a session but no session opener was provided.");
+            ShowInlineError(L("ToolDiagramErrorSessionUnavailable"));
+            return;
+        }
+
+        var confirmed = Dialogs.MessageDialog.ShowConfirm(
+            Window.GetWindow(this),
+            L("ToolDiagramTitle"),
+            string.Format(
+                L("ToolDiagramConfirmOpenSession"),
+                request.Protocol,
+                request.Destination),
+            "info",
+            L("ToolDiagramBtnConnect"),
+            L("BtnCancel"));
+
+        if (!confirmed) return;
+
+        Core.Logging.FileLogger.Info(
+            $"[DiagramEditor] Opening a {request.Protocol} session from a diagram node.");
+        _openSession(request);
     }
 
     private static void OpenExternalLink(string? href)
@@ -634,6 +858,16 @@ public partial class DiagramEditorView : UserControl, IToolView
         TxtError.Visibility = Visibility.Visible;
     }
 
+    /// <summary>
+    /// Reports an outcome that is not a failure on the same line, because a merge
+    /// that says nothing is indistinguishable from one that did nothing.
+    /// </summary>
+    private void ShowInlineStatus(string message)
+    {
+        TxtError.Text = message;
+        TxtError.Visibility = Visibility.Visible;
+    }
+
     private void HideInlineError()
     {
         TxtError.Text = string.Empty;
@@ -643,12 +877,8 @@ public partial class DiagramEditorView : UserControl, IToolView
     private void ApplyLocalization()
     {
         HeaderTitle.Text = L("ToolDiagramTitle");
-        BtnNew.Content = L("ToolDiagramBtnNew");
-        BtnOpen.Content = L("ToolDiagramBtnOpen");
+        BtnFile.Content = L("ToolDiagramBtnFile");
         BtnSave.Content = L("ToolDiagramBtnSave");
-        BtnSaveAs.Content = L("ToolDiagramBtnSaveAs");
-        BtnExportPng.Content = L("ToolDiagramBtnExportPng");
-        BtnExportSvg.Content = L("ToolDiagramBtnExportSvg");
         BtnInsertLine.Content = L("ToolDiagramBtnInsertLine");
         BtnFormat.Content = L("ToolDiagramBtnFormat");
         BtnUndo.Content = L("BtnUndo");
@@ -661,13 +891,9 @@ public partial class DiagramEditorView : UserControl, IToolView
 
         BtnHelp.ToolTip = L("ToolHelpTooltip");
         System.Windows.Automation.AutomationProperties.SetName(BtnHelp, L("ToolHelpTooltip"));
+        System.Windows.Automation.AutomationProperties.SetName(BtnFile, L("ToolDiagramBtnFile"));
         System.Windows.Automation.AutomationProperties.SetName(BtnCloseHelp, L("BtnClose"));
-        System.Windows.Automation.AutomationProperties.SetName(BtnNew, L("ToolDiagramBtnNew"));
-        System.Windows.Automation.AutomationProperties.SetName(BtnOpen, L("ToolDiagramBtnOpen"));
         System.Windows.Automation.AutomationProperties.SetName(BtnSave, L("ToolDiagramBtnSave"));
-        System.Windows.Automation.AutomationProperties.SetName(BtnSaveAs, L("ToolDiagramBtnSaveAs"));
-        System.Windows.Automation.AutomationProperties.SetName(BtnExportPng, L("ToolDiagramBtnExportPng"));
-        System.Windows.Automation.AutomationProperties.SetName(BtnExportSvg, L("ToolDiagramBtnExportSvg"));
         System.Windows.Automation.AutomationProperties.SetName(BtnInsertLine, L("ToolDiagramBtnInsertLine"));
         System.Windows.Automation.AutomationProperties.SetName(BtnFormat, L("ToolDiagramBtnFormat"));
         System.Windows.Automation.AutomationProperties.SetName(BtnUndo, L("BtnUndo"));
@@ -679,12 +905,8 @@ public partial class DiagramEditorView : UserControl, IToolView
         System.Windows.Automation.AutomationProperties.SetName(BtnDelete, L("BtnDelete"));
         System.Windows.Automation.AutomationProperties.SetName(TxtDocumentName, L("ToolDiagramDocumentNameLabel"));
 
-        BtnNew.ToolTip = L("ToolDiagramBtnNew");
-        BtnOpen.ToolTip = L("ToolDiagramBtnOpen");
+        BtnFile.ToolTip = L("ToolDiagramBtnFile");
         BtnSave.ToolTip = L("ToolDiagramBtnSave");
-        BtnSaveAs.ToolTip = L("ToolDiagramBtnSaveAs");
-        BtnExportPng.ToolTip = L("ToolDiagramBtnExportPng");
-        BtnExportSvg.ToolTip = L("ToolDiagramBtnExportSvg");
         BtnInsertLine.ToolTip = L("ToolDiagramBtnInsertLine");
         BtnFormat.ToolTip = L("ToolDiagramBtnFormat");
         BtnUndo.ToolTip = L("BtnUndo");
@@ -701,12 +923,8 @@ public partial class DiagramEditorView : UserControl, IToolView
 
     private void SetToolbarEnabled(bool enabled)
     {
-        BtnNew.IsEnabled = enabled;
-        BtnOpen.IsEnabled = enabled;
+        BtnFile.IsEnabled = enabled;
         BtnSave.IsEnabled = enabled;
-        BtnSaveAs.IsEnabled = enabled;
-        BtnExportPng.IsEnabled = enabled;
-        BtnExportSvg.IsEnabled = enabled;
         BtnInsertLine.IsEnabled = enabled;
         BtnFormat.IsEnabled = enabled;
         BtnUndo.IsEnabled = enabled;
