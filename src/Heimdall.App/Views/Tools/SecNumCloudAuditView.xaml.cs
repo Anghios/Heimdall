@@ -740,7 +740,7 @@ public partial class SecNumCloudAuditView : UserControl, IToolView
 
         var dialog = new SaveFileDialog
         {
-            Filter = "HTML files (*.html)|*.html",
+            Filter = L("FileDialogHtmlFilter"),
             FileName = $"SecNumCloud_Audit_{DateTime.Now:yyyyMMdd_HHmmss}.html",
         };
 
@@ -790,15 +790,17 @@ public partial class SecNumCloudAuditView : UserControl, IToolView
 
         var dialog = new SaveFileDialog
         {
-            Filter = "Draw.io files (*.drawio)|*.drawio",
-            FileName = $"SecNumCloud_Network_{DateTime.Now:yyyyMMdd_HHmmss}.drawio",
+            Filter = L("FileDialogDrawioSaveFilter"),
+            FileName = string.Create(
+                System.Globalization.CultureInfo.InvariantCulture,
+                $"SecNumCloud_Network_{DateTime.Now:yyyyMMdd_HHmmss}.drawio"),
         };
 
         if (dialog.ShowDialog() != true) return;
 
         try
         {
-            var xml = DrawIoExporter.Generate(snapshot);
+            var xml = DrawIoExporter.Generate(snapshot, L);
             File.WriteAllText(dialog.FileName, xml, Encoding.UTF8);
             CopyFeedbackHelper.ShowCopyFeedback(sender as Button);
         }
