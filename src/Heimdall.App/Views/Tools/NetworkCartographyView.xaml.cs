@@ -581,8 +581,10 @@ public partial class NetworkCartographyView : UserControl, IToolView
 
         var dialog = new Microsoft.Win32.SaveFileDialog
         {
-            Filter = "Draw.io (*.drawio)|*.drawio",
-            FileName = $"network-map_{_vm.LastSnapshot.Profile.Subnet.Replace('/', '-')}_{_vm.LastSnapshot.Timestamp:yyyyMMdd_HHmmss}.drawio"
+            Filter = L("FileDialogDrawioSaveFilter"),
+            FileName = string.Create(
+                System.Globalization.CultureInfo.InvariantCulture,
+                $"network-map_{_vm.LastSnapshot.Profile.Subnet.Replace('/', '-')}_{_vm.LastSnapshot.Timestamp:yyyyMMdd_HHmmss}.drawio")
         };
 
         if (dialog.ShowDialog() != true)
@@ -623,12 +625,13 @@ public partial class NetworkCartographyView : UserControl, IToolView
                 return;
             }
 
-            var tempFile = Path.Combine(
-                Path.GetTempPath(),
-                $"heimdall_netmap_{DateTime.Now:yyyyMMdd_HHmmss}.drawio");
-            File.WriteAllText(tempFile, xml, Encoding.UTF8);
-
-            _openToolAction("DIAGRAM", L("PaletteToolDiagram"), new ToolContext(Argument: tempFile));
+            // The diagram is handed over as unsaved content: it belongs nowhere on
+            // disk yet, so the editor asks for a location on the first save instead
+            // of silently writing back into the temporary folder.
+            _openToolAction(
+                "DIAGRAM",
+                L("PaletteToolDiagram"),
+                new ToolContext(DocumentContent: xml));
         }
         catch (Exception ex)
         {

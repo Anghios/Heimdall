@@ -97,6 +97,12 @@
     <!-- Filter group spacing in WrapPanel (right + vertical gap between field groups) -->
     <Thickness x:Key="MarginFilterGroup">0,2,12,2</Thickness>
 
+    <!-- Separation between two command groups inside one horizontal toolbar -->
+    <Thickness x:Key="MarginToolbarGroup">16,0,4,0</Thickness>
+
+    <!-- Padding of a centered empty-state or fallback panel filling a tool surface -->
+    <Thickness x:Key="PaddingEmptyStatePanel">28</Thickness>
+
     <!-- Grid row spacer height (Double for Margin/Height, GridLength for RowDefinition) -->
     <sys:Double x:Key="SpacingRowGap">8</sys:Double>
     <GridLength x:Key="SpacingRowGapGrid">8</GridLength>
