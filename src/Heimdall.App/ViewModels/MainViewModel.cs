@@ -450,6 +450,9 @@ public partial class MainViewModel : ObservableObject, IDisposable, ITunnelsHost
         _embeddedSessionManager.OpenToolCallback = (toolId, title, ctx) =>
             OpenToolTabAsync(toolId, title, ctx);
 
+        // Wire the session opener so a tool can connect to a host it discovered.
+        _embeddedSessionManager.OpenSessionCallback = ConnectAdHocSessionAsync;
+
         // Instant theme preview when the user changes the Settings combo.
         // Actual persistence triggers a second apply via IConfigManager.SettingsChanged,
         // which is a no-op because HeimdallThemeService is idempotent.
@@ -846,7 +849,17 @@ public partial class MainViewModel : ObservableObject, IDisposable, ITunnelsHost
     /// protocols; credential autofill / external vault / prompt resolve the rest).
     /// Mirrors the Command Palette ad-hoc connect flow without persisting a profile.
     /// </summary>
-    public async Task ConnectServerAsProtocolAsync(ServerItemViewModel server, string protocol)
+    /// <param name="server">Carries the host and, when the protocol has one, the user name.</param>
+    /// <param name="protocol">Connection type to open.</param>
+    /// <param name="port">
+    /// Port to reach, or null for the protocol's default. A discovered host is
+    /// often listening somewhere other than the default, and the caller knows
+    /// which port it found open.
+    /// </param>
+    public async Task ConnectServerAsProtocolAsync(
+        ServerItemViewModel server,
+        string protocol,
+        int? port = null)
     {
         ArgumentNullException.ThrowIfNull(server);
         if (string.IsNullOrWhiteSpace(protocol))
@@ -854,7 +867,7 @@ public partial class MainViewModel : ObservableObject, IDisposable, ITunnelsHost
             return;
         }
 
-        var dto = BuildTransientProfile(server, protocol);
+        var dto = BuildTransientProfile(server, protocol, port);
         var connType = dto.ConnectionType;
         var settings = await _configManager.LoadSettingsAsync();
 
@@ -918,7 +931,10 @@ public partial class MainViewModel : ObservableObject, IDisposable, ITunnelsHost
     /// is set. The Id is prefixed <c>adhoc-</c> so the session is treated as ad-hoc. Pure helper (no
     /// connection) for unit testing.
     /// </summary>
-    internal static ServerProfileDto BuildTransientProfile(ServerItemViewModel server, string protocol)
+    internal static ServerProfileDto BuildTransientProfile(
+        ServerItemViewModel server,
+        string protocol,
+        int? port = null)
     {
         var connType = protocol.ToUpperInvariant();
         var host = server.RemoteServer ?? string.Empty;
@@ -939,27 +955,52 @@ public partial class MainViewModel : ObservableObject, IDisposable, ITunnelsHost
         switch (connType)
         {
             case "RDP":
-                dto.RemotePort = DefaultPorts.Rdp;
+                dto.RemotePort = port ?? DefaultPorts.Rdp;
                 dto.RdpUsername = username;
                 break;
             case "SFTP":
-                dto.SshPort = DefaultPorts.Sftp;
+                dto.SshPort = port ?? DefaultPorts.Sftp;
                 dto.SshUsername = username;
                 break;
             case "VNC":
                 // VNC has no username field; it authenticates with a password resolved at connect.
-                dto.VncPort = DefaultPorts.Vnc;
+                dto.VncPort = port ?? DefaultPorts.Vnc;
                 break;
             case "TELNET":
-                dto.TelnetPort = DefaultPorts.Telnet;
+                dto.TelnetPort = port ?? DefaultPorts.Telnet;
                 break;
             default: // SSH
-                dto.SshPort = DefaultPorts.Ssh;
+                dto.SshPort = port ?? DefaultPorts.Ssh;
                 dto.SshUsername = username;
                 break;
         }
 
         return dto;
+    }
+
+    /// <summary>
+    /// Opens a session for a host a tool discovered, with no saved profile behind it.
+    /// </summary>
+    /// <remarks>
+    /// The request has already been validated by
+    /// <see cref="SessionLaunchRequest.TryParse"/>; what arrives here is a known
+    /// protocol, an address or host name, and a port in range. Deciding whether the
+    /// user wants it is the caller's job, because the document carrying the link may
+    /// have come from anywhere.
+    /// </remarks>
+    public Task ConnectAdHocSessionAsync(SessionLaunchRequest request)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var server = new ServerItemViewModel
+        {
+            RemoteServer = request.Host,
+            DisplayName = request.Host,
+            Username = request.Username ?? string.Empty,
+            ConnectionType = request.Protocol
+        };
+
+        return ConnectServerAsProtocolAsync(server, request.Protocol, request.Port);
     }
 
     public void MergeExistingSession(

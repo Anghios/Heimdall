@@ -103,6 +103,12 @@ public interface IEmbeddedSessionManager
     Func<string, string, ToolContext?, Task>? OpenToolCallback { get; set; }
 
     /// <summary>
+    /// Optional callback that opens a session against a host that is not a saved
+    /// server, so a tool can act on what it discovered.
+    /// </summary>
+    Func<SessionLaunchRequest, Task>? OpenSessionCallback { get; set; }
+
+    /// <summary>
     /// Creates a visual host for an embedded connection session.
     /// </summary>
     object CreateHostControl(

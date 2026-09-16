@@ -376,6 +376,7 @@ public sealed class CommandPaletteDangerousSnippetGuardTests
         public Action<SessionTabViewModel>? CloseRequestedCallback { get; set; }
         public Action<string>? EditServerRequestedCallback { get; set; }
         public Func<string, string, ToolContext?, Task>? OpenToolCallback { get; set; }
+        public Func<SessionLaunchRequest, Task>? OpenSessionCallback { get; set; }
 
         public int SendCallCount { get; private set; }
 
