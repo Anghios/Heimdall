@@ -31,7 +31,7 @@ Ils sont versionnés dans le dépôt et livrés dans l'installeur.
 |---|---|---|---|---|
 | PuTTY `plink.exe` | Release 0.83 | Simon Tatham | MIT | https://www.chiark.greenend.org.uk/~sgtatham/putty/ |
 | gsudo `gsudo.exe` | 2.5.1 | Gerardo Grignoli | MIT | https://github.com/gerardog/gsudo |
-| draw.io embed | 26.0.9 | JGraph Ltd | Apache-2.0 | https://github.com/jgraph/drawio |
+| draw.io embed | 31.4.5 | JGraph Ltd | Apache-2.0 | https://github.com/jgraph/drawio |
 | Microsoft Edge WebView2 SDK | 1.0.2903.40 | Microsoft Corporation | Propriétaire, redistribuable | https://developer.microsoft.com/microsoft-edge/webview2/ |
 
 PuTTY est sous copyright 1997-2026 Simon Tatham. Seul `plink.exe` est redistribué,
