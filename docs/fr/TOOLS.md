@@ -264,6 +264,82 @@ La localisation est injectée dans `SecNumCloudAuditEngine` via un délégué
 `Func<string, string>`. Gardez les chaînes de sortie de l'audit localisables et
 ne codez pas en dur de texte destiné aux utilisateurs dans le moteur.
 
+## Éditeur de diagrammes
+
+L'outil `DIAGRAM` embarque l'éditeur draw.io dans une surface WebView2.
+L'éditeur est vendoré sous `src/Heimdall.App/Assets/drawio/` et n'atteint jamais
+le réseau : il est chargé avec `offline=1&stealth=1`, et le fichier `index.html`
+vendoré porte une Content-Security-Policy qui maintient toutes les requêtes sur
+l'hôte virtuel local `heimdall-drawio.local`.
+
+### Deux entrées
+
+- **Depuis la liste des outils**, avec une toile vide.
+- **Depuis la cartographie réseau**, par le bouton Éditer le diagramme. Le scan
+  est converti en document draw.io et remis à l'éditeur comme contenu non
+  enregistré. Aucun fichier ne lui correspond, donc le premier enregistrement
+  demande où le placer.
+
+### Barre d'outils
+
+La barre de menus et la barre d'outils de draw.io sont masquées. Dans une iframe
+WebView2 elles paraissent interactives sans répondre de manière fiable, donc
+Heimdall fournit la surface de commande : Nouveau, Ouvrir, Enregistrer,
+Enregistrer sous, Exporter PNG, Exporter SVG, Ligne, Format, Annuler, Rétablir,
+zoom arrière, 100%, zoom avant, Dupliquer, Supprimer. La bibliothèque de formes,
+la toile et le panneau de format sont ceux de draw.io et fonctionnent
+normalement. Un clic droit sur la toile ouvre un menu contextuel Heimdall qui
+déclenche les mêmes actions draw.io.
+
+### Enregistrement
+
+L'en-tête affiche le nom du fichier courant, suivi de `(modifié)` tant que
+l'éditeur porte des modifications absentes du disque. Enregistrer écrit dans le
+fichier courant ; Enregistrer sous en demande toujours un nouveau. Ctrl+S dans
+l'éditeur fait la meme chose que le bouton Enregistrer. Fermer l'onglet, ou
+remplacer le document par Nouveau ou Ouvrir, demande quoi faire du travail non
+enregistré.
+
+L'état de l'éditeur vit dans `DiagramDocumentState` : il porte le chemin du
+fichier, le contenu que l'éditeur a signalé en dernier, et le contenu lu depuis
+le disque ou écrit sur le disque en dernier. Tout le reste lit cet
+enregistrement, et c'est pourquoi un enregistrement, un Enregistrer sous et
+l'invite de travail non enregistré ne peuvent pas se contredire.
+
+### Langue, theme et WebView2
+
+La page hôte est ouverte sous la forme
+`heimdall-host.html?lang=<en|fr>&theme=<dark|light>` et transmet les deux à
+draw.io, afin que l'éditeur suive Heimdall plutôt que la langue du système
+d'exploitation. Les raccourcis navigateur sont désactivés : F5 rechargerait la
+page hôte et perdrait le diagramme. Sans runtime WebView2, l'outil affiche un
+message de repli au lieu d'un éditeur.
+
+Les ressources pèsent environ 44 Mo pour 2300 fichiers et sont exclues des
+builds Debug (`Heimdall.App.csproj`) ; l'outil signale alors qu'il n'est
+disponible qu'en build Release.
+
+### Mettre à jour l'éditeur vendoré
+
+Exécuter `scripts/Vendor-DrawIo.ps1` sur une copie amont de `src/main/webapp`.
+Le script copie le sous-ensemble livré, réapplique les deux modifications
+Heimdall (le hook `heimdallDrawioApp` dans `js/bootstrap.js`, la
+Content-Security-Policy dans `index.html`) et réécrit les lignes de version de
+`VENDORED.md` et des deux fichiers `THIRD-PARTY-NOTICES`.
+`DiagramEditorGuardTests` vérifie ensuite que ces manifestes correspondent à la
+version que le bundle declare. Faire un test de fumée complet de l'outil avant
+de commiter : les gardes lisent le source, pas le comportement.
+
+### Export Draw.io sans l'éditeur
+
+`DrawIoExporter`, dans `Heimdall.Core.Discovery`, transforme un
+`NetworkScanSnapshot` en XML draw.io : un couloir par rôle classifié, plus un
+pour les hôtes sans port ouvert. Il prend un localiseur `Func<string, string>` :
+les noms de rôle sont les identités produites par le classifieur et restent en
+l'état, mais les en-têtes de couloir et les lignes de noeud passent par le
+catalogue de locales. La couleur du couloir et le style de ses noeuds viennent
+d'un unique enregistrement `RolePalette`, ce qui leur interdit de diverger.
+
 ## Command Library et TwinShell
 
 L'outil `CMDLIB` intègre la bibliothèque de commandes TwinShell au sein de
