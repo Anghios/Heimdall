@@ -132,6 +132,14 @@ public sealed class EmbeddedSessionManager : IEmbeddedSessionManager, IDisposabl
     /// </summary>
     public Func<string, string, ToolContext?, Task>? OpenToolCallback { get; set; }
 
+    /// <summary>
+    /// Optional callback that opens a session against a host that is not a saved
+    /// server. Lets a tool act on what it discovered: a node of an exported
+    /// network diagram carries the host it drew, and activating it connects.
+    /// Wired by MainViewModel to delegate to <c>ConnectAdHocSessionAsync</c>.
+    /// </summary>
+    public Func<SessionLaunchRequest, Task>? OpenSessionCallback { get; set; }
+
     public EmbeddedSessionManager(
         LocalizationManager localizer,
         IDialogService dialogService,
@@ -1345,6 +1353,15 @@ public sealed class EmbeddedSessionManager : IEmbeddedSessionManager, IDisposabl
             context = (context ?? new ToolContext()) with
             {
                 OpenToolAction = OpenToolCallback
+            };
+        }
+
+        // Inject the session opener so a tool can connect to what it discovered.
+        if (OpenSessionCallback is not null)
+        {
+            context = (context ?? new ToolContext()) with
+            {
+                OpenSessionAction = OpenSessionCallback
             };
         }
 

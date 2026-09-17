@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="Heimdall">
+  <diagram name="Network segment">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="t-internet" value="Internet" style="shape=cloud;whiteSpace=wrap;html=1;fillColor=#44475A;fontColor=#ffffff;strokeColor=#6272A4;" vertex="1" parent="1">
+          <mxGeometry x="360" y="40" width="160" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="t-firewall" value="Firewall" style="shape=step;whiteSpace=wrap;html=1;fillColor=#B91C1C;fontColor=#ffffff;strokeColor=#991B1B;" vertex="1" parent="1">
+          <mxGeometry x="380" y="180" width="120" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="t-switch" value="Core switch" style="shape=hexagon;whiteSpace=wrap;html=1;fillColor=#0891B2;fontColor=#ffffff;strokeColor=#0E7490;" vertex="1" parent="1">
+          <mxGeometry x="380" y="290" width="120" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="t-server" value="Server" style="shape=internalStorage;whiteSpace=wrap;html=1;fillColor=#059669;fontColor=#ffffff;strokeColor=#047857;" vertex="1" parent="1">
+          <mxGeometry x="200" y="400" width="140" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="t-workstation" value="Workstation" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2563EB;fontColor=#ffffff;strokeColor=#1D4ED8;" vertex="1" parent="1">
+          <mxGeometry x="380" y="400" width="140" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="t-storage" value="Storage" style="shape=cylinder3;whiteSpace=wrap;html=1;fillColor=#D97706;fontColor=#ffffff;strokeColor=#B45309;size=8;" vertex="1" parent="1">
+          <mxGeometry x="560" y="400" width="140" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="t-e1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=none;strokeColor=#6272A4;" edge="1" parent="1" source="t-internet" target="t-firewall">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="t-e2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=none;strokeColor=#6272A4;" edge="1" parent="1" source="t-firewall" target="t-switch">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="t-e3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=none;strokeColor=#6272A4;" edge="1" parent="1" source="t-switch" target="t-server">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="t-e4" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=none;strokeColor=#6272A4;" edge="1" parent="1" source="t-switch" target="t-workstation">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="t-e5" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=none;strokeColor=#6272A4;" edge="1" parent="1" source="t-switch" target="t-storage">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

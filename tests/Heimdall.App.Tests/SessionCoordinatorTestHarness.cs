@@ -533,6 +533,7 @@ public sealed partial class SessionCoordinatorPreMountTests
         public Action<string>? EditServerRequestedCallback { get; set; }
         public Action<SessionTabViewModel>? CloseRequestedCallback { get; set; }
         public Func<string, string, ToolContext?, Task>? OpenToolCallback { get; set; }
+        public Func<SessionLaunchRequest, Task>? OpenSessionCallback { get; set; }
 
         public int CreateHostControlCalls { get; private set; }
         public int CreateConnectingSshHostControlCalls { get; private set; }

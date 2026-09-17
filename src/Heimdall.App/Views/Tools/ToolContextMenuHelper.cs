@@ -40,9 +40,27 @@ public static class ToolContextMenuHelper
         string? hostname,
         IReadOnlyList<int>? openPorts,
         LocalizationManager? localizer,
-        Action<string, string, ToolContext?> openToolCallback)
+        Action<string, string, ToolContext?> openToolCallback,
+        Action<SessionLaunchRequest>? openSessionCallback = null)
     {
         var items = new List<object>();
+
+        // Connect to the host, when a session is on offer and the shell can open
+        // one. Same decision as the exported diagram's clickable nodes.
+        if (openSessionCallback is not null
+            && SessionProtocolChoice.ForHost(ip, openPorts) is { } session)
+        {
+            var connect = new MenuItem
+            {
+                Header = string.Format(
+                    L(localizer, "ToolCtxOpenSession"),
+                    session.Protocol,
+                    session.Destination)
+            };
+            connect.Click += (_, _) => openSessionCallback(session);
+            items.Add(connect);
+            AddSeparator(items);
+        }
 
         // Copy IP
         var copyIp = new MenuItem { Header = L(localizer, "ToolCtxCopyIp") };
@@ -117,13 +135,10 @@ public static class ToolContextMenuHelper
         var addServer = new MenuItem { Header = L(localizer, "ToolCtxAddToServers") };
         addServer.Click += (_, _) =>
         {
-            // Determine best protocol from open ports
-            string connType = "SSH";
-            int port = DefaultPorts.Ssh;
-            if (openPorts?.Contains(DefaultPorts.Rdp) == true) { connType = "RDP"; port = DefaultPorts.Rdp; }
-            else if (openPorts?.Contains(DefaultPorts.Ssh) == true) { connType = "SSH"; port = DefaultPorts.Ssh; }
-            else if (openPorts?.Contains(DefaultPorts.Vnc) == true) { connType = "VNC"; port = DefaultPorts.Vnc; }
-            else if (openPorts?.Contains(DefaultPorts.Telnet) == true) { connType = "Telnet"; port = DefaultPorts.Telnet; }
+            // The protocol a host's open ports call for, decided in one place.
+            var choice = SessionProtocolChoice.Choose(openPorts);
+            var connType = choice?.Protocol ?? "SSH";
+            var port = choice?.Port ?? DefaultPorts.Ssh;
 
             openToolCallback("__ADD_SERVER__", connType,
                 new ToolContext(TargetHost: ip, TargetPort: port,
@@ -223,6 +238,21 @@ public static class ToolContextMenuHelper
         if (context?.OpenToolAction is Func<string, string, ToolContext?, Task> asyncCallback)
         {
             return (toolId, title, ctx) => _ = asyncCallback(toolId, title, ctx);
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Extracts the open-session callback from a
+    /// <see cref="ToolContext.OpenSessionAction"/> delegate.
+    /// Returns null if the delegate is not set or has an incompatible signature.
+    /// </summary>
+    public static Action<SessionLaunchRequest>? GetOpenSessionAction(ToolContext? context)
+    {
+        if (context?.OpenSessionAction is Func<SessionLaunchRequest, Task> asyncCallback)
+        {
+            return request => _ = asyncCallback(request);
         }
 
         return null;
