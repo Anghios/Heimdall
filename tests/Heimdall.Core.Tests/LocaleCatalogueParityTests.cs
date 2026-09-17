@@ -150,6 +150,43 @@ public sealed class LocaleCatalogueParityTests
     }
 
     /// <summary>
+    /// The documents that state how many keys a catalogue holds, and the separator each one
+    /// groups thousands with.
+    /// </summary>
+    public static TheoryData<string, string> DocumentsStatingTheKeyCount() => new()
+    {
+        { "docs/FEATURES.md", "," },
+        { "docs/SECURITY.md", "," },
+        { "docs/fr/FEATURES.md", " " },
+        { "docs/fr/SECURITY.md", " " },
+    };
+
+    /// <summary>
+    /// A document that quotes a count quotes the count the catalogue actually has.
+    /// </summary>
+    /// <remarks>
+    /// Both feature pages claimed 6272 keys and a bilingual interface for four releases after
+    /// neither was true. A number in prose has no gate of its own: it is written once, read by
+    /// someone deciding whether the project is worth their time, and never measured again. This
+    /// measures it.
+    /// </remarks>
+    [Theory]
+    [MemberData(nameof(DocumentsStatingTheKeyCount))]
+    public void TheDocumentedKeyCountMatchesTheCatalogue(string relativePath, string separator)
+    {
+        int count = ReadCatalogue(ReferenceFileName).Count;
+        Assert.True(count >= MinimumReferenceKeys, $"only {count} keys were read, so the read failed");
+
+        string path = Path.Combine(FindRepoRoot(), relativePath.Replace('/', Path.DirectorySeparatorChar));
+        Assert.True(File.Exists(path), $"Document not found: {path}");
+
+        string written = count.ToString("#,0", System.Globalization.CultureInfo.InvariantCulture)
+            .Replace(",", separator, StringComparison.Ordinal);
+
+        Assert.Contains(written, File.ReadAllText(path), StringComparison.Ordinal);
+    }
+
+    /// <summary>
     /// Indexed placeholders only. A brace pair holding anything else is example text, such as the
     /// JSON snippet in the formatter's help page, and is none of this guard's business.
     /// </summary>
