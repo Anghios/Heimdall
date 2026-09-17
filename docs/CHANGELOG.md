@@ -46,9 +46,6 @@ All notable changes to Heimdall are documented in this file.
 - Printing.
 - The toolbar gave up five buttons to a File menu. It carried fifteen and already scrolled sideways
   in French, and the tool has since gained templates, a merge, recents and printing.
-
-### Diagram editor
-
 - Pressing Ctrl+S inside the editor saved nothing. The page hosting draw.io treated the editor's
   save event exactly like its autosave event, so both did no more than hand the drawing back to
   Heimdall to hold in memory. The two are now separate: autosave tracks the document, Ctrl+S writes
@@ -103,6 +100,15 @@ All notable changes to Heimdall are documented in this file.
   two were written from separate tables, and six roles were coloured in one and not the other, so
   an SSH Server lane was green with grey hosts. Both now come from one palette per role.
 - The export's diagram name used the machine's regional settings to format its timestamp.
+
+### Corrections to earlier notes
+
+- The entry for 2026-03-26 says draw.io's `mxPopupMenu` dropdowns cannot open inside a WebView2
+  iframe, and that its controls only look interactive. Measured against the vendored 31.4.5 and
+  false: the editor's own context menu opens, is localized and works. Heimdall disables it
+  explicitly, precisely because it worked well enough to open over Heimdall's own menu and swallow
+  the click meant for it. Hiding draw.io's chrome remains the right call, but it is a decision
+  about having one command surface, not a workaround for a broken one.
 
 ### Documentation
 
