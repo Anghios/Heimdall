@@ -233,17 +233,30 @@
             }
         }
 
+        // The label draw.io itself would show for one of its actions.
+        //
+        // An action's `label` is its RESOURCE KEY, not its text: 'undo' carries
+        // 'undo', and 'insertEdge' carries 'line'. draw.io translates it when it
+        // builds its own menu. Returning it as the label put the key on screen,
+        // so this menu read "undo / redo / cut" while draw.io's own read
+        // "Annuler / Refaire / Couper".
         function getDrawioLabel(actionName, labelKey, fallbackLabel) {
             var action = getDrawioAction(actionName);
-            if (action && typeof action.label === 'string' && action.label.length > 0) {
-                return action.label;
+            var key = labelKey;
+
+            if (!key && action && typeof action.label === 'string' && action.label.length > 0) {
+                key = action.label;
+            }
+
+            if (!key) {
+                key = actionName;
             }
 
             try {
                 if (frame.contentWindow
                     && frame.contentWindow.mxResources
                     && typeof frame.contentWindow.mxResources.get === 'function') {
-                    var label = frame.contentWindow.mxResources.get(labelKey || actionName);
+                    var label = frame.contentWindow.mxResources.get(key);
                     if (label) {
                         return label;
                     }
@@ -252,7 +265,7 @@
                 // Ignore localization lookup failures
             }
 
-            return fallbackLabel || actionName;
+            return fallbackLabel || key;
         }
 
         function executeDrawioAction(actionName, eventArg) {

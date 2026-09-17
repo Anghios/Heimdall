@@ -241,6 +241,84 @@ public sealed class DrawioAssetGuardTests
     }
 
     /// <summary>
+    /// draw.io's actions must reach the menu translated, not as their keys.
+    /// </summary>
+    /// <remarks>
+    /// An action's <c>label</c> is its resource key, not its text: 'undo' carries
+    /// "undo" and 'insertEdge' carries "line". Returning it put the key on screen,
+    /// so this menu read "undo / redo / cut" beside a draw.io menu reading
+    /// "Annuler / Refaire / Couper". The key must go through mxResources.
+    /// </remarks>
+    [Fact]
+    public void HostPage_TranslatesTheEditorsOwnMenuEntries()
+    {
+        string host = ReadAsset("heimdall-host.html");
+
+        var resolver = Regex.Match(host,
+            @"function getDrawioLabel\([^)]*\)\s*\{(?<body>.*?)\n        \}",
+            RegexOptions.Singleline | RegexOptions.CultureInvariant);
+
+        Assert.True(resolver.Success, "heimdall-host.html no longer resolves draw.io's labels.");
+
+        string body = resolver.Groups["body"].Value;
+
+        Assert.True(
+            body.Contains("mxResources.get(key)", StringComparison.Ordinal),
+            "The label is not looked up through mxResources, so the menu shows resource keys.");
+
+        // The defect: handing back action.label as if it were the text.
+        Assert.False(
+            Regex.IsMatch(body, @"return\s+action\.label\s*;", RegexOptions.CultureInvariant),
+            "An action's label is its resource key, not its text; returning it puts "
+                + "\"undo\" and \"cut\" on screen instead of the translated entries.");
+    }
+
+    /// <summary>
+    /// Every action the context menu offers must have a key the shipped
+    /// catalogues can translate, in both languages Heimdall speaks.
+    /// </summary>
+    [Fact]
+    public void HostPage_ContextMenuActionsAreTranslatableInBothLanguages()
+    {
+        string host = ReadAsset("heimdall-host.html");
+
+        var items = Regex.Match(host,
+            @"var contextMenuItems = \[(?<body>.*?)\n        \];",
+            RegexOptions.Singleline | RegexOptions.CultureInvariant);
+
+        Assert.True(items.Success, "heimdall-host.html no longer declares its context menu items.");
+
+        // The resource key an entry resolves to: its explicit labelKey when it has
+        // one, and otherwise the action name, which is what draw.io's own label
+        // carries for all but insertEdge.
+        var keys = new List<string>();
+        foreach (Match entry in Regex.Matches(items.Groups["body"].Value,
+            @"\{\s*action:\s*'(?<action>[^']+)'(?<rest>[^}]*)\}", RegexOptions.CultureInvariant))
+        {
+            var explicitKey = Regex.Match(entry.Groups["rest"].Value, @"labelKey:\s*'(?<key>[^']+)'");
+            keys.Add(explicitKey.Success ? explicitKey.Groups["key"].Value : entry.Groups["action"].Value);
+        }
+
+        Assert.NotEmpty(keys);
+
+        // insertEdge is the one action whose resource key is not its name; draw.io
+        // carries "line" on it, and that is what the host resolves.
+        keys = keys.Select(key => key == "insertEdge" ? "line" : key).ToList();
+
+        foreach (string catalogue in new[] { "dia.txt", "dia_fr.txt" })
+        {
+            string text = ReadAsset("resources", catalogue);
+            var missing = keys
+                .Where(key => !Regex.IsMatch(text, $@"^{Regex.Escape(key)}=", RegexOptions.Multiline))
+                .ToList();
+
+            Assert.True(missing.Count == 0,
+                $"{catalogue} cannot translate: {string.Join(", ", missing)}. "
+                    + "Those entries would show their resource key.");
+        }
+    }
+
+    /// <summary>
     /// The iframe host reaches the editor through a global the bundle does not
     /// define on its own; losing that edit disables the whole WPF toolbar.
     /// </summary>
