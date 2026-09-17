@@ -10,7 +10,7 @@
 
 # Mentions relatives aux composants tiers
 
-*Also available in English: [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).*
+*Également disponible en anglais : [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) et en espagnol : [THIRD-PARTY-NOTICES.es.md](THIRD-PARTY-NOTICES.es.md).*
 
 Heimdall est distribué sous licence Apache 2.0 (voir [LICENSE](LICENSE)). Il
 redistribue les composants tiers listés ci-dessous, chacun sous sa propre licence.

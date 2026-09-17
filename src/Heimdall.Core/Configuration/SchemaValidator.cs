@@ -33,7 +33,7 @@ public static partial class SchemaValidator
 
     private static readonly HashSet<string> ValidLocales = new(StringComparer.OrdinalIgnoreCase)
     {
-        "en", "fr"
+        "en", "fr", "es"
     };
 
     private static readonly HashSet<string> ValidModes = new(StringComparer.OrdinalIgnoreCase)
