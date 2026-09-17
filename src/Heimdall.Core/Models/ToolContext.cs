@@ -36,6 +36,7 @@ public sealed record ToolContext(
     System.Collections.IList? SshGateways = null,
     Delegate? OpenToolAction = null,
     Delegate? OpenSessionAction = null,
+    Delegate? AddServerAction = null,
     Action<bool>? SetBusyAction = null,
     Action<string>? SendCommandAction = null,
     Func<bool>? CanSendToTerminal = null,

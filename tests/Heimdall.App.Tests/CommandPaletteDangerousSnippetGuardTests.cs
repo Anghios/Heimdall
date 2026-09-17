@@ -378,6 +378,8 @@ public sealed class CommandPaletteDangerousSnippetGuardTests
         public Func<string, string, ToolContext?, Task>? OpenToolCallback { get; set; }
         public Func<SessionLaunchRequest, Task>? OpenSessionCallback { get; set; }
 
+        public Func<SessionLaunchRequest, string?, Task>? AddServerCallback { get; set; }
+
         public int SendCallCount { get; private set; }
 
         public string? LastCommand { get; private set; }

@@ -452,6 +452,7 @@ public partial class MainViewModel : ObservableObject, IDisposable, ITunnelsHost
 
         // Wire the session opener so a tool can connect to a host it discovered.
         _embeddedSessionManager.OpenSessionCallback = ConnectAdHocSessionAsync;
+        _embeddedSessionManager.AddServerCallback = AddDiscoveredServerAsync;
 
         // Instant theme preview when the user changes the Settings combo.
         // Actual persistence triggers a second apply via IConfigManager.SettingsChanged,
@@ -1001,6 +1002,41 @@ public partial class MainViewModel : ObservableObject, IDisposable, ITunnelsHost
         };
 
         return ConnectServerAsProtocolAsync(server, request.Protocol, request.Port);
+    }
+
+    /// <summary>
+    /// Files a host a tool discovered as a saved server, through the ordinary Add
+    /// Server dialog so the user confirms it and can change anything before it is
+    /// written.
+    /// </summary>
+    /// <remarks>
+    /// This is the persistent counterpart of <see cref="ConnectAdHocSessionAsync"/>:
+    /// the same validated request, kept rather than dialled. The profile handed to
+    /// the dialog is the transient one, which carries the host and the protocol's
+    /// port in the field that protocol reads; the command that receives it assigns a
+    /// fresh identifier and marks the origin manual before anything is persisted.
+    /// </remarks>
+    /// <param name="request">The session the discovered host offers.</param>
+    /// <param name="displayName">Name to file it under, or null to use the host.</param>
+    public Task AddDiscoveredServerAsync(SessionLaunchRequest request, string? displayName)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var server = new ServerItemViewModel
+        {
+            RemoteServer = request.Host,
+            DisplayName = request.Host,
+            Username = request.Username ?? string.Empty,
+            ConnectionType = request.Protocol
+        };
+
+        var template = BuildTransientProfile(server, request.Protocol, request.Port);
+        if (!string.IsNullOrWhiteSpace(displayName))
+        {
+            template.DisplayName = displayName;
+        }
+
+        return ServerList.SaveAdHocAsProfileCommand.ExecuteAsync(template);
     }
 
     public void MergeExistingSession(

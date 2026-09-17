@@ -844,6 +844,8 @@ public sealed class MainViewModelSettingsNavigationTests
         public Func<string, string, ToolContext?, Task>? OpenToolCallback { get; set; }
         public Func<SessionLaunchRequest, Task>? OpenSessionCallback { get; set; }
 
+        public Func<SessionLaunchRequest, string?, Task>? AddServerCallback { get; set; }
+
         public object CreateHostControl(
             SessionTabViewModel sessionTab,
             string displayName,

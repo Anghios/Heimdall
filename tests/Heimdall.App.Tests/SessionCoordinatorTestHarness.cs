@@ -535,6 +535,8 @@ public sealed partial class SessionCoordinatorPreMountTests
         public Func<string, string, ToolContext?, Task>? OpenToolCallback { get; set; }
         public Func<SessionLaunchRequest, Task>? OpenSessionCallback { get; set; }
 
+        public Func<SessionLaunchRequest, string?, Task>? AddServerCallback { get; set; }
+
         public int CreateHostControlCalls { get; private set; }
         public int CreateConnectingSshHostControlCalls { get; private set; }
         public int AttachSshSessionCalls { get; private set; }

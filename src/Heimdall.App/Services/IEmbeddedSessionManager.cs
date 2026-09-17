@@ -109,6 +109,12 @@ public interface IEmbeddedSessionManager
     Func<SessionLaunchRequest, Task>? OpenSessionCallback { get; set; }
 
     /// <summary>
+    /// Optional callback that files a discovered host as a saved server, with the
+    /// session it offers and the name to file it under.
+    /// </summary>
+    Func<SessionLaunchRequest, string?, Task>? AddServerCallback { get; set; }
+
+    /// <summary>
     /// Creates a visual host for an embedded connection session.
     /// </summary>
     object CreateHostControl(

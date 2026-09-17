@@ -41,7 +41,8 @@ public static class ToolContextMenuHelper
         IReadOnlyList<int>? openPorts,
         LocalizationManager? localizer,
         Action<string, string, ToolContext?> openToolCallback,
-        Action<SessionLaunchRequest>? openSessionCallback = null)
+        Action<SessionLaunchRequest>? openSessionCallback = null,
+        Action<SessionLaunchRequest, string?>? addServerCallback = null)
     {
         var items = new List<object>();
 
@@ -130,21 +131,23 @@ public static class ToolContextMenuHelper
             items.Add(browser);
         }
 
-        // Add to Heimdall Servers
-        AddSeparator(items);
-        var addServer = new MenuItem { Header = L(localizer, "ToolCtxAddToServers") };
-        addServer.Click += (_, _) =>
+        // Keep the host as a saved server, when the shell can file one. This is the
+        // persistent counterpart of the connect entry above and takes the same
+        // decision, from the same place, about which session the host offers. A host
+        // offering none is still worth recording, so it is filed as SSH on the
+        // default port and the Add Server dialog lets the user say otherwise.
+        if (addServerCallback is not null)
         {
-            // The protocol a host's open ports call for, decided in one place.
-            var choice = SessionProtocolChoice.Choose(openPorts);
-            var connType = choice?.Protocol ?? "SSH";
-            var port = choice?.Port ?? DefaultPorts.Ssh;
-
-            openToolCallback("__ADD_SERVER__", connType,
-                new ToolContext(TargetHost: ip, TargetPort: port,
-                    DisplayName: hostname ?? ip, ConnectionType: connType));
-        };
-        items.Add(addServer);
+            AddSeparator(items);
+            var addServer = new MenuItem { Header = L(localizer, "ToolCtxAddToServers") };
+            addServer.Click += (_, _) =>
+            {
+                var session = SessionProtocolChoice.ForHost(ip, openPorts)
+                    ?? new SessionLaunchRequest(ip, DefaultPorts.Ssh, "SSH");
+                addServerCallback(session, hostname);
+            };
+            items.Add(addServer);
+        }
 
         return items;
     }
@@ -253,6 +256,27 @@ public static class ToolContextMenuHelper
         if (context?.OpenSessionAction is Func<SessionLaunchRequest, Task> asyncCallback)
         {
             return request => _ = asyncCallback(request);
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Extracts the add-server callback from a
+    /// <see cref="ToolContext.AddServerAction"/> delegate.
+    /// Returns null if the delegate is not set or has an incompatible signature.
+    /// </summary>
+    /// <remarks>
+    /// A menu entry built on a null callback is a dead route: the click used to
+    /// reach an open-tool callback with an identifier no registry knew, which put a
+    /// tab reading <c>Tool: __ADD_SERVER__</c> on screen. The entry is now built
+    /// only when something can carry it out.
+    /// </remarks>
+    public static Action<SessionLaunchRequest, string?>? GetAddServerAction(ToolContext? context)
+    {
+        if (context?.AddServerAction is Func<SessionLaunchRequest, string?, Task> asyncCallback)
+        {
+            return (request, displayName) => _ = asyncCallback(request, displayName);
         }
 
         return null;
