@@ -569,6 +569,12 @@ public partial class DiagramEditorView : UserControl, IToolView
 
         if (!TryOpenFile(path)) return;
 
+        // A draft left by a run that did not finish belongs to this document, and
+        // this is where the user meets it. Offering it only when the tool starts
+        // with a document never fired: the tool starts empty, and the file arrives
+        // through here.
+        OfferDraftRecovery();
+
         UpdateDocumentIndicator();
         PostWebMessage($"load:{_document.EditorXml}");
     }
