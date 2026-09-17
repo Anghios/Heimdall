@@ -448,9 +448,16 @@ public sealed class SplitService : ISplitService
                 && leaf.HostControl is IToolView toolView
                 && !toolView.CanClose())
             {
-                SetStatusText?.Invoke(_localizer["SplitMergeBlockedByTool"]);
+                string? reasonKey = ToolCloseRefusalReport.ReasonKeyFor(
+                    toolView.CloseRefusal, "SplitMergeBlockedByTool");
+                if (reasonKey is not null)
+                {
+                    SetStatusText?.Invoke(_localizer.Format(reasonKey, leaf.Title));
+                }
+
                 Core.Logging.FileLogger.Info(
-                    $"Merge blocked: source tool '{leaf.Title}' reports CanClose()=false.");
+                    $"Merge blocked: source tool '{leaf.Title}' reports CanClose()=false "
+                        + $"({toolView.CloseRefusal}).");
                 return;
             }
         }
@@ -563,8 +570,9 @@ public sealed class SplitService : ISplitService
             if (pane.HostControl is IToolView toolView && !toolView.CanClose())
             {
                 Core.Logging.FileLogger.Info(
-                    $"ClosePane blocked: tool '{pane.Title}' reports CanClose()=false.");
-                return PaneCloseResult.Blocked(CloseGuardLocaleKeys.BlockedTool);
+                    $"ClosePane blocked: tool '{pane.Title}' reports CanClose()=false "
+                        + $"({toolView.CloseRefusal}).");
+                return ToolCloseRefusalReport.Refused(toolView.CloseRefusal);
             }
         }
         else if (!string.IsNullOrEmpty(pane.ServerId))
@@ -967,7 +975,7 @@ public sealed class SplitService : ISplitService
                     && pane.HostControl is IToolView toolView
                     && !toolView.CanClose())
                 {
-                    return PaneCloseResult.Blocked(CloseGuardLocaleKeys.BlockedTool);
+                    return ToolCloseRefusalReport.Refused(toolView.CloseRefusal);
                 }
             }
         }

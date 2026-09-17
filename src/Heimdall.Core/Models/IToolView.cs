@@ -37,4 +37,11 @@ public interface IToolView : IDisposable
     /// when an async operation is in progress (e.g. scan, export).
     /// </summary>
     bool CanClose() => true;
+
+    /// <summary>
+    /// Why the most recent <see cref="CanClose"/> call refused, which decides what
+    /// the shell puts on screen. Read only after <see cref="CanClose"/> returned
+    /// false; a tool that overrides it sets it on every refusing call.
+    /// </summary>
+    ToolCloseRefusal CloseRefusal => ToolCloseRefusal.Busy;
 }

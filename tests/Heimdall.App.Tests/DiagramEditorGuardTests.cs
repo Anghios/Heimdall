@@ -53,7 +53,7 @@ public sealed class DiagramEditorGuardTests
     private const string AcceleratorKeysStatement = "core.Settings.AreBrowserAcceleratorKeysEnabled = false;";
     private const string ScriptDialogsStatement = "core.Settings.AreDefaultScriptDialogsEnabled = false;";
     private const string SaveStatement = "PerformSave(chooseNewLocation: false);";
-    private const string ConfirmStatement = "return ConfirmDiscardUnsavedChanges();";
+    private const string ConfirmStatement = "bool allowed = ConfirmDiscardUnsavedChanges();";
     private const string DraftRecoveryStatement = "OfferDraftRecovery();";
 
     /// <summary>

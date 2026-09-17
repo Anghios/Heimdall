@@ -101,10 +101,19 @@ public partial class NotesToolView : UserControl, IToolView
         StartInitializationIfNeeded();
     }
 
+    /// <inheritdoc />
+    public ToolCloseRefusal CloseRefusal { get; private set; } = ToolCloseRefusal.Busy;
+
     public bool CanClose()
     {
         _saveTimer.Stop();
-        return _vm.TrySaveSynchronously();
+        bool saved = _vm.TrySaveSynchronously();
+
+        // This tool refuses for one reason only: the note could not be written.
+        // That was reported as the tool being busy, so the close was withheld AND
+        // the failure that withheld it was never named.
+        CloseRefusal = saved ? ToolCloseRefusal.Busy : ToolCloseRefusal.SaveFailed;
+        return saved;
     }
 
     private void OnLoaded(object sender, RoutedEventArgs e)

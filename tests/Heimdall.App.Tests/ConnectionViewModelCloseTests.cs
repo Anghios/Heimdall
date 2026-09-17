@@ -650,6 +650,59 @@ public sealed class ConnectionViewModelCloseTests
             dialogService.LastInfoMessage);
     }
 
+    /// <summary>
+    /// A refusal with no reason key puts nothing on screen. That is the answer for a
+    /// user who has just cancelled a tool's save prompt: they were asked, they said
+    /// no, and a dialog telling them the tool is busy contradicts their own answer.
+    /// </summary>
+    [Fact]
+    public async Task CloseSessionAsync_RefusedWithoutAReason_KeepsTheSessionAndSaysNothing()
+    {
+        LocalizationManager localizer = new();
+        await localizer.LoadAsync(Path.Combine(AppContext.BaseDirectory, "locales"), "en");
+        TrackingDialogService dialogService = new(true);
+        TrackingSplitService splitService = new()
+        {
+            CloseAllPanesOverride = PaneCloseResult.BlockedWithoutAWord
+        };
+        ConnectionViewModel sut = CreateViewModel(dialogService, splitService, localizer);
+        SessionTabViewModel session = CreateSplitSession("Connected", "Disconnected");
+        AddActiveSession(sut, session);
+
+        await sut.CloseSessionAsync(session, DisconnectReason.TabClose);
+
+        Assert.Contains(session, sut.ActiveSessions);
+        Assert.Null(dialogService.LastInfoTitle);
+        Assert.Null(dialogService.LastInfoMessage);
+    }
+
+    /// <summary>
+    /// The control for the test above: a refusal that does carry a reason is still
+    /// reported, so silence is a property of the reason and not of the path.
+    /// </summary>
+    [Fact]
+    public async Task CloseSessionAsync_RefusedWithAReason_KeepsTheSessionAndReportsIt()
+    {
+        LocalizationManager localizer = new();
+        await localizer.LoadAsync(Path.Combine(AppContext.BaseDirectory, "locales"), "en");
+        TrackingDialogService dialogService = new(true);
+        TrackingSplitService splitService = new()
+        {
+            CloseAllPanesOverride = PaneCloseResult.Blocked(CloseGuardLocaleKeys.BlockedSaveFailed)
+        };
+        ConnectionViewModel sut = CreateViewModel(dialogService, splitService, localizer);
+        SessionTabViewModel session = CreateSplitSession("Connected", "Disconnected");
+        AddActiveSession(sut, session);
+
+        await sut.CloseSessionAsync(session, DisconnectReason.TabClose);
+
+        Assert.Contains(session, sut.ActiveSessions);
+        Assert.Equal(localizer[CloseGuardLocaleKeys.BlockedTitle], dialogService.LastInfoTitle);
+        Assert.Equal(
+            localizer.Format(CloseGuardLocaleKeys.BlockedSaveFailed, session.Title),
+            dialogService.LastInfoMessage);
+    }
+
     [Fact]
     public async Task CloseSessionAsync_TabClose_IsInteractive()
     {

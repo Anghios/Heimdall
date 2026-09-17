@@ -106,6 +106,19 @@ All notable changes to Heimdall are documented in this file.
   an SSH Server lane was green with grey hosts. Both now come from one palette per role.
 - The export's diagram name used the machine's regional settings to format its timestamp.
 
+### Closing a tool
+
+- Closing a tool that refused always said the same thing: the tool is busy and cannot be closed
+  right now. True of the forty-odd tools that refuse while a scan or an export runs. False of the
+  two that ask the user something first. Cancelling the diagram editor's save prompt was reported
+  as the tool being busy, a moment after the user was the reason; and a note that could not be
+  written to disk was reported the same way, so the close was withheld and the failure that
+  withheld it was never named.
+- A tool now says why it refused. A user who declined is told nothing, because they answered the
+  question one gesture ago and a message would only contradict them. A note that could not be
+  saved says so, and says the tab was left open. Everything else keeps the message it had,
+  including the separate wording a blocked merge uses.
+
 ### Corrections to earlier notes
 
 - The entry for 2026-03-26 says draw.io's `mxPopupMenu` dropdowns cannot open inside a WebView2

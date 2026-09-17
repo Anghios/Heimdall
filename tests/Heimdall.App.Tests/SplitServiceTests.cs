@@ -444,6 +444,34 @@ public sealed class SplitServiceTests : IDisposable
         Assert.True(result.IsClosed);
     }
 
+    /// <summary>
+    /// The real close site must carry the tool's reason out, not flatten every
+    /// refusal onto the busy message the way it did for the life of the check.
+    /// </summary>
+    /// <remarks>
+    /// A null reason key is the shell's way of saying nothing, and it is what a user
+    /// who just cancelled a save prompt gets. The reporting sites already skip a null
+    /// key; until now nothing could produce one.
+    /// </remarks>
+    [Theory]
+    [InlineData(ToolCloseRefusal.Busy, CloseGuardLocaleKeys.BlockedTool)]
+    [InlineData(ToolCloseRefusal.SaveFailed, CloseGuardLocaleKeys.BlockedSaveFailed)]
+    [InlineData(ToolCloseRefusal.UserDeclined, null)]
+    public void CloseAllPanes_RefusingToolPane_ReportsTheReasonItGave(
+        ToolCloseRefusal refusal, string? expectedReasonKey)
+    {
+        var session = new SessionTabViewModel();
+        var toolPane = MakePane(connectionType: "TOOL:PING");
+        toolPane.HostControl = new StubToolView(canClose: false, refusal);
+        session.RootContent = toolPane;
+
+        var result = _sut.CloseAllPanes(session, CloseRequest.Interactive(DisconnectReason.UserAction));
+
+        Assert.Equal(PaneCloseOutcome.Blocked, result.Outcome);
+        Assert.Equal(expectedReasonKey, result.ReasonKey);
+        Assert.NotNull(toolPane.HostControl);
+    }
+
     [Fact]
     public void CloseAllPanes_ToolPaneCanClose_ReturnsTrue_AndClearsHostControl()
     {
@@ -1897,10 +1925,13 @@ public sealed class SplitServiceTests : IDisposable
         private readonly bool _canClose;
         public bool Disposed { get; private set; }
 
-        public StubToolView(bool canClose)
+        public StubToolView(bool canClose, ToolCloseRefusal refusal = ToolCloseRefusal.Busy)
         {
             _canClose = canClose;
+            CloseRefusal = refusal;
         }
+
+        public ToolCloseRefusal CloseRefusal { get; }
 
         public void Initialize(ToolContext? context, LocalizationManager? localizer) { }
         public bool CanClose() => _canClose;
