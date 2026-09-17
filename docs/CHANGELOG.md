@@ -12,6 +12,33 @@
 
 All notable changes to Heimdall are documented in this file.
 
+## Unreleased: Heimdall speaks Spanish
+
+### Spanish
+
+- The interface is available in Spanish. All 6370 strings are translated, the language box in
+  `Settings > General` offers it beside English and French, and the third-party notices have a
+  Spanish edition alongside the English and French ones. Contributed by Néstor (Anghios).
+- Two things the translation does not reach, named here rather than discovered: the embedded
+  draw.io editor ships English and French resources only, so its own menus stay English, and the
+  passphrase generator's word lists are English and French, so a Spanish profile generates English
+  passphrases.
+
+### Guarding a third language
+
+- Four guards that read the locale catalogues named their two files by hand, so each covered the
+  languages that existed the day it was written. A third catalogue could ship complete and be read
+  by none of them: 183 pairs of guillemets went past the typography sweep, and the language box
+  could have offered a code the settings validator refuses, with every gate green. They now
+  enumerate the catalogues on disk, and each asserts what the enumeration found, because a source
+  that returns nothing runs no checks and reports success.
+- There was no key-parity guard at all between the catalogues, only tests that enumerated their own
+  keys. A key added to one language alone reaches the user as the key name itself, in place of the
+  sentence. Parity, orphaned keys and dropped placeholders are now a failure, for every catalogue.
+- The feature pages said the interface was bilingual and quoted a key count that had drifted by 98.
+  Both are corrected, and the count is now read out of the catalogue and asserted against the pages
+  that state it.
+
 ## 2026-09-17: the diagram tool keeps your work, and draws a real topology (v2026.091701)
 
 ### Network diagrams
