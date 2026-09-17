@@ -187,6 +187,13 @@
                     app.refresh();
                 }
 
+                // draw.io's own context menu would otherwise open on the same
+                // right click and render over this one, swallowing the click that
+                // was meant for it. Heimdall provides the menu, so this is off.
+                if (app.editor && app.editor.graph && app.editor.graph.popupMenuHandler) {
+                    app.editor.graph.popupMenuHandler.setEnabled(false);
+                }
+
                 ensureContextMenuBinding(0);
                 chromeConfigured = true;
                 return true;
@@ -405,6 +412,39 @@
             contextMenuVisible = true;
         }
 
+        // Selects whatever sits under the pointer, so the menu describes the cell
+        // the user aimed at.
+        //
+        // A right click leaves draw.io's own selection untouched, and this menu is
+        // built from the DOM contextmenu event, which arrives before draw.io has
+        // decided anything. Read the selection instead and the menu is built
+        // against whatever happened to be selected earlier, usually nothing: the
+        // session entry was then permanently disabled, which is exactly what the
+        // visual pass found.
+        function selectCellUnderPointer(clientX, clientY) {
+            var app = getDrawioApp();
+            if (!app || !app.editor || !app.editor.graph) {
+                return null;
+            }
+
+            try {
+                var graph = app.editor.graph;
+                var point = frame.contentWindow.mxUtils.convertPoint(
+                    graph.container, clientX, clientY);
+                var cell = graph.getCellAt(point.x, point.y);
+
+                if (cell) {
+                    graph.setSelectionCell(cell);
+                } else {
+                    graph.clearSelection();
+                }
+
+                return cell;
+            } catch (e) {
+                return null;
+            }
+        }
+
         function onFrameContextMenu(evt) {
             if (!editorReady) {
                 return;
@@ -412,6 +452,8 @@
 
             evt.preventDefault();
             evt.stopPropagation();
+
+            selectCellUnderPointer(evt.clientX, evt.clientY);
 
             var frameRect = frame.getBoundingClientRect();
             showContextMenu(frameRect.left + evt.clientX, frameRect.top + evt.clientY);

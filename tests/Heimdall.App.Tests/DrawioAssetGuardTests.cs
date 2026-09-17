@@ -206,6 +206,41 @@ public sealed class DrawioAssetGuardTests
     }
 
     /// <summary>
+    /// The context menu must describe the cell the user aimed at, and must be the
+    /// only menu that opens.
+    /// </summary>
+    /// <remarks>
+    /// Found by a manual pass, because nothing else could find it. A right click
+    /// leaves draw.io's selection untouched, and this menu is built from the DOM
+    /// contextmenu event, which arrives first. Reading the selection therefore
+    /// built the menu against whatever was selected earlier, usually nothing, so
+    /// the session entry was permanently disabled. draw.io also opened its own
+    /// menu over this one and swallowed the click. Both are behaviour no source
+    /// guard can prove; what is pinned here is that the two lines addressing them
+    /// are still written.
+    /// </remarks>
+    [Fact]
+    public void HostPage_DrivesItsContextMenuFromThePointer()
+    {
+        string host = ReadAsset("heimdall-host.html");
+
+        var handler = Regex.Match(host,
+            @"function onFrameContextMenu\(evt\)\s*\{(?<body>.*?)\n        \}",
+            RegexOptions.Singleline | RegexOptions.CultureInvariant);
+
+        Assert.True(handler.Success, "heimdall-host.html no longer handles the frame's context menu.");
+        Assert.True(
+            handler.Groups["body"].Value.Contains("selectCellUnderPointer(", StringComparison.Ordinal),
+            "The context menu is built without selecting the cell under the pointer, so its "
+                + "entries describe an earlier selection and the session entry stays disabled.");
+
+        Assert.True(
+            host.Contains("popupMenuHandler.setEnabled(false)", StringComparison.Ordinal),
+            "draw.io's own context menu is left enabled and opens over Heimdall's, swallowing "
+                + "the click meant for it.");
+    }
+
+    /// <summary>
     /// The iframe host reaches the editor through a global the bundle does not
     /// define on its own; losing that edit disables the whole WPF toolbar.
     /// </summary>
