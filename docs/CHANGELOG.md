@@ -12,7 +12,7 @@
 
 All notable changes to Heimdall are documented in this file.
 
-## Unreleased: Heimdall speaks Spanish
+## 2026-09-17: Heimdall speaks Spanish (v2026.091702)
 
 ### Spanish
 
