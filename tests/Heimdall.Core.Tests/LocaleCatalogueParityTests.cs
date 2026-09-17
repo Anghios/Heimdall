@@ -157,8 +157,10 @@ public sealed class LocaleCatalogueParityTests
     {
         { "docs/FEATURES.md", "," },
         { "docs/SECURITY.md", "," },
+        { "docs/DEVELOPMENT.md", "," },
         { "docs/fr/FEATURES.md", " " },
         { "docs/fr/SECURITY.md", " " },
+        { "docs/fr/DEVELOPMENT.md", " " },
     };
 
     /// <summary>

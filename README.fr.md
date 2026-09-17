@@ -125,7 +125,8 @@ nom ou son adresse.
 | [Dépannage](docs/fr/TROUBLESHOOTING.md) | Pannes précises, rédigées pour un lecteur technique |
 | [Sécurité](SECURITY.fr.md) | Comment les identifiants sont protégés, et comment signaler un problème |
 | [Politique de signature](docs/fr/CODE-SIGNING-POLICY.md) | Qui approuve une signature, et ce qui est signé |
-| [Développement](docs/fr/DEVELOPMENT.md) | Compiler, tester, contribuer |
+| [Contribuer](CONTRIBUTING.fr.md) | Ce que regarde la relecture, et les conventions qui surprennent |
+| [Développement](docs/fr/DEVELOPMENT.md) | Compiler, tester, nommer les choses |
 | [Architecture](docs/fr/ARCHITECTURE.md) | Comment tout cela est agencé |
 | [Journal des versions](docs/CHANGELOG.md) | Ce qui a changé, et quand |
 
