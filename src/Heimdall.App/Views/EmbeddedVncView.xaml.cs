@@ -169,7 +169,7 @@ public partial class EmbeddedVncView : UserControl, IDisposable
             var assetsPath = Path.Combine(AppContext.BaseDirectory, "Assets");
             core.SetVirtualHostNameToFolderMapping(
                 VncDocumentPolicy.TrustedDocument.Host, assetsPath,
-                CoreWebView2HostResourceAccessKind.Allow);
+                WebViewAssetAccess.Vnc);
 
             // Block all navigation away from the VNC virtual host
             core.NavigationStarting += OnWebViewNavigationStarting;

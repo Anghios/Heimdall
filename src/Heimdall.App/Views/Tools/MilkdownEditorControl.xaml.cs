@@ -136,7 +136,7 @@ public partial class MilkdownEditorControl : UserControl, IDisposable
             core.SetVirtualHostNameToFolderMapping(
                 EditorDocumentPolicy.TrustedDocument.Host,
                 assetsFolder,
-                CoreWebView2HostResourceAccessKind.Allow);
+                WebViewAssetAccess.MarkdownEditor);
 
             Core.Logging.FileLogger.Info(
                 $"Milkdown virtual host mapped to '{assetsFolder}'");
