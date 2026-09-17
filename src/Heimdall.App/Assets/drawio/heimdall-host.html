@@ -637,10 +637,16 @@
             postToHost('ready:');
         }
 
-        // Hide draw.io's native menu and toolbar after the iframe loads.
-        // In the WebView2 iframe host these controls can appear interactive
-        // while not dispatching reliably, so Heimdall provides the working
-        // command surface in WPF instead.
+        // Hide draw.io's native menu bar and toolbar after the iframe loads,
+        // because Heimdall provides the command surface in WPF instead.
+        //
+        // This used to be justified by draw.io's menus not dispatching inside a
+        // WebView2 iframe. Measured on the vendored 31.4.5 and false: its own
+        // context menu opens, is localized and works. It is disabled explicitly
+        // above, in configureEditorChrome, precisely because it worked well
+        // enough to open over Heimdall's and swallow the click meant for it.
+        // Hiding the chrome is a product decision about one command surface, not
+        // a workaround for a broken one.
         frame.onload = function() {
             try {
                 var style = frame.contentDocument.createElement('style');

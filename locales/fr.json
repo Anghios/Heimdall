@@ -6320,7 +6320,6 @@
   "ToolHostsEmptyState": "Aucune entr\u00e9e trouv\u00e9e dans le fichier hosts.",
   "ToolSshKeyGenEmptyState": "Choisissez un algorithme et cliquez sur G\u00e9n\u00e9rer.",
   "ToolCertGenEmptyState": "Renseignez les d\u00e9tails du certificat et cliquez sur G\u00e9n\u00e9rer.",
-  "ToolDiagramEmptyState": "Chargement de l'\u00e9diteur de diagrammes...",
 
   "_comment_ux_watermarks": "--- Watermarks ---",
   "ToolWatermarkPassword": "Saisissez un mot de passe",

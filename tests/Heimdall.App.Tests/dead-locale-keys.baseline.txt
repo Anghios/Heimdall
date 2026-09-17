@@ -1160,7 +1160,6 @@ ToolCveColId
 ToolCveColSeverity
 ToolCveColSummary
 ToolDefCredErrorConnection
-ToolDiagramEmptyState
 ToolDnsNoResults
 ToolEmptyStateCert
 ToolEmptyStateWhois

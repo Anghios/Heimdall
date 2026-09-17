@@ -6321,7 +6321,6 @@
   "ToolHostsEmptyState": "No entries found in the hosts file.",
   "ToolSshKeyGenEmptyState": "Choose an algorithm and click Generate.",
   "ToolCertGenEmptyState": "Fill in certificate details and click Generate.",
-  "ToolDiagramEmptyState": "Loading diagram editor...",
 
   "_comment_ux_watermarks": "--- Watermark placeholders ---",
   "ToolWatermarkPassword": "Enter a password",
