@@ -290,9 +290,11 @@ public sealed class EmbeddedSftpCloseGuardTests
         ];
 
         // Six from SftpCloseGuardLocaleKeys plus six for the save-escape offer, plus
-        // six from CloseGuardLocaleKeys. Raised inside the change that added them: a
-        // count discovered by a red CI is a count nobody chose.
-        Assert.Equal(18, keys.Length);
+        // seven from CloseGuardLocaleKeys. Raised inside the change that added them: a
+        // count discovered by a red CI is a count nobody chose. The seventh is the
+        // message a tool gets when closing it could not save what it held, which used
+        // to be reported as the tool being busy.
+        Assert.Equal(19, keys.Length);
         foreach (string key in keys)
         {
             Assert.NotEqual(key, english[key]);

@@ -688,9 +688,19 @@ public partial class DiagramEditorView : UserControl, IToolView
     }
 
     /// <inheritdoc />
+    public ToolCloseRefusal CloseRefusal { get; private set; } = ToolCloseRefusal.Busy;
+
+    /// <inheritdoc />
     public bool CanClose()
     {
-        return ConfirmDiscardUnsavedChanges();
+        bool allowed = ConfirmDiscardUnsavedChanges();
+
+        // Set on every refusing call, never left over from an earlier one. The only
+        // way this editor refuses is the user choosing Cancel at the prompt above,
+        // and reporting that as a busy tool told them they were blocked by
+        // something a moment after they were the something.
+        CloseRefusal = allowed ? ToolCloseRefusal.Busy : ToolCloseRefusal.UserDeclined;
+        return allowed;
     }
 
     private void OnInsertLineClick(object sender, RoutedEventArgs e)

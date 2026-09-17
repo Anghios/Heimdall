@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+using Heimdall.Core.Models;
+
 namespace Heimdall.App.Services;
 
 /// <summary>
@@ -147,6 +149,13 @@ public readonly record struct PaneCloseResult(PaneCloseOutcome Outcome, string? 
     public static PaneCloseResult Blocked(string reasonKey)
         => new(PaneCloseOutcome.Blocked, reasonKey);
 
+    /// <summary>
+    /// A refusal the shell must not narrate: the user has just been asked and said
+    /// no, so the close is withheld and nothing is put on screen about it.
+    /// </summary>
+    public static PaneCloseResult BlockedWithoutAWord { get; } =
+        new(PaneCloseOutcome.Blocked, null);
+
     public static PaneCloseResult Deferred(string reasonKey)
         => new(PaneCloseOutcome.Deferred, reasonKey);
 
@@ -246,9 +255,55 @@ public static class CloseGuardLocaleKeys
 
     public const string BlockedTool = "CloseGuardBlockedTool";
 
+    public const string BlockedSaveFailed = "CloseGuardBlockedSaveFailed";
+
     public const string BlockedStale = "CloseGuardBlockedStale";
 
     public const string BatchBlockedTitle = "CloseGuardBatchBlockedTitle";
 
     public const string BatchBlockedMessage = "CloseGuardBatchBlockedMessage";
+}
+
+/// <summary>
+/// Turns a tool's reason for refusing into what the shell says about it.
+/// </summary>
+/// <remarks>
+/// <para>Three surfaces withhold a close on <see cref="IToolView.CanClose"/>:
+/// closing a pane, closing a session, and merging a split whose source holds a
+/// tool. They must agree on which refusals are worth narrating, so that decision
+/// lives here rather than being spelled out three times. What each surface keeps
+/// is its own wording for a busy tool, since a blocked merge is not a blocked
+/// close and says so.</para>
+/// <para>A refusal the user just caused by answering a prompt is reported by
+/// saying nothing at all. That is deliberate and not an oversight: the alternative
+/// is a second message contradicting the answer they gave a moment earlier.</para>
+/// </remarks>
+public static class ToolCloseRefusalReport
+{
+    /// <summary>
+    /// The locale key to surface, or null when the refusal must pass in silence.
+    /// </summary>
+    /// <param name="refusal">What the tool reported alongside its refusal.</param>
+    /// <param name="busyKey">This surface's wording for a tool that is working.</param>
+    public static string? ReasonKeyFor(ToolCloseRefusal refusal, string busyKey)
+    {
+        return refusal switch
+        {
+            ToolCloseRefusal.UserDeclined => null,
+            ToolCloseRefusal.SaveFailed => CloseGuardLocaleKeys.BlockedSaveFailed,
+            _ => busyKey,
+        };
+    }
+
+    /// <summary>
+    /// The refusal as a close result, for the two surfaces that return one.
+    /// </summary>
+    public static PaneCloseResult Refused(ToolCloseRefusal refusal)
+    {
+        string? reasonKey = ReasonKeyFor(refusal, CloseGuardLocaleKeys.BlockedTool);
+
+        return reasonKey is null
+            ? PaneCloseResult.BlockedWithoutAWord
+            : PaneCloseResult.Blocked(reasonKey);
+    }
 }
