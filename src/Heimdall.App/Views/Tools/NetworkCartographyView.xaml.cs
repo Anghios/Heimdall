@@ -44,6 +44,7 @@ public partial class NetworkCartographyView : UserControl, IToolView
     private GatewayRouteSelector? _routeSelector;
     private Action<string, string, ToolContext?>? _openToolAction;
     private Action<SessionLaunchRequest>? _openSessionAction;
+    private Action<SessionLaunchRequest, string?>? _addServerAction;
     private Action<bool>? _setBusy;
     private int _renderedHostCount;
 
@@ -95,6 +96,7 @@ public partial class NetworkCartographyView : UserControl, IToolView
         _localizer = localizer;
         _openToolAction = ToolContextMenuHelper.GetOpenToolAction(context);
         _openSessionAction = ToolContextMenuHelper.GetOpenSessionAction(context);
+        _addServerAction = ToolContextMenuHelper.GetAddServerAction(context);
         _setBusy = context?.SetBusyAction;
         ApplyLocalization();
 
@@ -723,7 +725,7 @@ public partial class NetworkCartographyView : UserControl, IToolView
         {
             var hostItems = ToolContextMenuHelper.BuildHostActions(
                 row.IpAddress, row.Hostname, row.OpenPorts, _localizer, _openToolAction,
-                _openSessionAction);
+                _openSessionAction, _addServerAction);
             foreach (var item in hostItems)
             {
                 menu.Items.Add(item);

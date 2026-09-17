@@ -140,6 +140,14 @@ public sealed class EmbeddedSessionManager : IEmbeddedSessionManager, IDisposabl
     /// </summary>
     public Func<SessionLaunchRequest, Task>? OpenSessionCallback { get; set; }
 
+    /// <summary>
+    /// Optional callback that files a discovered host as a saved server. The
+    /// session says how to reach it, the name says what to call it, and the user
+    /// still confirms in the Add Server dialog.
+    /// Wired by MainViewModel to delegate to <c>AddDiscoveredServerAsync</c>.
+    /// </summary>
+    public Func<SessionLaunchRequest, string?, Task>? AddServerCallback { get; set; }
+
     public EmbeddedSessionManager(
         LocalizationManager localizer,
         IDialogService dialogService,
@@ -1362,6 +1370,15 @@ public sealed class EmbeddedSessionManager : IEmbeddedSessionManager, IDisposabl
             context = (context ?? new ToolContext()) with
             {
                 OpenSessionAction = OpenSessionCallback
+            };
+        }
+
+        // Inject the server filer so a tool can keep what it discovered.
+        if (AddServerCallback is not null)
+        {
+            context = (context ?? new ToolContext()) with
+            {
+                AddServerAction = AddServerCallback
             };
         }
 

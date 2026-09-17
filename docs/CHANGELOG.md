@@ -33,6 +33,11 @@ All notable changes to Heimdall are documented in this file.
   the same host is now the same cell from one export to the next.
 - The cartography context menu gained the same Connect entry, and its protocol choice now comes
   from the same place as the diagram's, rather than being spelled out again inside a click handler.
+- Beside it, Add to servers now adds a server. It used to ask the shell for a tool called
+  `__ADD_SERVER__`, which no registry knew, so the click opened a tab reading `Tool: __ADD_SERVER__`
+  and the host was never saved. The entry now opens the ordinary Add Server dialog, filled in with
+  the host, the name the scan resolved and the session its open ports call for, and it is built only
+  when something can carry it out.
 
 ### Diagram editor
 
