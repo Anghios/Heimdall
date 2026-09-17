@@ -136,7 +136,7 @@ public partial class DiagramEditorView : UserControl, IToolView
             // Virtual host mapping for local draw.io files
             core.SetVirtualHostNameToFolderMapping(
                 VirtualHost, assetsPath,
-                CoreWebView2HostResourceAccessKind.Allow);
+                WebViewAssetAccess.Diagram);
 
             core.WebMessageReceived -= OnWebMessageReceived;
             core.WebMessageReceived += OnWebMessageReceived;

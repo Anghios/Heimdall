@@ -87,6 +87,12 @@ All notable changes to Heimdall are documented in this file.
 - The editor's WebView2 surface now refuses messages that do not come from its own page, keeps the
   iframe on the local host, hands external links to the default browser instead of opening a
   window, and turns off script dialogs. The other WebView2 surfaces already did all of this.
+- The two WebView2 surfaces that serve a local bundle, the diagram editor and the Markdown editor,
+  now expose their asset folder only to a document of their own origin instead of to any origin.
+  Both were driven under the stricter setting first: draw.io loads whole and exports a valid PNG,
+  and the Markdown editor renders, which was the one in doubt because its bundle loads a module
+  script declared cross-origin. The VNC surface is deliberately left as it was, because no VNC
+  target was reachable to drive it and the point of this change is that it was measured.
 
 ### Internationalization
 
