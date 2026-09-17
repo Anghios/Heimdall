@@ -37,11 +37,13 @@ namespace Heimdall.App.Views;
 /// and a module script with that attribute is fetched in CORS mode even same-origin.
 /// It loads and the document renders, so WebView2 compares origins rather than
 /// keying on the request mode.</item>
-/// <item>VNC, <b>left on <c>Allow</c></b>: not measured. No VNC target was reachable
-/// on the day, the lab containers were down, and there is no path into that surface
-/// without one. The reasoning that carried the other two applies to it unchanged, but
-/// reasoning is what this file exists to replace. It stays as it was until someone
-/// brings a VNC target up and drives a session against <c>DenyCors</c>.</item>
+/// <item>VNC, <c>DenyCors</c>: driven against a live target. The desktop paints,
+/// noVNC's own toolbar is there and the session stays up. Its assets are served from
+/// the mapped host like the others, and the connection itself is a WebSocket to the
+/// in-process proxy, which the mapping does not govern. The first attempt failed at
+/// <c>Authentication failure</c> during the RFB security negotiation, on a wrong
+/// password: that failure is worth naming because the noVNC code had already run to
+/// reach it, which is itself the proof the assets loaded.</item>
 /// </list>
 /// <para>The three are named rather than spelled at the call sites so the next reader
 /// finds the measurement instead of repeating the question, and so a change to one of
@@ -57,7 +59,7 @@ internal static class WebViewAssetAccess
     internal const CoreWebView2HostResourceAccessKind MarkdownEditor =
         CoreWebView2HostResourceAccessKind.DenyCors;
 
-    /// <summary>noVNC. Not measured, so not changed.</summary>
+    /// <summary>noVNC. Measured.</summary>
     internal const CoreWebView2HostResourceAccessKind Vnc =
-        CoreWebView2HostResourceAccessKind.Allow;
+        CoreWebView2HostResourceAccessKind.DenyCors;
 }

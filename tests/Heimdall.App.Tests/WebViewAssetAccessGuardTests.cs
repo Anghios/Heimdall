@@ -28,11 +28,11 @@ namespace Heimdall.App.Tests;
 /// <remarks>
 /// <para><c>Allow</c> serves the mapped folder to any origin; <c>DenyCors</c> serves
 /// it only to a same-origin document, which is what each of these pages is. The
-/// difference is invisible until it is not, so the two surfaces that were driven
-/// under <c>DenyCors</c> are pinned at it, and the one that could not be driven is
-/// pinned at what it had.</para>
-/// <para>The point of pinning the unmeasured one too is that it stops being an
-/// oversight and becomes a value someone has to change on purpose.</para>
+/// difference is invisible until it is not, so each surface was driven under the
+/// value it is pinned at here, and none of them is pinned on reasoning alone.</para>
+/// <para>Changing one of these is changing a value under test, which is the point:
+/// it cannot drift back quietly, and it cannot be hardened without someone running
+/// the surface first.</para>
 /// </remarks>
 public sealed class WebViewAssetAccessGuardTests
 {
@@ -51,7 +51,7 @@ public sealed class WebViewAssetAccessGuardTests
     [Theory]
     [InlineData("Diagram", "DenyCors")]
     [InlineData("MarkdownEditor", "DenyCors")]
-    [InlineData("Vnc", "Allow")]
+    [InlineData("Vnc", "DenyCors")]
     public void EachSurface_KeepsTheAccessThatWasMeasuredForIt(string surface, string expected)
     {
         Type decisions = typeof(Heimdall.App.Views.EmbeddedVncView).Assembly
