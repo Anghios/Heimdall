@@ -27,10 +27,10 @@ namespace Heimdall.Core.Tests;
 /// <remarks>
 /// <para>This is the same rule <see cref="DocumentationTypographyGuardTests"/> applies to public
 /// documentation, applied to the other two places a character reaches a user: the C# and XAML
-/// sources under <c>src/</c>, and the localized strings in <c>locales/en.json</c> and
-/// <c>locales/fr.json</c>. A plain ASCII character says the same thing and survives a Windows
+/// sources under <c>src/</c>, and the localized strings in every catalogue that ships under
+/// <c>locales/</c>. A plain ASCII character says the same thing and survives a Windows
 /// terminal, a diff, a console code page and a CI log; a typographic substitute does not.</para>
-/// <para>Arrows, box-drawing characters, ballot boxes, emoji and every French accent are NOT
+/// <para>Arrows, box-drawing characters, ballot boxes, emoji and every French or Spanish accent are NOT
 /// refused. An accent is an accent, not typography. See <see cref="AccentsAndArrowsAreNotRefused"/>,
 /// which exists because an allow-list and a remedy table both read as a list of code points, and
 /// confusing the two yields a banned set that includes the accents themselves.</para>
@@ -87,6 +87,9 @@ public sealed class SourceTypographyGuardTests
 
     /// <summary>Lower bound on the number of locale values a healthy sweep reads.</summary>
     private const int MinimumLocaleValuesScanned = 5000;
+
+    /// <summary>Lower bound on the catalogues a healthy enumeration returns.</summary>
+    private const int MinimumCataloguesEnumerated = 3;
 
     /// <summary>Number of violations quoted in a failure message before it is truncated.</summary>
     private const int MaxViolationsReported = 40;
@@ -159,9 +162,40 @@ public sealed class SourceTypographyGuardTests
             + string.Join("\n", violations.Take(MaxViolationsReported)));
     }
 
+    /// <summary>
+    /// Every catalogue shipped under <c>locales/</c>. Written down as an enumeration rather than
+    /// as theory rows, because a hand-written pair of file names covers the languages that
+    /// existed the day it was written: Spanish shipped 183 pairs of guillemets past this guard
+    /// while both of its rows stayed green.
+    /// </summary>
+    public static TheoryData<string> ShippedCatalogues()
+    {
+        TheoryData<string> data = new();
+        foreach (string path in EnumerateCatalogues())
+            data.Add(Path.GetFileName(path));
+
+        return data;
+    }
+
+    /// <summary>
+    /// A member-data source that returns nothing produces no theory rows, and a class with no
+    /// rows is reported as passing. The count is asserted where a failure is visible.
+    /// </summary>
+    [Fact]
+    public void TheLocaleSweepCoversEveryShippedCatalogue()
+    {
+        List<string> names = EnumerateCatalogues().Select(Path.GetFileName).ToList()!;
+
+        Assert.True(
+            names.Count >= MinimumCataloguesEnumerated,
+            $"only {names.Count} catalogue(s) were enumerated from {LocalesDirectoryName}/");
+        Assert.Contains("en.json", names);
+        Assert.Contains("fr.json", names);
+        Assert.Contains("es.json", names);
+    }
+
     [Theory]
-    [InlineData("en.json")]
-    [InlineData("fr.json")]
+    [MemberData(nameof(ShippedCatalogues))]
     public void LocaleValuesUseNoTypographicSubstitutes(string fileName)
     {
         string localePath = Path.Combine(FindRepoRoot(), LocalesDirectoryName, fileName);
@@ -232,6 +266,7 @@ public sealed class SourceTypographyGuardTests
         char[] welcome =
         [
             'é', 'è', 'ê', 'ë', 'à', 'â', 'ç', 'î', 'ï', 'ô', 'ù', 'û', 'É', 'À', 'Ç',
+            'á', 'í', 'ó', 'ú', 'ü', 'ñ', 'Á', 'Í', 'Ó', 'Ú', 'Ü', 'Ñ', '¿', '¡',
             '→', '←', '↑', '↓', '↔', '├', '│', '└', '─', '☐', '☑', '•',
         ];
 
@@ -242,6 +277,12 @@ public sealed class SourceTypographyGuardTests
                 $"U+{(int)character:X4} is not a typographic substitute for an ASCII character and is allowed.");
         }
     }
+
+    /// <summary>Every <c>*.json</c> catalogue that ships under <c>locales/</c>.</summary>
+    private static IEnumerable<string> EnumerateCatalogues()
+        => Directory
+            .GetFiles(Path.Combine(FindRepoRoot(), LocalesDirectoryName), "*.json")
+            .OrderBy(path => path, System.StringComparer.Ordinal);
 
     private static IReadOnlyList<string> ProductSources()
     {
