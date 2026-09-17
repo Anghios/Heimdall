@@ -55,8 +55,9 @@ The current full-suite baseline is:
 dotnet test Heimdall.slnx --no-build
 ```
 
-Expected result: 5,453 passing tests and 6 known skipped WPF
-`ThemeServiceTests` that require a live `Application` context.
+Measured on 2026-09-17: 12,833 tests across the eight assemblies, all passing,
+none skipped. That is a dated observation rather than a target; what it is for
+is spotting a run that lost a whole assembly.
 
 Per-project TRX summaries can hide skipped tests or report smaller totals.
 Use the aggregated solution command when checking the real baseline.
@@ -132,7 +133,7 @@ meaning is how a convention rots.
 - Prefer async APIs and do not block the UI thread.
 - Keep WPF logic in ViewModels; code-behind should remain minimal event
   wiring unless the platform integration requires otherwise.
-- User-facing strings belong in `locales/en.json` and `locales/fr.json`.
+- User-facing strings belong in the catalogues under `locales/`, all of them.
 - Shell arguments must go through `InputValidator.EscapeShellArg()` or a
   structured argument API such as `ProcessStartInfo.ArgumentList`.
 - Prefer existing project patterns and helper APIs over new abstractions.
@@ -184,8 +185,8 @@ them: writing one means reaching for a substitute the reader's terminal may not 
 directory tree and a checklist read better with them, and they carry something no pair of ASCII
 characters carries as clearly. That is a deliberate exception rather than an oversight.
 
-`DocumentationTypographyGuardTests` enforces this over `README*.md`, `SECURITY*.md` and all of
-`docs/`, **recursively**. The recursion is asserted separately, because a hand-run sweep of
+`DocumentationTypographyGuardTests` enforces this over every Markdown file at the repository
+root and all of `docs/`, **recursively**. The recursion is asserted separately, because a hand-run sweep of
 `docs/*.md` once passed while two subdirectories went unexamined.
 
 **Release notes are held to a stricter rule**: ASCII and AZERTY characters only, arrows included
@@ -194,8 +195,10 @@ inside `Build.ps1 -Mode Release`.
 
 ## Localization And I18n
 
-Locale files currently contain 5,489 leaf keys each, and CI enforces EN/FR key
-parity.
+The interface ships in English, French and Spanish. Each catalogue under `locales/`
+holds the same 6,370 keys, and `LocaleCatalogueParityTests` enforces that in both
+directions and across format placeholders. Adding a language is a documented
+checklist in [CONTRIBUTING.md](../CONTRIBUTING.md).
 
 Key conventions:
 
