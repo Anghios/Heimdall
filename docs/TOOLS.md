@@ -310,6 +310,25 @@ and destination, before anything connects.
 The session itself is opened through `ToolContext.OpenSessionAction`, wired by
 `MainViewModel` to `ConnectAdHocSessionAsync`. No profile is saved.
 
+### The cartography menu keeps a host, or reaches it
+
+Right-clicking a row in Network Cartography offers the same two things about the
+host it found. Open session connects without saving anything, through
+`ToolContext.OpenSessionAction`. Add to servers keeps it, through
+`ToolContext.AddServerAction`, which opens the ordinary Add Server dialog filled in
+with the address, the name the scan resolved and the session the open ports call
+for. Nothing is written until the dialog is accepted.
+
+Both entries take the protocol from `SessionProtocolChoice`, so they cannot
+disagree with each other or with the diagram's links. A host offering no session at
+all is still worth recording, so Add to servers falls back to SSH on its default
+port and lets the dialog say otherwise, while Open session is simply not offered.
+
+Add to servers used to ask the shell for a tool named `__ADD_SERVER__`, which no
+registry knew; opening an unknown tool id does not throw, it puts a tab reading
+`Tool: <id>` on screen. `ToolRouteReachabilityGuardTests` now reads every tool id
+written as a literal at a call site and refuses one the registry cannot build.
+
 ### Merging a later scan
 
 File > Merge a scan reads a freshly exported scan into the diagram on screen

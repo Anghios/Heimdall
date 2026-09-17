@@ -144,6 +144,21 @@ La page du terminal (`terminal.html`) est chargée via `NavigateToString` (aucun
 - **Validation de l'origine des messages** : `OnWebMessageReceived` rejette les messages provenant de sources inattendues
 - **Ouverture d'URL** : seules les URI `http://` et `https://` sont transmises à `Process.Start` avec `UseShellExecute`
 
+Trois surfaces n'utilisent pas `NavigateToString` parce qu'elles servent un bundle
+depuis le disque : l'éditeur de diagrammes, l'éditeur Markdown et la vue VNC. Chacune
+associe son dossier d'assets à un hôte virtuel via `SetVirtualHostNameToFolderMapping`,
+et le fait avec `CoreWebView2HostResourceAccessKind.DenyCors` plutôt que `Allow` : le
+dossier répond à un document de sa propre origine et à rien d'autre. Chacune de ces
+pages est chargée depuis l'hôte auquel elle s'adresse ensuite, donc le réglage le plus
+strict ne leur coûte rien.
+
+Les trois valeurs sont nommées dans `WebViewAssetAccess` plutôt qu'épelées sur les
+sites d'appel, avec à côté de chacune la mesure qui l'a tranchée, et une garde refuse
+une vue qui passerait l'enum elle-même. La raison est que ce n'est pas une déduction :
+`DenyCors` compare les origines et ne se cale pas sur le mode CORS de la requête, ce
+qui n'a été établi qu'en pilotant chaque surface dessus. Un script module déclaré
+`crossorigin` est récupéré en mode CORS même en même origine, et il charge quand même.
+
 ### 4. ActiveX RDP et protocole de vidange de layout
 
 **Problème** : le `WindowsFormsHost` de WPF souffre d'un problème d'"airspace" : la surface de rendu n'est pas correctement liée au HWND visible si le layout n'a pas été vidangé avant `Connect()`. De plus, le HWND Win32 se dessine toujours au-dessus du contenu WPF de la même fenêtre - `Panel.ZIndex` n'a aucun effet.
