@@ -144,6 +144,20 @@ The terminal page (`terminal.html`) is loaded via `NavigateToString` (no externa
 - **Message origin validation**: `OnWebMessageReceived` rejects messages from unexpected sources
 - **URL opening**: Only `http://` and `https://` URIs are passed to `Process.Start` with `UseShellExecute`
 
+Three surfaces do not use `NavigateToString` because they serve a bundle from disk:
+the diagram editor, the Markdown editor and the VNC view. Each maps its asset folder
+to a virtual host with `SetVirtualHostNameToFolderMapping`, and each does so with
+`CoreWebView2HostResourceAccessKind.DenyCors` rather than `Allow`, so the folder
+answers a document of its own origin and nothing else. Every one of those pages is
+loaded from the host it then fetches from, so the stricter kind costs them nothing.
+
+The three values are named in `WebViewAssetAccess` rather than spelled at the call
+sites, with the measurement that settled each one written beside it, and a guard
+refuses a view that passes the enum itself. The reason is that this is not a
+deduction: `DenyCors` compares origins and does not key on the request's CORS mode,
+which was only established by running each surface under it. A module script
+declared `crossorigin` is fetched in CORS mode even same-origin and still loads.
+
 ### 4. RDP ActiveX with Layout Flush Protocol
 
 **Problem**: WPF's `WindowsFormsHost` has an "airspace" issue where the rendering surface is not properly bound to the visible HWND if layout hasn't been flushed before `Connect()`. Additionally, the Win32 HWND always renders above WPF content in the same window - `Panel.ZIndex` has no effect.

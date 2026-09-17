@@ -325,6 +325,27 @@ connexion.
 La session est ouverte par `ToolContext.OpenSessionAction`, câblé par
 `MainViewModel` vers `ConnectAdHocSessionAsync`. Aucun profil n'est enregistré.
 
+### Le menu de cartographie garde un hôte, ou l'atteint
+
+Un clic droit sur une ligne de la Cartographie réseau propose les deux mêmes choses
+au sujet de l'hôte trouvé. Ouvrir la session connecte sans rien enregistrer, via
+`ToolContext.OpenSessionAction`. Ajouter aux sessions le garde, via
+`ToolContext.AddServerAction`, qui ouvre la boîte d'ajout de serveur habituelle
+préremplie avec l'adresse, le nom que le scan a résolu et la session que ses ports
+ouverts appellent. Rien n'est écrit tant que la boîte n'est pas validée.
+
+Les deux entrées prennent le protocole dans `SessionProtocolChoice` : elles ne
+peuvent donc contredire ni l'une l'autre, ni les liens du diagramme. Un hôte qui
+n'offre aucune session mérite quand même d'être enregistré, donc Ajouter aux
+sessions retombe sur SSH et son port par défaut et laisse la boîte dire autrement,
+tandis qu'Ouvrir la session n'est tout simplement pas proposée.
+
+Ajouter aux sessions demandait auparavant au shell un outil nommé `__ADD_SERVER__`,
+qu'aucun registre ne connaissait ; ouvrir un identifiant d'outil inconnu ne lève
+rien, cela affiche un onglet portant le texte `Tool: <id>`.
+`ToolRouteReachabilityGuardTests` lit désormais tout identifiant d'outil écrit en
+dur sur un site d'appel et refuse celui que le registre ne sait pas construire.
+
 ### Fusionner un scan ultérieur
 
 Fichier > Fusionner un scan lit un scan fraîchement exporté dans le diagramme à

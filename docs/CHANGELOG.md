@@ -12,7 +12,7 @@
 
 All notable changes to Heimdall are documented in this file.
 
-## Unreleased: the diagram tool keeps your work, and draws a real topology
+## 2026-09-17: the diagram tool keeps your work, and draws a real topology (v2026.091701)
 
 ### Network diagrams
 
