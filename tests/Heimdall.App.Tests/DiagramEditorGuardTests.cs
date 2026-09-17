@@ -48,11 +48,13 @@ public sealed class DiagramEditorGuardTests
     private const string SettingsMember = "private static void ConfigureWebViewSettings(CoreWebView2 core)";
     private const string SaveRequestMember = "private void HandleSaveRequest(string xml)";
     private const string CanCloseMember = "public bool CanClose()";
+    private const string OpenDocumentMember = "private void OpenDocument(string? path = null)";
 
     private const string AcceleratorKeysStatement = "core.Settings.AreBrowserAcceleratorKeysEnabled = false;";
     private const string ScriptDialogsStatement = "core.Settings.AreDefaultScriptDialogsEnabled = false;";
     private const string SaveStatement = "PerformSave(chooseNewLocation: false);";
     private const string ConfirmStatement = "return ConfirmDiscardUnsavedChanges();";
+    private const string DraftRecoveryStatement = "OfferDraftRecovery();";
 
     /// <summary>
     /// F5 and Ctrl+R reload the host page and drop whatever the editor holds.
@@ -94,6 +96,27 @@ public sealed class DiagramEditorGuardTests
         Assert.True(ViewSource.IsStatementOfTheMethodBody(logic, ConfirmStatement),
             "CanClose() does not go through the unsaved-changes prompt, so closing the tool "
                 + "throws the diagram away in silence");
+    }
+
+    /// <summary>
+    /// A draft left by a run that did not finish must be offered where the user
+    /// meets the document again: on opening it.
+    /// </summary>
+    /// <remarks>
+    /// Found by a manual pass. The recovery was offered only from
+    /// <c>Initialize</c>, for a document handed over in the tool context. The tool
+    /// opens empty and the file arrives through Open or Recent, so the prompt
+    /// never fired: the draft sat on disk while the user reopened the saved
+    /// version and saw nothing.
+    /// </remarks>
+    [Fact]
+    public void OpeningADocument_OffersTheDraftLeftBehind()
+    {
+        string logic = Logic(ViewFile, OpenDocumentMember);
+
+        Assert.True(ViewSource.IsStatementOfTheMethodBody(logic, DraftRecoveryStatement),
+            "opening a document does not offer the draft a previous run left for it, so work "
+                + "kept on disk is never given back");
     }
 
     /// <summary>
