@@ -207,7 +207,7 @@ internal static class TwinShellBootstrapper
         }
 
         public CultureInfo CurrentCulture => CultureInfo.CurrentUICulture;
-        public CultureInfo[] SupportedCultures => [new("en"), new("fr")];
+        public CultureInfo[] SupportedCultures => [new("en"), new("fr"), new("es")];
 
         public string GetString(string key) => _localizer?[key] ?? key;
         public string GetString(string key, string fallback) => _localizer?[key] ?? fallback;

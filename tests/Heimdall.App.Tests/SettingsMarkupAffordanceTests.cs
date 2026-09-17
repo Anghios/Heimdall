@@ -15,8 +15,11 @@
  */
 
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+
+using Heimdall.App.Tests.Views.EmbeddedRdp;
 
 namespace Heimdall.App.Tests;
 
@@ -89,8 +92,33 @@ public sealed class SettingsMarkupAffordanceTests
             .Select(item => Regex.Match(item, "\\bTag=\"([A-Za-z0-9_-]+)\"").Groups[1].Value)
             .ToHashSet(StringComparer.Ordinal);
 
-        Assert.Equal(new HashSet<string>(["en", "fr"], StringComparer.Ordinal), codes);
+        HashSet<string> shipped = ShippedLocaleCodes();
+
+        Assert.True(
+            shipped.Count >= MinimumShippedLocales,
+            $"only {shipped.Count} catalogue(s) were found under locales/, so this compared nothing");
+        Assert.Equal(shipped, codes);
     }
+
+    /// <summary>Lower bound on the catalogues a healthy enumeration returns.</summary>
+    private const int MinimumShippedLocales = 3;
+
+    /// <summary>
+    /// The locale codes the application actually ships a catalogue for, read from
+    /// <c>locales/</c> rather than written down here.
+    /// </summary>
+    /// <remarks>
+    /// The list above and the catalogues on disk are two halves of one decision: a language the
+    /// user can pick and a file the text comes from. Spelling the codes out a second time in this
+    /// test froze the pair at English and French, so a third catalogue could ship complete and
+    /// unreachable, or a fourth entry could be added to the box with nothing behind it, and both
+    /// halves would stay green. Deriving one from the other makes the mismatch the failure.
+    /// </remarks>
+    private static HashSet<string> ShippedLocaleCodes()
+        => Directory
+            .GetFiles(Path.Combine(ViewSource.RepoRoot(), "locales"), "*.json")
+            .Select(Path.GetFileNameWithoutExtension)
+            .ToHashSet(StringComparer.Ordinal)!;
 
     /// <summary>
     /// The legacy migration card states the condition its button waits on.

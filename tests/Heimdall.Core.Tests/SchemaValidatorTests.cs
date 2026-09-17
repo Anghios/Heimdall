@@ -68,6 +68,73 @@ public class SchemaValidatorTests
         Assert.Throws<ArgumentNullException>(() => SchemaValidator.ValidateSettings(null!));
     }
 
+    /// <summary>
+    /// Every catalogue that ships under <c>locales/</c> is a locale the settings file is allowed
+    /// to hold.
+    /// </summary>
+    /// <remarks>
+    /// The validator keeps its own written-down set of accepted codes. A catalogue can therefore
+    /// ship complete, be offered in the language box, be picked, and then be refused when the
+    /// profile is written back, with nothing red anywhere: the three lists are one decision kept
+    /// in three places. This reads the catalogues off disk and asserts the validator accepts each
+    /// one, so adding a language without widening the validator fails here.
+    /// </remarks>
+    [Theory]
+    [MemberData(nameof(ShippedLocaleCodes))]
+    public void ValidateSettings_AcceptsEveryShippedLocale(string locale)
+    {
+        var settings = new AppSettings { DefaultLocale = locale };
+
+        var result = SchemaValidator.ValidateSettings(settings);
+
+        Assert.DoesNotContain(result.Errors, e => e.Contains("DefaultLocale"));
+    }
+
+    /// <summary>
+    /// An empty member-data source runs no rows and reports success, so the count is asserted
+    /// where a failure is visible.
+    /// </summary>
+    [Fact]
+    public void EveryShippedCatalogueIsOfferedToTheValidator()
+    {
+        List<string> codes = EnumerateShippedLocaleCodes().ToList();
+
+        Assert.True(codes.Count >= 3, $"only {codes.Count} catalogue(s) were found under locales/");
+        Assert.Contains("en", codes);
+        Assert.Contains("fr", codes);
+        Assert.Contains("es", codes);
+    }
+
+    public static TheoryData<string> ShippedLocaleCodes()
+    {
+        TheoryData<string> data = new();
+        foreach (string code in EnumerateShippedLocaleCodes())
+            data.Add(code);
+
+        return data;
+    }
+
+    private static IEnumerable<string> EnumerateShippedLocaleCodes()
+        => Directory
+            .GetFiles(Path.Combine(FindRepoRootForLocales(), "locales"), "*.json")
+            .Select(Path.GetFileNameWithoutExtension)
+            .OrderBy(code => code, StringComparer.Ordinal)!;
+
+    private static string FindRepoRootForLocales()
+    {
+        string? dir = AppContext.BaseDirectory;
+        while (dir is not null)
+        {
+            if (File.Exists(Path.Combine(dir, "Heimdall.slnx")))
+                return dir;
+
+            dir = Path.GetDirectoryName(dir);
+        }
+
+        throw new DirectoryNotFoundException(
+            $"Cannot find repository root containing Heimdall.slnx from: {AppContext.BaseDirectory}");
+    }
+
     // ── ValidateSettings: invalid locale/theme/mode ───────────────────
 
     [Fact]

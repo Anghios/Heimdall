@@ -2393,6 +2393,7 @@
                                                           AutomationProperties.LabeledBy="{x:Reference Mw_SettingsLanguageLabel}">
                                                     <ComboBoxItem x:Name="Mw_LanguageEnglish" Content="{loc:Translate LanguageEnglish}" Tag="en" AutomationProperties.Name="{loc:Translate LanguageEnglish}"/>
                                                     <ComboBoxItem x:Name="Mw_LanguageFrench" Content="{loc:Translate LanguageFrench}" Tag="fr" AutomationProperties.Name="{loc:Translate LanguageFrench}"/>
+                                                    <ComboBoxItem x:Name="Mw_LanguageSpanish" Content="{loc:Translate LanguageSpanish}" Tag="es" AutomationProperties.Name="{loc:Translate LanguageSpanish}"/>
                                                 </ComboBox>
                                             </StackPanel>
                                             <StackPanel Grid.Column="1" Margin="8,0,8,0">

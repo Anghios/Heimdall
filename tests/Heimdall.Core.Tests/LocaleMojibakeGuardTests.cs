@@ -22,14 +22,34 @@ namespace Heimdall.Core.Tests;
 
 /// <summary>
 /// Guards the locale source files against double-encoded (mojibake) characters.
-/// Failure means a string was written to en.json or fr.json with UTF-8 bytes that
-/// had been previously misread as Windows-1252 (or another single-byte codepage)
-/// and then re-encoded as UTF-8, producing visually-corrupted text in the UI.
+/// Failure means a string was written to a catalogue with UTF-8 bytes that had been
+/// previously misread as Windows-1252 (or another single-byte codepage) and then
+/// re-encoded as UTF-8, producing visually-corrupted text in the UI.
 /// </summary>
+/// <remarks>
+/// The sweep reads every catalogue that ships in <c>locales/</c> rather than a written-down
+/// list of two. A guard that names its files by hand covers the languages that existed when
+/// it was written: Spanish arrived with 6370 values and not one of them was ever read here,
+/// while every gate stayed green. <see cref="TheSweepCoversEveryShippedCatalogue"/> asserts
+/// the enumeration actually finds them, because a member-data source that returns nothing
+/// runs no test at all and reports success.
+/// </remarks>
 public sealed class LocaleMojibakeGuardTests
 {
-    private const string EnLocaleFileName = "en.json";
-    private const string FrLocaleFileName = "fr.json";
+    private const string LocalesDirectoryName = "locales";
+
+    /// <summary>Lower bound on the catalogues a healthy enumeration returns.</summary>
+    private const int MinimumCataloguesEnumerated = 3;
+
+    /// <summary>Every catalogue file name under <c>locales/</c>, newest language included.</summary>
+    public static TheoryData<string> ShippedCatalogues()
+    {
+        TheoryData<string> data = new();
+        foreach (string path in EnumerateCatalogues())
+            data.Add(Path.GetFileName(path));
+
+        return data;
+    }
 
     /// <summary>
     /// Mojibake markers: short character sequences that almost never occur in
@@ -80,13 +100,31 @@ public sealed class LocaleMojibakeGuardTests
     /// </remarks>
     private static readonly HashSet<int> AllowedScalars = CreateAllowedScalars();
 
+    /// <summary>
+    /// The enumeration above is the only thing that decides what this class reads. An empty
+    /// member-data source produces zero theory rows, which xUnit reports as a passing class,
+    /// so the count is asserted here where a failure is visible.
+    /// </summary>
+    [Fact]
+    public void TheSweepCoversEveryShippedCatalogue()
+    {
+        List<string> names = EnumerateCatalogues().Select(Path.GetFileName).ToList()!;
+
+        Assert.True(
+            names.Count >= MinimumCataloguesEnumerated,
+            $"only {names.Count} catalogue(s) were enumerated from {LocalesDirectoryName}/, "
+            + "so the mojibake sweep read almost nothing");
+        Assert.Contains("en.json", names);
+        Assert.Contains("fr.json", names);
+        Assert.Contains("es.json", names);
+    }
+
     [Theory]
-    [InlineData(EnLocaleFileName)]
-    [InlineData(FrLocaleFileName)]
+    [MemberData(nameof(ShippedCatalogues))]
     public void LocaleValues_DoNotContainMojibakeMarkers(string fileName)
     {
         string repoRoot = FindRepoRoot();
-        string localePath = Path.Combine(repoRoot, "locales", fileName);
+        string localePath = Path.Combine(repoRoot, LocalesDirectoryName, fileName);
 
         Assert.True(
             File.Exists(localePath),
@@ -150,6 +188,13 @@ public sealed class LocaleMojibakeGuardTests
             0x00B7, 0x00C0, 0x00C9, 0x00CA,
             0x00E0, 0x00E2, 0x00E7, 0x00E8, 0x00E9, 0x00EA, 0x00EB, 0x00EE,
             0x00F4, 0x00F9, 0x00FB,
+            // Spanish: the inverted marks that open a question and an exclamation, the acute
+            // accents, the tilde n and the diaeresis u. Each is a letter of the language, not a
+            // typographic substitute for an ASCII character, so each is allowed exactly as the
+            // French accents above are.
+            0x00A1, 0x00BF,
+            0x00C1, 0x00CD, 0x00D1, 0x00D3, 0x00DA, 0x00DC,
+            0x00E1, 0x00ED, 0x00F1, 0x00F3, 0x00FA, 0x00FC,
             0x2022, 0x20AC, 0x2190, 0x2191, 0x2192, 0x2193, 0x2605,
             0x2606, 0x2713, 0x2717, 0x1F512, 0x1F680,
         };
@@ -159,6 +204,12 @@ public sealed class LocaleMojibakeGuardTests
 
         return allowed;
     }
+
+    /// <summary>Every <c>*.json</c> catalogue that ships under <c>locales/</c>.</summary>
+    private static IEnumerable<string> EnumerateCatalogues()
+        => Directory
+            .GetFiles(Path.Combine(FindRepoRoot(), LocalesDirectoryName), "*.json")
+            .OrderBy(path => path, StringComparer.Ordinal);
 
     private static string FindRepoRoot()
     {
