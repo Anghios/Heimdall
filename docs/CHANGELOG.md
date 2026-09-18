@@ -12,7 +12,7 @@
 
 All notable changes to Heimdall are documented in this file.
 
-## Unreleased: the passphrase generator speaks Spanish
+## 2026-09-18: the passphrase generator speaks Spanish (v2026.091801)
 
 ### Spanish passphrases
 
