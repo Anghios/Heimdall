@@ -224,7 +224,6 @@ chamois
 cigogne
 clavecin
 clochette
-colibri
 compote
 corbeau
 coussin
@@ -250,7 +249,6 @@ galet
 gardenia
 gazelle
 geranium
-glacier
 gobelin
 goudron
 groseille
@@ -279,7 +277,6 @@ mousson
 muguet
 myrtille
 navette
-noisette
 nuage
 ombrelle
 onagre
@@ -288,7 +285,6 @@ origami
 outremer
 pagaie
 palmiste
-panache
 paquebot
 parasol
 peignoir
@@ -444,7 +440,6 @@ paillasson
 panonceau
 pasteque
 pavillon
-pelouse
 pendule
 pervenche
 pieuvre
@@ -466,7 +461,6 @@ retable
 rossignol
 roulotte
 sabot
-safran
 salsifis
 sarrasin
 sentinelle
@@ -510,5 +504,4 @@ epervier
 farandole
 fourrage
 girofle
-hamecon
 julienne

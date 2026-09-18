@@ -211,14 +211,67 @@ public sealed partial class PasswordGeneratorViewModel : ObservableObject
         "oiseau","olive","orange","palmier","pensee","portail","radeau","renard","soleil","volcan"
     ];
 
+    internal static readonly string[] FallbackSpanishWords =
+    [
+        "abeja","acero","aguja","aldea","ancla","anillo","arcilla","ardilla","arena","arroyo",
+        "ballena","bandera","barco","bodega","bosque","brisa","bronce","caballo","cadena","calabaza",
+        "camino","campana","cantera","caracol","cascada","castillo","cereza","cisne","colmena","cometa",
+        "corcho","cordel","cristal","cuarzo","cueva","cumbre","desierto","diamante","eclipse","encina",
+        "esmeralda","espuma","estrella","fogata","frambuesa","gaviota","girasol","granito","hoguera","volcan"
+    ];
+
+    /// <summary>One passphrase language: its locale, its label, and where its words come from.</summary>
+    /// <param name="Locale">The locale code that selects this language on first use.</param>
+    /// <param name="LabelKey">The catalogue key naming the language in the language box.</param>
+    /// <param name="FileName">The word list under <c>Assets/</c>.</param>
+    /// <param name="Fallback">The words used when that file is missing or unreadable.</param>
+    internal readonly record struct PassphraseLanguage(
+        string Locale,
+        string LabelKey,
+        string FileName,
+        string[] Fallback);
+
+    /// <summary>The passphrase languages, in the order the language box offers them.</summary>
+    /// <remarks>
+    /// <para>The selected index is persisted inside saved presets, so a language is appended here
+    /// and never inserted: reordering this table would silently repoint every preset already on
+    /// disk at a different language.</para>
+    /// <para>Three places used to spell this mapping out separately, and they disagreed the moment
+    /// a third language existed: the initial selection read the locale, the view filled the box by
+    /// hand, and the generator forked on <c>index == 1</c>, which sent every index above one to the
+    /// English list without failing anything.</para>
+    /// </remarks>
+    internal static readonly PassphraseLanguage[] PassphraseLanguages =
+    [
+        new("en", "ToolPwdGenLangEnglish", "wordlist_en.txt", FallbackEnglishWords),
+        new("fr", "ToolPwdGenLangFrench", "wordlist_fr.txt", FallbackFrenchWords),
+        new("es", "ToolPwdGenLangSpanish", "wordlist_es.txt", FallbackSpanishWords),
+    ];
+
+    /// <summary>
+    /// The language index a profile in <paramref name="locale"/> starts on, English when the
+    /// interface language has no word list of its own.
+    /// </summary>
+    internal static int PassphraseLanguageIndexFor(string? locale)
+    {
+        for (int index = 0; index < PassphraseLanguages.Length; index++)
+        {
+            if (string.Equals(PassphraseLanguages[index].Locale, locale, StringComparison.OrdinalIgnoreCase))
+            {
+                return index;
+            }
+        }
+
+        return 0;
+    }
+
     private LocalizationManager? _localizer;
     private bool _isInitialized;
     private bool _isSuspended;
     private Func<string, string, Task<bool>>? _confirmAsync;
     private readonly IPasswordPresetStorage _presetStorage;
     private List<PasswordPreset>? _cachedPresets;
-    private string[] _englishWords = [];
-    private string[] _frenchWords = [];
+    private string[][] _wordLists = [];
 
     /// <summary>Creates the view model over the supplied preset storage.</summary>
     /// <param name="presetStorage">Where presets are read and written.</param>
@@ -320,10 +373,7 @@ public sealed partial class PasswordGeneratorViewModel : ObservableObject
         _localizer = localizer;
         LoadWordLists();
 
-        PassphraseLanguageIndex = string.Equals(
-            localizer?.CurrentLocale,
-            "fr",
-            StringComparison.OrdinalIgnoreCase) ? 1 : 0;
+        PassphraseLanguageIndex = PassphraseLanguageIndexFor(localizer?.CurrentLocale);
 
         if (context?.Argument is { } arg && int.TryParse(arg, out var len))
         {
@@ -858,8 +908,7 @@ public sealed partial class PasswordGeneratorViewModel : ObservableObject
         SyllableStructureText = string.Empty;
         SyllableTotalLength = 0;
 
-        var isFrench = PassphraseLanguageIndex == 1;
-        var wordList = isFrench ? _frenchWords : _englishWords;
+        var wordList = SelectedWordList();
         if (wordList.Length == 0)
         {
             SetEmptyOutput();
@@ -1154,9 +1203,23 @@ public sealed partial class PasswordGeneratorViewModel : ObservableObject
     }
 
     private void LoadWordLists()
+        => _wordLists =
+        [
+            .. PassphraseLanguages.Select(language => LoadWordListFile(language.FileName, language.Fallback))
+        ];
+
+    /// <summary>
+    /// The word list of the selected language. An index no language answers to falls back to the
+    /// first rather than to a crash, because the index arrives from a saved preset.
+    /// </summary>
+    private string[] SelectedWordList()
     {
-        _englishWords = LoadWordListFile("wordlist_en.txt", FallbackEnglishWords);
-        _frenchWords = LoadWordListFile("wordlist_fr.txt", FallbackFrenchWords);
+        if (_wordLists.Length == 0)
+        {
+            return [];
+        }
+
+        return _wordLists[Math.Clamp(PassphraseLanguageIndex, 0, _wordLists.Length - 1)];
     }
 
     private static string[] LoadWordListFile(string fileName, string[] fallback)

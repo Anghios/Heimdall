@@ -12,6 +12,30 @@
 
 All notable changes to Heimdall are documented in this file.
 
+## Unreleased: the passphrase generator speaks Spanish
+
+### Spanish passphrases
+
+- The passphrase generator has a Spanish word list, 725 words, and the tool opens on it when
+  Heimdall is in Spanish. It used to open on English there, and offered no way to pick Spanish at
+  all. The words carry no accent and no n tilde: they were chosen to need none, rather than
+  accented words with the accent stripped off, which would simply be misspelled. A passphrase is
+  read off one screen and typed on whatever keyboard is in front of the person.
+- The list is larger than the English and French ones, so a Spanish passphrase of the same length
+  is worth about half a bit more per word. The strength figure the tool shows is computed from the
+  list actually in use, so it already says so.
+
+### The language a passphrase is built in
+
+- Three places decided which word list to use and they disagreed as soon as a third language
+  existed. The tool read the interface language to pick the initial entry, the view filled the
+  language box by hand, and the generator itself forked on "is the second entry selected": French,
+  or else English. A third language selected in the box produced English passphrases, and nothing
+  failed. The three now read one table.
+- The English and French lists each repeated a handful of words, eleven and seven. The loader was
+  already discarding them, so no passphrase was ever weaker than advertised, but the files
+  overstated what they offered. They are deduplicated, and a repeat is now a failure.
+
 ## 2026-09-17: Heimdall speaks Spanish (v2026.091702)
 
 ### Spanish

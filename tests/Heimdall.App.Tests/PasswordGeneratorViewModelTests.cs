@@ -150,7 +150,11 @@ public sealed class PasswordGeneratorViewModelTests : IDisposable
     public void PassphraseMode_UsesSeparatorCapitalizationAndFrenchWords()
     {
         var sut = CreateInitializedVm();
-        ForceWordLists(sut, PasswordGeneratorViewModel.FallbackEnglishWords, PasswordGeneratorViewModel.FallbackFrenchWords);
+        ForceWordLists(
+            sut,
+            PasswordGeneratorViewModel.FallbackEnglishWords,
+            PasswordGeneratorViewModel.FallbackFrenchWords,
+            PasswordGeneratorViewModel.FallbackSpanishWords);
 
         sut.SelectedModeIndex = 2;
         sut.PassphraseWordCount = 4;
@@ -166,6 +170,80 @@ public sealed class PasswordGeneratorViewModelTests : IDisposable
         Assert.Equal(4, words.Length);
         Assert.All(words, word => Assert.True(char.IsUpper(word[0])));
         Assert.All(words, word => Assert.Contains(word.ToLowerInvariant(), PasswordGeneratorViewModel.FallbackFrenchWords));
+    }
+
+    /// <summary>
+    /// Every language in the table draws from its own word list, including the ones past the
+    /// second.
+    /// </summary>
+    /// <remarks>
+    /// The generator used to fork on <c>index == 1</c>: French or, for everything else, English. A
+    /// third language selected in the box produced English passphrases and nothing said so. The
+    /// three lists here are disjoint and synthetic rather than the shipped ones, so a word can only
+    /// have come from the list under test and the assertion cannot pass by coincidence.
+    /// </remarks>
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void PassphraseMode_DrawsFromTheWordListOfTheSelectedLanguage(int languageIndex)
+    {
+        string[][] lists =
+        [
+            ["alfa", "bravo", "charlie", "delta", "echo", "foxtrot"],
+            ["golf", "hotel", "india", "juliet", "kilo", "lima"],
+            ["mike", "november", "oscar", "papa", "quebec", "romeo"],
+        ];
+
+        Assert.Equal(PasswordGeneratorViewModel.PassphraseLanguages.Length, lists.Length);
+
+        var allWords = lists.SelectMany(list => list).ToList();
+        Assert.Equal(allWords.Count, allWords.Distinct(StringComparer.Ordinal).Count());
+
+        var sut = CreateInitializedVm();
+        ForceWordLists(sut, lists);
+
+        sut.SelectedModeIndex = 2;
+        sut.PassphraseWordCount = 4;
+        sut.PassphraseSeparator = "-";
+        sut.PassphraseAddDigit = false;
+        sut.PassphraseAddSpecial = false;
+        sut.PassphraseCapitalize = false;
+        sut.PassphraseLanguageIndex = languageIndex;
+
+        var words = sut.GeneratedPassword.Split('-', StringSplitOptions.RemoveEmptyEntries);
+
+        Assert.Equal(4, words.Length);
+        Assert.All(words, word => Assert.Contains(word.ToLowerInvariant(), lists[languageIndex]));
+    }
+
+    /// <summary>
+    /// The interface language decides which word list the tool opens on, and an interface language
+    /// with no list of its own opens on English rather than on nothing.
+    /// </summary>
+    [Theory]
+    [InlineData("en", 0)]
+    [InlineData("fr", 1)]
+    [InlineData("es", 2)]
+    [InlineData("ES", 2)]
+    [InlineData("de", 0)]
+    [InlineData(null, 0)]
+    public void PassphraseLanguageIndexFor_MapsTheInterfaceLocaleToItsWordList(string? locale, int expected)
+    {
+        Assert.Equal(expected, PasswordGeneratorViewModel.PassphraseLanguageIndexFor(locale));
+    }
+
+    /// <summary>
+    /// The language order is append-only. The selected index is written into saved presets, so
+    /// inserting a language rather than appending it repoints every preset already on disk at a
+    /// different language, silently and on the next launch.
+    /// </summary>
+    [Fact]
+    public void PassphraseLanguages_KeepTheOrderSavedPresetsWereWrittenAgainst()
+    {
+        Assert.Equal(
+            ["en", "fr", "es"],
+            PasswordGeneratorViewModel.PassphraseLanguages.Select(language => language.Locale));
     }
 
     [Fact]
@@ -400,14 +478,18 @@ public sealed class PasswordGeneratorViewModelTests : IDisposable
         return sut;
     }
 
-    private static void ForceWordLists(PasswordGeneratorViewModel sut, string[] englishWords, string[] frenchWords)
+    /// <summary>
+    /// Replaces the loaded word lists, one per entry of
+    /// <c>PasswordGeneratorViewModel.PassphraseLanguages</c> and in that order, so a test can say
+    /// which words a passphrase is allowed to be built from.
+    /// </summary>
+    private static void ForceWordLists(PasswordGeneratorViewModel sut, params string[][] wordLists)
     {
+        Assert.Equal(PasswordGeneratorViewModel.PassphraseLanguages.Length, wordLists.Length);
+
         typeof(PasswordGeneratorViewModel)
-            .GetField("_englishWords", BindingFlags.Instance | BindingFlags.NonPublic)!
-            .SetValue(sut, englishWords);
-        typeof(PasswordGeneratorViewModel)
-            .GetField("_frenchWords", BindingFlags.Instance | BindingFlags.NonPublic)!
-            .SetValue(sut, frenchWords);
+            .GetField("_wordLists", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .SetValue(sut, wordLists);
         sut.Generate();
     }
 

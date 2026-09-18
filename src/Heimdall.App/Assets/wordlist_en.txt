@@ -439,11 +439,9 @@ acacia
 admiral
 antler
 balsam
-beacon
 bonbon
 boulder
 bramble
-cabin
 caramel
 celery
 chimney
@@ -457,9 +455,7 @@ decimal
 dinghy
 drizzle
 emerald
-falcon
 fathom
-feather
 fiction
 fiddle
 flounder
@@ -469,13 +465,9 @@ furnace
 gambit
 garland
 gleam
-granite
 gumball
-harbor
-harvest
 herring
 hickory
-horizon
 jacinth
 jasper
 juggler
@@ -487,10 +479,8 @@ lanolin
 lattice
 leather
 limpet
-lizard
 mackerel
 mandarin
-meadow
 merlin
 minnow
 mitten
@@ -500,7 +490,6 @@ mustang
 nimbus
 nugget
 ocelot
-osprey
 parsnip
 pattern
 penguin

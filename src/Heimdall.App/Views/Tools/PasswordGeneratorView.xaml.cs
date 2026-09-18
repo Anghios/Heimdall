@@ -131,9 +131,13 @@ public partial class PasswordGeneratorView : UserControl, IToolView
         TxtCustomSpecials.Text = PasswordGeneratorViewModel.DefaultSymbolChars;
 
         CmbPpLanguage.Items.Clear();
-        CmbPpLanguage.Items.Add(L("ToolPwdGenLangEnglish"));
-        CmbPpLanguage.Items.Add(L("ToolPwdGenLangFrench"));
-        CmbPpLanguage.SelectedIndex = string.Equals(_localizer?.CurrentLocale, "fr", StringComparison.OrdinalIgnoreCase) ? 1 : 0;
+        foreach (PasswordGeneratorViewModel.PassphraseLanguage language in PasswordGeneratorViewModel.PassphraseLanguages)
+        {
+            CmbPpLanguage.Items.Add(L(language.LabelKey));
+        }
+
+        CmbPpLanguage.SelectedIndex =
+            PasswordGeneratorViewModel.PassphraseLanguageIndexFor(_localizer?.CurrentLocale);
     }
 
     private void ApplyLocalization()
