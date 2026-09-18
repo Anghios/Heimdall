@@ -24,10 +24,10 @@ namespace Heimdall.App.Tests;
 /// The three keys the SFTP password prompt shows, in both catalogues.
 /// </summary>
 /// <remarks>
-/// There is no general parity guard between the two locale files in this repository -
-/// every locale test enumerates its own keys by hand. A key added to English only would
-/// ship silently and show a French user the raw key name, because the localizer returns
-/// the key verbatim when it cannot resolve it.
+/// A key added to English only would show a French user the raw key name, because the
+/// localizer returns the key verbatim when it cannot resolve it. Key parity across the
+/// catalogues is now held by <c>LocaleCatalogueParityTests</c>; what this class adds is
+/// that these three keys resolve through the localizer, which parity alone cannot say.
 /// </remarks>
 public sealed class SftpPasswordPromptLocalizationTests
 {

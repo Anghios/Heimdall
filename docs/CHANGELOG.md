@@ -12,6 +12,109 @@
 
 All notable changes to Heimdall are documented in this file.
 
+## Unreleased
+
+### Latin passphrases
+
+- The passphrase and leet modes offer a fourth language, Latin, 3649 words, 11.8 bits each.
+  It is the largest list of the four. No interface language selects it on its own: it is there
+  to be chosen, for a passphrase of words that belong to no password list anyone maintains.
+- The list is Latin-flavoured and curated, not scholarly. It comes from genpwd-pro, ten plainly
+  English entries were removed on the way in, and about a hundred of the words it keeps are
+  spelled the same in English, mostly because English took them from Latin. What a passphrase
+  word has to be is typeable, countable and distinct, and these are.
+- The language is appended to the table, never inserted, so the index every saved preset holds
+  still points at the language it was saved with.
+
+### Larger passphrase word lists
+
+- The English and French word lists grow from 515 and 507 words to 3525 and 2774. A word is
+  worth 11.8 bits in English and 11.4 in French, against 9.0 before, so a four-word passphrase
+  gains about eleven bits without getting one character longer. The added words come from the
+  dictionaries of genpwd-pro, the same author's password generator, kept only where they are
+  plain lowercase ASCII of four to twelve letters: that is what the loader keeps, and what a
+  passphrase read off one screen and typed on another keyboard needs.
+- The Spanish list is unchanged at 725 words, and is now the smallest of the three rather than
+  the largest. A Spanish passphrase is worth about two bits less per word than an English one.
+  The strength figure the tool shows is computed from the list actually in use, so it says so,
+  but the release note of v2026.091801 stated the opposite ordering and that ordering no longer
+  holds.
+- Each list now carries a size floor of its own in the test suite. The floor that existed only
+  caught a list that had collapsed to its fifty-word fallback, so either list could have been
+  reverted to its five-hundred-word version, at a cost of nearly three bits per word, without a
+  single test failing.
+
+### A fourth generation mode: leet
+
+- The generator has a leet mode: one word, rewritten through the usual substitution table (a
+  becomes @, e becomes 3, l becomes !), cased, then given digits and special characters at the
+  placement of your choice. The mode comes from genpwd-pro, where it already existed.
+- The word is drawn from the word list of the selected language unless you type one yourself,
+  and the tool shows which word it drew, so a password you are about to memorise is readable.
+- The strength figure credits what was drawn at random and nothing else. A word drawn from the
+  list is worth the size of that list. A word you typed is worth zero bits, and the issue line
+  under the figure says so: an attacker guesses the word, not its spelling. The substitution
+  table is public, so applying all of it is worth nothing either; applying it letter by letter
+  on a coin toss, which is what leaving the second box unticked does, is worth one bit for each
+  letter the table covers. This mode produces the weakest passwords of the four, and the figure
+  says so rather than counting the result as though every character had been drawn at random.
+- CLI-safe keeps the l to ! substitution out of the result, since the point of that box is a
+  password that can be pasted into a shell, and ! is history expansion in an interactive one.
+- Layout-safe is no longer offered in passphrase mode or in leet mode. It restricts the letters
+  a generator picks, and neither of those two picks its own letters: the box promised a
+  restriction that the passphrase mode has never applied.
+
+## 2026-09-18: the passphrase generator speaks Spanish (v2026.091801)
+
+### Spanish passphrases
+
+- The passphrase generator has a Spanish word list, 725 words, and the tool opens on it when
+  Heimdall is in Spanish. It used to open on English there, and offered no way to pick Spanish at
+  all. The words carry no accent and no n tilde: they were chosen to need none, rather than
+  accented words with the accent stripped off, which would simply be misspelled. A passphrase is
+  read off one screen and typed on whatever keyboard is in front of the person.
+- The list is larger than the English and French ones, so a Spanish passphrase of the same length
+  is worth about half a bit more per word. The strength figure the tool shows is computed from the
+  list actually in use, so it already says so.
+
+### The language a passphrase is built in
+
+- Three places decided which word list to use and they disagreed as soon as a third language
+  existed. The tool read the interface language to pick the initial entry, the view filled the
+  language box by hand, and the generator itself forked on "is the second entry selected": French,
+  or else English. A third language selected in the box produced English passphrases, and nothing
+  failed. The three now read one table.
+- The English and French lists each repeated a handful of words, eleven and seven. The loader was
+  already discarding them, so no passphrase was ever weaker than advertised, but the files
+  overstated what they offered. They are deduplicated, and a repeat is now a failure.
+
+## 2026-09-17: Heimdall speaks Spanish (v2026.091702)
+
+### Spanish
+
+- The interface is available in Spanish. All 6370 strings are translated, the language box in
+  `Settings > General` offers it beside English and French, and the third-party notices have a
+  Spanish edition alongside the English and French ones. Contributed by Néstor (Anghios).
+- Two things the translation does not reach, named here rather than discovered: the embedded
+  draw.io editor ships English and French resources only, so its own menus stay English, and the
+  passphrase generator's word lists are English and French, so a Spanish profile generates English
+  passphrases.
+
+### Guarding a third language
+
+- Four guards that read the locale catalogues named their two files by hand, so each covered the
+  languages that existed the day it was written. A third catalogue could ship complete and be read
+  by none of them: 183 pairs of guillemets went past the typography sweep, and the language box
+  could have offered a code the settings validator refuses, with every gate green. They now
+  enumerate the catalogues on disk, and each asserts what the enumeration found, because a source
+  that returns nothing runs no checks and reports success.
+- There was no key-parity guard at all between the catalogues, only tests that enumerated their own
+  keys. A key added to one language alone reaches the user as the key name itself, in place of the
+  sentence. Parity, orphaned keys and dropped placeholders are now a failure, for every catalogue.
+- The feature pages said the interface was bilingual and quoted a key count that had drifted by 98.
+  Both are corrected, and the count is now read out of the catalogue and asserted against the pages
+  that state it.
+
 ## 2026-09-17: the diagram tool keeps your work, and draws a real topology (v2026.091701)
 
 ### Network diagrams

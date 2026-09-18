@@ -14,8 +14,10 @@
  * limitations under the License.
  */
 
+using System.Globalization;
 using System.IO;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using Heimdall.App.Services;
 using Heimdall.App.ViewModels.Tools;
 
@@ -150,7 +152,12 @@ public sealed class PasswordGeneratorViewModelTests : IDisposable
     public void PassphraseMode_UsesSeparatorCapitalizationAndFrenchWords()
     {
         var sut = CreateInitializedVm();
-        ForceWordLists(sut, PasswordGeneratorViewModel.FallbackEnglishWords, PasswordGeneratorViewModel.FallbackFrenchWords);
+        ForceWordLists(
+            sut,
+            PasswordGeneratorViewModel.FallbackEnglishWords,
+            PasswordGeneratorViewModel.FallbackFrenchWords,
+            PasswordGeneratorViewModel.FallbackSpanishWords,
+            PasswordGeneratorViewModel.FallbackLatinWords);
 
         sut.SelectedModeIndex = 2;
         sut.PassphraseWordCount = 4;
@@ -166,6 +173,83 @@ public sealed class PasswordGeneratorViewModelTests : IDisposable
         Assert.Equal(4, words.Length);
         Assert.All(words, word => Assert.True(char.IsUpper(word[0])));
         Assert.All(words, word => Assert.Contains(word.ToLowerInvariant(), PasswordGeneratorViewModel.FallbackFrenchWords));
+    }
+
+    /// <summary>
+    /// Every language in the table draws from its own word list, including the ones past the
+    /// second.
+    /// </summary>
+    /// <remarks>
+    /// The generator used to fork on <c>index == 1</c>: French or, for everything else, English. A
+    /// third language selected in the box produced English passphrases and nothing said so. The
+    /// three lists here are disjoint and synthetic rather than the shipped ones, so a word can only
+    /// have come from the list under test and the assertion cannot pass by coincidence.
+    /// </remarks>
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    public void PassphraseMode_DrawsFromTheWordListOfTheSelectedLanguage(int languageIndex)
+    {
+        string[][] lists =
+        [
+            ["alfa", "bravo", "charlie", "delta", "echo", "foxtrot"],
+            ["golf", "hotel", "india", "juliet", "kilo", "lima"],
+            ["mike", "november", "oscar", "papa", "quebec", "romeo"],
+            ["sierra", "tango", "uniform", "victor", "whiskey", "xray"],
+        ];
+
+        Assert.Equal(PasswordGeneratorViewModel.PassphraseLanguages.Length, lists.Length);
+
+        var allWords = lists.SelectMany(list => list).ToList();
+        Assert.Equal(allWords.Count, allWords.Distinct(StringComparer.Ordinal).Count());
+
+        var sut = CreateInitializedVm();
+        ForceWordLists(sut, lists);
+
+        sut.SelectedModeIndex = 2;
+        sut.PassphraseWordCount = 4;
+        sut.PassphraseSeparator = "-";
+        sut.PassphraseAddDigit = false;
+        sut.PassphraseAddSpecial = false;
+        sut.PassphraseCapitalize = false;
+        sut.PassphraseLanguageIndex = languageIndex;
+
+        var words = sut.GeneratedPassword.Split('-', StringSplitOptions.RemoveEmptyEntries);
+
+        Assert.Equal(4, words.Length);
+        Assert.All(words, word => Assert.Contains(word.ToLowerInvariant(), lists[languageIndex]));
+    }
+
+    /// <summary>
+    /// The interface language decides which word list the tool opens on, and an interface language
+    /// with no list of its own opens on English rather than on nothing.
+    /// </summary>
+    [Theory]
+    [InlineData("en", 0)]
+    [InlineData("fr", 1)]
+    [InlineData("es", 2)]
+    [InlineData("ES", 2)]
+    [InlineData("la", 3)]
+    [InlineData("de", 0)]
+    [InlineData(null, 0)]
+    public void PassphraseLanguageIndexFor_MapsTheInterfaceLocaleToItsWordList(string? locale, int expected)
+    {
+        Assert.Equal(expected, PasswordGeneratorViewModel.PassphraseLanguageIndexFor(locale));
+    }
+
+    /// <summary>
+    /// The language order is append-only. The selected index is written into saved presets, so
+    /// inserting a language rather than appending it repoints every preset already on disk at a
+    /// different language, silently and on the next launch.
+    /// </summary>
+    [Fact]
+    public void PassphraseLanguages_KeepTheOrderSavedPresetsWereWrittenAgainst()
+    {
+        Assert.Equal(
+            ["en", "fr", "es", "la"],
+            PasswordGeneratorViewModel.PassphraseLanguages.Select(language => language.Locale));
     }
 
     [Fact]
@@ -319,6 +403,13 @@ public sealed class PasswordGeneratorViewModelTests : IDisposable
             source.PassphraseAddDigit = false;
             source.PassphraseAddSpecial = true;
             source.PassphrasePlacementIndex = 3;
+            source.LeetBaseWord = "anchor";
+            source.LeetRandomWord = false;
+            source.LeetFullSubstitution = false;
+            source.LeetDigits = 4;
+            source.LeetSpecials = 3;
+            source.LeetPlacementIndex = 2;
+            source.LeetCaseIndex = 5;
         }
         finally
         {
@@ -354,6 +445,13 @@ public sealed class PasswordGeneratorViewModelTests : IDisposable
         Assert.Equal(source.PassphraseAddDigit, target.PassphraseAddDigit);
         Assert.Equal(source.PassphraseAddSpecial, target.PassphraseAddSpecial);
         Assert.Equal(source.PassphrasePlacementIndex, target.PassphrasePlacementIndex);
+        Assert.Equal(source.LeetBaseWord, target.LeetBaseWord);
+        Assert.Equal(source.LeetRandomWord, target.LeetRandomWord);
+        Assert.Equal(source.LeetFullSubstitution, target.LeetFullSubstitution);
+        Assert.Equal(source.LeetDigits, target.LeetDigits);
+        Assert.Equal(source.LeetSpecials, target.LeetSpecials);
+        Assert.Equal(source.LeetPlacementIndex, target.LeetPlacementIndex);
+        Assert.Equal(source.LeetCaseIndex, target.LeetCaseIndex);
     }
 
     [Fact]
@@ -393,6 +491,212 @@ public sealed class PasswordGeneratorViewModelTests : IDisposable
         Assert.DoesNotContain(sut.GetCustomPresetsForCurrentMode(), preset => preset.Name == "delete-me");
     }
 
+    /// <summary>
+    /// The word a leet password is built from comes out of the list of the selected language, and
+    /// the tool shows which word that was.
+    /// </summary>
+    /// <remarks>
+    /// The three lists are disjoint and synthetic, so a word can only have come from the list under
+    /// test. Lowercase is forced because the default case mode uppercases at random, and the
+    /// substitution is left on so the assertion also pins what the mode does to the word it drew.
+    /// </remarks>
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    public void LeetMode_DrawsItsBaseWordFromTheListOfTheSelectedLanguage(int languageIndex)
+    {
+        string[][] lists =
+        [
+            ["alfa", "bravo", "delta"],
+            ["golf", "hotel", "india"],
+            ["mike", "oscar", "papa"],
+            ["sierra", "tango", "uniform"],
+        ];
+
+        var sut = CreateInitializedVm();
+        ForceWordLists(sut, lists);
+
+        sut.SuspendRegeneration();
+        try
+        {
+            sut.SelectedModeIndex = 3;
+            sut.LeetRandomWord = true;
+            sut.LeetFullSubstitution = true;
+            sut.LeetCaseIndex = 1;
+            sut.LeetDigits = 0;
+            sut.LeetSpecials = 0;
+            sut.PassphraseLanguageIndex = languageIndex;
+        }
+        finally
+        {
+            sut.ResumeRegeneration();
+        }
+
+        Assert.True(sut.IsLeetMode);
+        Assert.Contains(sut.LeetWordSource, lists[languageIndex]);
+        Assert.Equal(LeetOf(sut.LeetWordSource), sut.GeneratedPassword);
+    }
+
+    /// <summary>
+    /// Every letter the table covers is rewritten, and every letter it does not is left alone.
+    /// </summary>
+    [Fact]
+    public void LeetMode_RewritesEveryLetterTheTableCovers()
+    {
+        var sut = CreateInitializedVm();
+
+        sut.SuspendRegeneration();
+        try
+        {
+            sut.SelectedModeIndex = 3;
+            sut.LeetRandomWord = false;
+            sut.LeetBaseWord = "abegilostqu";
+            sut.LeetFullSubstitution = true;
+            sut.LeetCaseIndex = 1;
+            sut.LeetDigits = 0;
+            sut.LeetSpecials = 0;
+        }
+        finally
+        {
+            sut.ResumeRegeneration();
+        }
+
+        Assert.Equal("@8391!057qu", sut.GeneratedPassword);
+    }
+
+    /// <summary>
+    /// CLI-safe exists so the result can be pasted into a shell. The substitution of <c>l</c> is
+    /// <c>!</c>, which an interactive shell reads as history expansion, so that one substitution is
+    /// skipped rather than the whole mode being unavailable.
+    /// </summary>
+    [Fact]
+    public void LeetMode_SkipsTheSubstitutionAShellWouldReadAsSyntaxWhenCliSafe()
+    {
+        var sut = CreateInitializedVm();
+
+        sut.SuspendRegeneration();
+        try
+        {
+            sut.SelectedModeIndex = 3;
+            sut.LeetRandomWord = false;
+            sut.LeetBaseWord = "ball";
+            sut.LeetFullSubstitution = true;
+            sut.LeetCaseIndex = 1;
+            sut.LeetDigits = 0;
+            sut.LeetSpecials = 0;
+            sut.CliSafe = true;
+        }
+        finally
+        {
+            sut.ResumeRegeneration();
+        }
+
+        Assert.Equal("8@ll", sut.GeneratedPassword);
+        Assert.DoesNotContain('!', sut.GeneratedPassword);
+    }
+
+    /// <summary>
+    /// A word the operator typed is a word an attacker guesses, so the strength figure credits it
+    /// with nothing and the issue list says why. A word drawn from the list is credited with the
+    /// size of that list.
+    /// </summary>
+    [Fact]
+    public void LeetMode_CreditsNothingForAWordTheOperatorTyped()
+    {
+        string[][] lists =
+        [
+            ["alfa", "bravo", "delta", "echo", "golf", "hotel", "india", "kilo"],
+            ["golf", "hotel", "india"],
+            ["mike", "oscar", "papa"],
+            ["sierra", "tango", "uniform"],
+        ];
+
+        var sut = CreateInitializedVm();
+        ForceWordLists(sut, lists);
+
+        sut.SuspendRegeneration();
+        try
+        {
+            sut.SelectedModeIndex = 3;
+            sut.LeetRandomWord = true;
+            sut.LeetFullSubstitution = true;
+            sut.LeetCaseIndex = 1;
+            sut.LeetDigits = 0;
+            sut.LeetSpecials = 0;
+            sut.PassphraseLanguageIndex = 0;
+        }
+        finally
+        {
+            sut.ResumeRegeneration();
+        }
+
+        Assert.Equal(3, BitsOf(sut.StrengthText));
+        Assert.DoesNotContain("ToolPwdGenIssueChosenWord", sut.IssuesText);
+
+        sut.LeetBaseWord = "alfa";
+        sut.LeetRandomWord = false;
+
+        Assert.Equal(0, BitsOf(sut.StrengthText));
+        Assert.Contains("ToolPwdGenIssueChosenWord", sut.IssuesText);
+    }
+
+    /// <summary>
+    /// Applying the whole table is a fixed rewriting worth nothing. Applying it letter by letter on
+    /// a coin toss is worth one bit for each letter it could have touched, and only those letters:
+    /// the <c>c</c> below is not in the table and is not paid for.
+    /// </summary>
+    [Fact]
+    public void LeetMode_PaysForSubstitutionsOnlyWhenTheyAreNotAllApplied()
+    {
+        var sut = CreateInitializedVm();
+
+        sut.SuspendRegeneration();
+        try
+        {
+            sut.SelectedModeIndex = 3;
+            sut.LeetRandomWord = false;
+            sut.LeetBaseWord = "abc";
+            sut.LeetFullSubstitution = true;
+            sut.LeetCaseIndex = 1;
+            sut.LeetDigits = 0;
+            sut.LeetSpecials = 0;
+        }
+        finally
+        {
+            sut.ResumeRegeneration();
+        }
+
+        Assert.Equal(0, BitsOf(sut.StrengthText));
+
+        sut.LeetFullSubstitution = false;
+
+        Assert.Equal(2, BitsOf(sut.StrengthText));
+    }
+
+    /// <summary>
+    /// Layout-safe drops the letters that move between AZERTY and QWERTY, which a mode that takes
+    /// its letters from a word list cannot honour, so the box is not offered there.
+    /// </summary>
+    [Fact]
+    public void LayoutSafe_IsOfferedOnlyWhereTheGeneratorChoosesItsOwnLetters()
+    {
+        var sut = CreateInitializedVm();
+
+        sut.SelectedModeIndex = 0;
+        Assert.True(sut.ShowLayoutSafe);
+
+        sut.SelectedModeIndex = 1;
+        Assert.True(sut.ShowLayoutSafe);
+
+        sut.SelectedModeIndex = 2;
+        Assert.False(sut.ShowLayoutSafe);
+
+        sut.SelectedModeIndex = 3;
+        Assert.False(sut.ShowLayoutSafe);
+    }
+
     private PasswordGeneratorViewModel CreateInitializedVm()
     {
         var sut = new PasswordGeneratorViewModel(new PasswordPresetStorage(_presetsDirectoryPath));
@@ -400,15 +704,57 @@ public sealed class PasswordGeneratorViewModelTests : IDisposable
         return sut;
     }
 
-    private static void ForceWordLists(PasswordGeneratorViewModel sut, string[] englishWords, string[] frenchWords)
+    /// <summary>
+    /// Replaces the loaded word lists, one per entry of
+    /// <c>PasswordGeneratorViewModel.PassphraseLanguages</c> and in that order, so a test can say
+    /// which words a passphrase is allowed to be built from.
+    /// </summary>
+    private static void ForceWordLists(PasswordGeneratorViewModel sut, params string[][] wordLists)
     {
+        Assert.Equal(PasswordGeneratorViewModel.PassphraseLanguages.Length, wordLists.Length);
+
         typeof(PasswordGeneratorViewModel)
-            .GetField("_englishWords", BindingFlags.Instance | BindingFlags.NonPublic)!
-            .SetValue(sut, englishWords);
-        typeof(PasswordGeneratorViewModel)
-            .GetField("_frenchWords", BindingFlags.Instance | BindingFlags.NonPublic)!
-            .SetValue(sut, frenchWords);
+            .GetField("_wordLists", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .SetValue(sut, wordLists);
         sut.Generate();
+    }
+
+    /// <summary>
+    /// The bit count the strength line advertises. The line reads "&lt;level&gt; (N bits)", and with
+    /// no localizer the level and the unit are their own catalogue keys.
+    /// </summary>
+    private static double BitsOf(string strengthText)
+    {
+        Match match = Regex.Match(strengthText, @"\((\d+)");
+        Assert.True(match.Success, $"no bit count in '{strengthText}'");
+        return double.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture);
+    }
+
+    /// <summary>
+    /// The word as the leet mode rewrites it with every substitution applied, spelled out here
+    /// rather than read back from the view-model so that a test asserting on it cannot agree with a
+    /// table that changed underneath it.
+    /// </summary>
+    private static string LeetOf(string word)
+    {
+        Dictionary<char, char> substitutions = new()
+        {
+            ['a'] = '@',
+            ['b'] = '8',
+            ['e'] = '3',
+            ['g'] = '9',
+            ['i'] = '1',
+            ['l'] = '!',
+            ['o'] = '0',
+            ['s'] = '5',
+            ['t'] = '7',
+        };
+
+        return new string(word
+            .Select(character => substitutions.TryGetValue(character, out char replacement)
+                ? replacement
+                : character)
+            .ToArray());
     }
 
     private static void InvokePrivate(PasswordGeneratorViewModel sut, string methodName, params object[] args)

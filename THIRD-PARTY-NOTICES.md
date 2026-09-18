@@ -10,7 +10,7 @@
 
 # Third-party notices
 
-*Also available in French: [THIRD-PARTY-NOTICES.fr.md](THIRD-PARTY-NOTICES.fr.md).*
+*Also available in French: [THIRD-PARTY-NOTICES.fr.md](THIRD-PARTY-NOTICES.fr.md) and Spanish: [THIRD-PARTY-NOTICES.es.md](THIRD-PARTY-NOTICES.es.md).*
 
 Heimdall is licensed under the Apache License 2.0 (see [LICENSE](LICENSE)). It
 redistributes the third-party components listed below, each under its own licence.

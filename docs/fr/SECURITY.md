@@ -930,8 +930,8 @@ remplacer la destination.
   `TreatWarningsAsErrors`, `dotnet format --verify-no-changes`, la lane de tests
   bloquante (la suite moins les cas marqués `CIUnstable` ou `RequiresDesktop`,
   qui tournent dans deux autres lanes signalant leurs échecs sans faire rougir
-  l'exécution), la parité des locales JSON (les jeux de clés EN et FR doivent
-  être identiques, actuellement 6 272 clés chacun) et une analyse informative
+  l'exécution), la parité des locales JSON (chaque catalogue porte exactement
+  le jeu de clés anglais, actuellement 6 379 clés) et une analyse informative
   `dotnet list package --vulnerable`.
 - Analyse des dépendances pour revue manuelle : `dotnet list Heimdall.slnx
   package --vulnerable --include-transitive`. La CI émet des avertissements mais

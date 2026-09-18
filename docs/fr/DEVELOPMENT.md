@@ -56,8 +56,9 @@ La référence actuelle pour la suite complète est :
 dotnet test Heimdall.slnx --no-build
 ```
 
-Résultat attendu : 5 453 tests réussis et 6 tests WPF `ThemeServiceTests`
-volontairement ignorés, car ils nécessitent un contexte `Application` actif.
+Mesuré le 2026-09-17 : 12 833 tests sur les huit assemblages, tous réussis,
+aucun ignoré. C'est une observation datée et non une cible ; elle sert à repérer
+une exécution qui aurait perdu un assemblage entier.
 
 Les résumés TRX par projet peuvent masquer les tests ignorés ou annoncer des
 totaux plus faibles. Utilisez la commande agrégée au niveau de la solution pour
@@ -138,8 +139,8 @@ pour un seul sens, c'est ainsi qu'une convention pourrit.
 - Garder la logique WPF dans les ViewModels ; le code-behind doit se limiter au
   câblage minimal des événements, sauf si l'intégration plateforme impose
   autre chose.
-- Les chaînes visibles par l'utilisateur appartiennent à `locales/en.json` et
-  `locales/fr.json`.
+- Les chaînes visibles par l'utilisateur appartiennent aux catalogues sous
+  `locales/`, à tous.
 - Les arguments de shell doivent passer par `InputValidator.EscapeShellArg()` ou
   par une API d'arguments structurée telle que `ProcessStartInfo.ArgumentList`.
 - Préférer les patterns et les API utilitaires déjà présents dans le projet
@@ -197,8 +198,8 @@ bienvenus.** Un graphe de dépendances, un arbre de répertoires et une liste de
 mieux avec eux, et ils portent quelque chose qu'aucune paire de caractères ASCII ne porte aussi
 clairement. C'est une exception délibérée, pas un oubli.
 
-`DocumentationTypographyGuardTests` applique cette règle à `README*.md`, `SECURITY*.md` et tout
-`docs/`, **récursivement**. La récursivité est assertée séparément, parce qu'un balayage à la main
+`DocumentationTypographyGuardTests` applique cette règle à tout fichier Markdown à la racine du
+dépôt et à tout `docs/`, **récursivement**. La récursivité est assertée séparément, parce qu'un balayage à la main
 de `docs/*.md` est un jour passé au vert alors que deux sous-répertoires n'avaient pas été ouverts.
 
 **Les notes de version suivent une règle plus stricte** : caractères ASCII et AZERTY uniquement,
@@ -207,8 +208,10 @@ flèches comprises dans le refus. `scripts/NotesTypographyGuard.ps1` y fait auto
 
 ## Localisation et i18n
 
-Les fichiers de locale contiennent actuellement 5 489 clés feuilles chacun, et la
-CI impose la parité des clés EN/FR.
+L'interface existe en anglais, en français et en espagnol. Chaque catalogue sous
+`locales/` porte les mêmes 6 379 clés, et `LocaleCatalogueParityTests` l'impose dans
+les deux sens et sur les paramètres de format. Ajouter une langue fait l'objet d'une
+liste de contrôle dans [CONTRIBUTING.fr.md](../../CONTRIBUTING.fr.md).
 
 Conventions de nommage :
 
