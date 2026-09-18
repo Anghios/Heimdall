@@ -122,11 +122,15 @@ the guards will tell you if you miss one:
       `src/Heimdall.App/Services/TwinShellBootstrapper.cs`
 - [ ] the mojibake allow-list in `tests/Heimdall.Core.Tests/LocaleMojibakeGuardTests.cs`, if the
       language uses letters no shipped language uses
+- [ ] `src/Heimdall.App/Assets/wordlist_<code>.txt` and an entry in `PassphraseLanguages` in
+      `src/Heimdall.App/ViewModels/Tools/PasswordGeneratorViewModel.cs`, so the passphrase
+      generator speaks the language too. Append the entry, never insert it: the index is written
+      into saved presets. The words are plain lowercase ASCII, 4 to 12 letters, no repeats, and
+      chosen so they need no accent rather than stripped of one
 - [ ] `THIRD-PARTY-NOTICES.<code>.md`, and the cross-links at the top of its siblings
 
-Two things a new language does not reach today, and neither is a blocker: the embedded draw.io
-editor ships English and French resources only, and the passphrase generator's word lists are
-English and French.
+One thing a new language does not reach today, and it is not a blocker: the embedded draw.io
+editor ships English and French resources only, so its own menus stay English.
 
 ## Reporting something instead
 

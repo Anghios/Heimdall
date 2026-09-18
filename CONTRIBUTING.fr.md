@@ -128,11 +128,17 @@ suivants, et les gardes vous diront si vous en oubliez un :
 - [ ] la liste d'autorisation du garde mojibake dans
       `tests/Heimdall.Core.Tests/LocaleMojibakeGuardTests.cs`, si la langue emploie des lettres
       qu'aucune langue livrée n'emploie
+- [ ] `src/Heimdall.App/Assets/wordlist_<code>.txt` et une entrée dans `PassphraseLanguages` dans
+      `src/Heimdall.App/ViewModels/Tools/PasswordGeneratorViewModel.cs`, pour que le générateur de
+      phrases de passe parle la langue lui aussi. L'entrée s'ajoute à la fin, jamais au milieu :
+      l'indice est écrit dans les préréglages enregistrés. Les mots sont en ASCII minuscule, de 4 à
+      12 lettres, sans doublon, et choisis pour n'avoir besoin d'aucun accent plutôt que privés du
+      leur
 - [ ] `THIRD-PARTY-NOTICES.<code>.md`, et les liens croisés en tête de ses fichiers frères
 
-Deux choses qu'une nouvelle langue n'atteint pas aujourd'hui, et aucune des deux n'est bloquante :
-l'éditeur draw.io embarqué ne livre que des ressources anglaises et françaises, et les listes de
-mots du générateur de phrases de passe sont anglaises et françaises.
+Une chose qu'une nouvelle langue n'atteint pas aujourd'hui, et elle n'est pas bloquante :
+l'éditeur draw.io embarqué ne livre que des ressources anglaises et françaises, donc ses propres
+menus restent en anglais.
 
 ## Signaler plutôt que corriger
 
