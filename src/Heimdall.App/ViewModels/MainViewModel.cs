@@ -72,6 +72,10 @@ public partial class MainViewModel : ObservableObject, IDisposable, ITunnelsHost
     private Action? _onServerInventoryChanged;
     private Action<string, string, Core.Models.ToolContext>? _onToolSessionRequested;
     private Action<string>? _onStatusMessageRequested;
+    private Action? _onFolderLayoutChanged;
+
+    /// <summary>Set while the tab grouping choice is being taken from the settings, so it is not written back.</summary>
+    private bool _applyingTabGroupingPreference;
     private System.ComponentModel.PropertyChangedEventHandler? _connectionPropertyChangedHandler;
 
     private AppSettings? _currentSettings;
@@ -506,12 +510,30 @@ public partial class MainViewModel : ObservableObject, IDisposable, ITunnelsHost
         _onStatusMessageRequested = message => StatusText = message;
         ServerList.StatusMessageRequested += _onStatusMessageRequested;
 
+        // Session tabs grouped by folder read their group from the tree, and follow it.
+        Connection.TabGroupResolver = ServerList.ResolveTabGroup;
+        _onFolderLayoutChanged = () =>
+        {
+            if (_uiDispatcher.CheckAccess())
+            {
+                Connection.RefreshTabGroups();
+                return;
+            }
+
+            _ = _uiDispatcher.InvokeAsync(Connection.RefreshTabGroups);
+        };
+        ServerList.FolderLayoutChanged += _onFolderLayoutChanged;
+
         _connectionPropertyChangedHandler = (_, e) =>
         {
             if (string.Equals(e.PropertyName, nameof(ConnectionViewModel.ActiveSession), StringComparison.Ordinal))
             {
                 OnPropertyChanged(nameof(DisplayedSession));
                 ObserveDisplayedSession();
+            }
+            else if (string.Equals(e.PropertyName, nameof(ConnectionViewModel.GroupTabsByFolder), StringComparison.Ordinal))
+            {
+                PersistTabGroupingPreference(Connection.GroupTabsByFolder);
             }
         };
         Connection.PropertyChanged += _connectionPropertyChangedHandler;
@@ -629,6 +651,7 @@ public partial class MainViewModel : ObservableObject, IDisposable, ITunnelsHost
             _currentSettings = settings;
             await Tunnels.ResolveAndApplyPanelStateAsync();
             ServerList.LoadServers(servers, settings);
+            ApplyTabGroupingPreference(settings);
             Settings.LoadFromSettings(settings);
             await Settings.RefreshVaultStatusAsync();
             Scheduled.Load(settings);
@@ -655,6 +678,7 @@ public partial class MainViewModel : ObservableObject, IDisposable, ITunnelsHost
     private void OnSettingsChanged(AppSettings settings)
     {
         _currentSettings = settings;
+        _ = _uiDispatcher.InvokeAsync(() => ApplyTabGroupingPreference(settings));
         SleepPrevention.Enabled = settings.PreventSleepDuringSession;
         SleepPrevention.IntervalSeconds =
             SettingRanges.Of(nameof(AppSettings.SleepPreventionIntervalSeconds)).Clamp(settings.SleepPreventionIntervalSeconds);
@@ -667,6 +691,44 @@ public partial class MainViewModel : ObservableObject, IDisposable, ITunnelsHost
         // because the raiser runs this inline for every subscriber - blocking it on the UI
         // thread would make an observer's cost the writer's problem.
         _ = _uiDispatcher.InvokeAsync(() => Settings.AbsorbExternallyCreatedGateways(settings));
+    }
+
+    /// <summary>Takes the tab grouping choice a settings object carries without writing it back.</summary>
+    private void ApplyTabGroupingPreference(AppSettings settings)
+    {
+        _applyingTabGroupingPreference = true;
+        try
+        {
+            Connection.GroupTabsByFolder = settings.GroupSessionTabsByFolder;
+        }
+        finally
+        {
+            _applyingTabGroupingPreference = false;
+        }
+    }
+
+    /// <summary>Saves the tab grouping choice made from the tab strip.</summary>
+    private void PersistTabGroupingPreference(bool value)
+    {
+        if (_applyingTabGroupingPreference)
+        {
+            return;
+        }
+
+        PersistTabGroupingPreferenceAsync(value).SafeFireAndForget();
+    }
+
+    private async Task PersistTabGroupingPreferenceAsync(bool value)
+    {
+        try
+        {
+            await _configManager.MergeSettingAsync(
+                settings => settings.GroupSessionTabsByFolder = value).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            Core.Logging.FileLogger.Warn($"Failed to save the tab grouping preference: {ex.Message}");
+        }
     }
 
     private void OnApplicationStatusChanged(ApplicationStatus previous, ApplicationStatus current)
@@ -866,6 +928,7 @@ public partial class MainViewModel : ObservableObject, IDisposable, ITunnelsHost
         _themeService.ThemeChanged -= OnThemeServiceThemeChanged;
         ServerList.ToolSessionRequested -= _onToolSessionRequested;
         ServerList.StatusMessageRequested -= _onStatusMessageRequested;
+        ServerList.FolderLayoutChanged -= _onFolderLayoutChanged;
         Connection.PropertyChanged -= _connectionPropertyChangedHandler;
     }
 
@@ -1203,6 +1266,7 @@ public partial class MainViewModel : ObservableObject, IDisposable, ITunnelsHost
 
         ServerCount = currentServers.Count;
         ServerList.LoadServers(currentServers, settings);
+        ApplyTabGroupingPreference(settings);
         Settings.LoadFromSettings(settings);
         await Settings.RefreshVaultStatusAsync();
         Scheduled.Load(settings);

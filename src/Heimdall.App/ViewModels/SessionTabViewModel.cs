@@ -109,6 +109,49 @@ public partial class SessionTabViewModel : ObservableObject
     private bool _isPinned;
 
     /// <summary>
+    /// Full path of the folder whose tab group this tab belongs to, or null when the tab is
+    /// not grouped: grouping off, a pinned tab, a tool tab, or a profile outside any folder.
+    /// Assigned by <see cref="ConnectionViewModel"/>, which owns the strip order.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasTabGroup))]
+    private string? _tabGroupKey;
+
+    /// <summary>The folder name drawn on the group chip.</summary>
+    [ObservableProperty]
+    private string _tabGroupLabel = string.Empty;
+
+    /// <summary>The folder colour as a palette hex string, or empty for the themed default.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasTabGroupColor))]
+    private string _tabGroupColor = string.Empty;
+
+    /// <summary>True on the first tab of its group, the one that draws the group chip.</summary>
+    [ObservableProperty]
+    private bool _isTabGroupHead;
+
+    /// <summary>True when this tab's group is collapsed.</summary>
+    [ObservableProperty]
+    private bool _isTabGroupCollapsed;
+
+    /// <summary>
+    /// True when this tab is folded away in a collapsed group. The group head is never hidden:
+    /// it stays in the strip to carry the chip that expands the group again.
+    /// </summary>
+    [ObservableProperty]
+    private bool _isHiddenInCollapsedGroup;
+
+    /// <summary>What a screen reader reads for the group chip, state included.</summary>
+    [ObservableProperty]
+    private string _tabGroupAccessibleName = string.Empty;
+
+    /// <summary>True when the tab belongs to a folder group.</summary>
+    public bool HasTabGroup => TabGroupKey is not null;
+
+    /// <summary>True when the group chip takes the folder's colour rather than the theme's.</summary>
+    public bool HasTabGroupColor => !string.IsNullOrWhiteSpace(TabGroupColor);
+
+    /// <summary>
     /// True when this session was started ad-hoc from the Command Palette
     /// (typing a bare IP/hostname) and is not backed by a saved server profile.
     /// </summary>

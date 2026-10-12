@@ -116,6 +116,26 @@ que vous utilisez souvent.
 - Après un déplacement, un renommage dans l'arbre ou un réordonnancement de sessions, la barre sous l'arbre nomme la modification et propose **Annuler** pendant 30 secondes. Une seule étape est conservée pendant la session courante de l'application. L'annulation ne couvre pas la suppression et refuse une modification ultérieure incompatible. Supprimer un dossier retire la proposition. Pour les dossiers, un changement ultérieur d'organisation ou de valeurs par défaut empêche l'annulation.
 - La touche **Suppr** agit sur les sessions, jamais sur un dossier : pour supprimer un dossier, utilisez **Supprimer le dossier** dans son menu.
 
+### Ranger vos onglets par dossier
+
+Faites un clic droit sur un onglet de session et cochez **Grouper les onglets par dossier**. Les
+onglets de chaque dossier se rangent alors côte à côte dans la barre d'onglets, derrière une
+pastille au nom et à la couleur du dossier, avec un trait de couleur sous chacun d'eux. Le choix
+est conservé.
+
+- Cliquez sur une pastille pour replier les onglets de ce dossier jusqu'à la pastille seule, et
+  cliquez de nouveau pour les déplier. Le menu de l'onglet propose aussi **Replier les onglets du
+  dossier** et **Déplier les onglets du dossier**.
+- Replier le dossier qui contient l'onglet ouvert passe à l'onglet le plus proche hors de ce
+  dossier. Quand tous les onglets appartiennent à ce dossier, ils restent dépliés.
+- Ouvrir une session, ou passer à un onglet, d'un dossier replié déplie ses onglets.
+- Les onglets suivent le dossier : déplacez la session dans un autre dossier, ou renommez ou
+  recolorez le dossier, et l'onglet suit. Un espace de travail restauré au démarrage revient rangé
+  de la même façon.
+- Les onglets épinglés restent en tête de la barre, hors des onglets de tout dossier. Les onglets
+  d'outils, les connexions rapides et les sessions rangées hors de tout dossier ne sont jamais
+  rangés ainsi.
+
 ## Où vivent vos mots de passe
 
 Les mots de passe enregistrés dans une session sont chiffrés sur votre propre machine, liés à votre

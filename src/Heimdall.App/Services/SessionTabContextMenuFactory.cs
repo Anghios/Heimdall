@@ -188,6 +188,41 @@ public sealed class SessionTabContextMenuFactory
         };
         pinItem.Click += (_, _) => vm.Connection.SetPinned(session, !session.IsPinned);
         menu.Items.Add(pinItem);
+
+        AppendTabGroupItems(menu, session, vm);
+    }
+
+    // --- Folder groups ---
+
+    private static void AppendTabGroupItems(
+        ContextMenu menu,
+        SessionTabViewModel session,
+        MainViewModel vm)
+    {
+        var groupItem = new MenuItem
+        {
+            Header = vm.Localize("SessionGroupTabsByFolder"),
+            IsCheckable = true,
+            IsChecked = vm.Connection.GroupTabsByFolder
+        };
+        // Hung off the checked state, not Click: the UIA Toggle pattern flips IsChecked without
+        // raising Click, which would leave the tick saying one thing and the strip another.
+        groupItem.Checked += (_, _) => vm.Connection.GroupTabsByFolder = true;
+        groupItem.Unchecked += (_, _) => vm.Connection.GroupTabsByFolder = false;
+        menu.Items.Add(groupItem);
+
+        if (!session.HasTabGroup)
+        {
+            return;
+        }
+
+        var collapseItem = new MenuItem
+        {
+            Header = vm.Localize(session.IsTabGroupCollapsed ? "SessionExpandTabGroup" : "SessionCollapseTabGroup"),
+            Command = vm.Connection.ToggleTabGroupCollapsedCommand,
+            CommandParameter = session
+        };
+        menu.Items.Add(collapseItem);
     }
 
     // ── Close ────────────────────────────────────────────────────────

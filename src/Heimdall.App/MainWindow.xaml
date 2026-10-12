@@ -1338,160 +1338,221 @@
                                        BasedOn="{StaticResource ThemedTabItemStyle}">
                                     <Setter Property="AutomationProperties.Name"
                                             Value="{Binding AccessibleName}"/>
+                                    <!-- A tab folded away in a collapsed folder group leaves the strip;
+                                         the group head stays to carry the chip that opens it again. -->
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsHiddenInCollapsedGroup}" Value="True">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
                                 </Style>
                             </TabControl.ItemContainerStyle>
                             <TabControl.ItemTemplate>
                                 <DataTemplate DataType="{x:Type vm:SessionTabViewModel}">
                                     <Border x:Name="TabHeaderBorder" Padding="10,6" Background="Transparent"
+                                            BorderThickness="0,0,0,2" BorderBrush="Transparent"
                                             ToolTip="{Binding HeaderToolTip}">
-                                        <DockPanel LastChildFill="True">
-                                            <!-- Close button always occupies layout space (Hidden, not Collapsed)
-                                                 so the tab width stays constant on hover. Only opacity toggles.
-                                                 IsHitTestVisible stays True; the Border's Background="Transparent"
-                                                 ensures IsMouseOver persists when hovering over child elements. -->
-                                            <Button x:Name="TabCloseButton" DockPanel.Dock="Right"
-                                                    Width="20" Height="20" Margin="6,0,0,0" Padding="2"
-                                                    Focusable="False" Content="&#xE711;"
-                                                    FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeSmallCaption}"
-                                                    Opacity="0.3" IsHitTestVisible="True"
-                                                    Command="{Binding DataContext.Connection.CloseSessionCommand, RelativeSource={RelativeSource AncestorType=TabControl}}"
+                                        <!-- The bottom border is the folder group bar: every tab of a group carries its
+                                             colour. Always two pixels thick, so a grouped tab is as tall as any other. -->
+                                        <StackPanel Orientation="Horizontal">
+                                            <!-- Folder group chip, drawn by the first tab of a group only. A Button so that
+                                                 clicking it toggles the group without selecting the tab, as the close
+                                                 button does. It names the folder by its full path, because two folders
+                                                 of the same name in different branches would otherwise read the same. -->
+                                            <Button x:Name="Mw_SessionTabGroupChip"
+                                                    VerticalAlignment="Center" Margin="0,0,8,0"
+                                                    Padding="0" BorderThickness="0" Background="Transparent"
+                                                    Focusable="False"
+                                                    Visibility="{Binding IsTabGroupHead, Converter={StaticResource BoolToVisibilityConverter}}"
+                                                    Command="{Binding DataContext.Connection.ToggleTabGroupCollapsedCommand, RelativeSource={RelativeSource AncestorType=TabControl}}"
                                                     CommandParameter="{Binding}"
-                                                    AutomationProperties.Name="{Binding Tag, RelativeSource={RelativeSource AncestorType=TabControl}}"
-                                                    Style="{DynamicResource SecondaryButtonStyle}"/>
-                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                                <!-- Broadcast target marker: pick this session as a SelectedPanes broadcast
-                                                     target straight from the tab strip. Visible only in SelectedPanes mode
-                                                     for sessions that have a terminal pane. -->
-                                                <!-- A Button, not a CheckBox, although it draws as one.
-                                                     IsBroadcastTarget is DERIVED from the panes and
-                                                     recomputed by RefreshBroadcastTabMarkers, so nothing
-                                                     may write it back: the command is the only way to
-                                                     change the selection. A CheckBox would offer the UIA
-                                                     Toggle pattern over that derived state, and Toggle
-                                                     flips the control without raising Click - leaving the
-                                                     marker ticked over a pane that was never selected.
-                                                     The inner CheckBox is the drawing only, kept out of
-                                                     the accessibility tree so it offers no Toggle. -->
-                                                <Button x:Name="Mw_SessionTabBroadcastTarget"
-                                                        VerticalAlignment="Center" Margin="0,0,6,0"
-                                                        Padding="0" BorderThickness="0" Background="Transparent"
-                                                        Visibility="{Binding ShowBroadcastTargetMarker, Converter={StaticResource BoolToVisibilityConverter}}"
-                                                        Command="{Binding DataContext.Session.ToggleSessionBroadcastTargetCommand, RelativeSource={RelativeSource AncestorType=TabControl}}"
-                                                        CommandParameter="{Binding}"
-                                                        ToolTip="{loc:Translate BroadcastTabTargetTooltip}"
-                                                        AutomationProperties.Name="{Binding BroadcastTargetAccessibleName}">
-                                                    <Button.Template>
-                                                        <ControlTemplate TargetType="Button">
-                                                            <ContentPresenter/>
-                                                        </ControlTemplate>
-                                                    </Button.Template>
-                                                    <Border Width="14" Height="14" CornerRadius="2"
-                                                            BorderThickness="1"
-                                                            BorderBrush="{DynamicResource BorderBrush}"
-                                                            Background="Transparent">
-                                                        <TextBlock Text="&#xE73E;" FontFamily="Segoe MDL2 Assets"
-                                                                   FontSize="9"
-                                                                   HorizontalAlignment="Center"
+                                                    ToolTip="{Binding TabGroupAccessibleName}"
+                                                    AutomationProperties.Name="{Binding TabGroupAccessibleName}">
+                                                <Button.Template>
+                                                    <ControlTemplate TargetType="Button">
+                                                        <ContentPresenter/>
+                                                    </ControlTemplate>
+                                                </Button.Template>
+                                                <Border CornerRadius="{StaticResource CornerRadiusSm}"
+                                                        BorderThickness="1"
+                                                        BorderBrush="{DynamicResource BorderBrush}"
+                                                        Background="{DynamicResource SurfaceBrush}"
+                                                        Padding="6,1">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <Ellipse x:Name="TabGroupChipDot" Width="8" Height="8"
+                                                                 VerticalAlignment="Center" Margin="0,0,5,0">
+                                                            <Ellipse.Style>
+                                                                <Style TargetType="Ellipse">
+                                                                    <Setter Property="Fill" Value="{DynamicResource InfoBrush}"/>
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding HasTabGroupColor}" Value="True">
+                                                                            <Setter Property="Fill" Value="{Binding TabGroupColor, Converter={StaticResource StringToBrushConverter}}"/>
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </Ellipse.Style>
+                                                        </Ellipse>
+                                                        <TextBlock Text="{Binding TabGroupLabel}"
+                                                                   FontSize="{StaticResource FontSizeSmallCaption}" FontWeight="SemiBold"
+                                                                   Foreground="{DynamicResource TextPrimaryBrush}"
                                                                    VerticalAlignment="Center"
-                                                                   Foreground="{DynamicResource AccentBrush}"
-                                                                   Visibility="{Binding IsBroadcastTarget, Converter={StaticResource BoolToVisibilityConverter}}"/>
-                                                    </Border>
-                                                </Button>
-                                                <Grid Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,5,0">
-                                                    <Path Data="{Binding ConnectionType, Converter={StaticResource TypeToGeoConverter}}"
-                                                          Style="{StaticResource GeoIconSmall}">
-                                                        <Path.Fill>
-                                                            <MultiBinding Converter="{StaticResource TypeToColorConverter}">
-                                                                <Binding Path="ConnectionType"/>
-                                                                <Binding Path="DataContext.ThemeRevision" ElementName="MainWindowRoot"/>
-                                                            </MultiBinding>
-                                                        </Path.Fill>
-                                                    </Path>
-                                                    <Ellipse Width="7" Height="7"
-                                                             HorizontalAlignment="Right"
-                                                             VerticalAlignment="Bottom"
-                                                             Margin="0,0,-1,-1"
-                                                             Stroke="{DynamicResource BackgroundBrush}"
-                                                             StrokeThickness="1"
-                                                             Fill="{Binding TunnelBadgeState, Converter={StaticResource TunnelBadgeStateToBrushConverter}}"
-                                                             AutomationProperties.Name="{loc:Translate A11yTunnelTabBadge}">
-                                                        <Ellipse.Visibility>
-                                                            <MultiBinding Converter="{StaticResource TunnelBadgeVisibilityConverter}">
-                                                                <Binding Path="TunnelBadgeState"/>
-                                                                <Binding Path="DataContext.Tunnels.IsPanelOpen" ElementName="MainWindowRoot"/>
-                                                            </MultiBinding>
-                                                        </Ellipse.Visibility>
-                                                        <Ellipse.Style>
-                                                            <Style TargetType="Ellipse">
-                                                                <Setter Property="ToolTip" Value=""/>
+                                                                   TextTrimming="CharacterEllipsis" MaxWidth="120"/>
+                                                        <TextBlock x:Name="TabGroupChipChevron" Text="&#xE70D;"
+                                                                   FontFamily="Segoe MDL2 Assets" FontSize="8"
+                                                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                                                   VerticalAlignment="Center" Margin="5,0,0,0"/>
+                                                    </StackPanel>
+                                                </Border>
+                                            </Button>
+                                            <DockPanel x:Name="TabHeaderContent" LastChildFill="True">
+                                                <!-- Close button always occupies layout space (Hidden, not Collapsed)
+                                                     so the tab width stays constant on hover. Only opacity toggles.
+                                                     IsHitTestVisible stays True; the Border's Background="Transparent"
+                                                     ensures IsMouseOver persists when hovering over child elements. -->
+                                                <Button x:Name="TabCloseButton" DockPanel.Dock="Right"
+                                                        Width="20" Height="20" Margin="6,0,0,0" Padding="2"
+                                                        Focusable="False" Content="&#xE711;"
+                                                        FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource FontSizeSmallCaption}"
+                                                        Opacity="0.3" IsHitTestVisible="True"
+                                                        Command="{Binding DataContext.Connection.CloseSessionCommand, RelativeSource={RelativeSource AncestorType=TabControl}}"
+                                                        CommandParameter="{Binding}"
+                                                        AutomationProperties.Name="{Binding Tag, RelativeSource={RelativeSource AncestorType=TabControl}}"
+                                                        Style="{DynamicResource SecondaryButtonStyle}"/>
+                                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                    <!-- Broadcast target marker: pick this session as a SelectedPanes broadcast
+                                                         target straight from the tab strip. Visible only in SelectedPanes mode
+                                                         for sessions that have a terminal pane. -->
+                                                    <!-- A Button, not a CheckBox, although it draws as one.
+                                                         IsBroadcastTarget is DERIVED from the panes and
+                                                         recomputed by RefreshBroadcastTabMarkers, so nothing
+                                                         may write it back: the command is the only way to
+                                                         change the selection. A CheckBox would offer the UIA
+                                                         Toggle pattern over that derived state, and Toggle
+                                                         flips the control without raising Click - leaving the
+                                                         marker ticked over a pane that was never selected.
+                                                         The inner CheckBox is the drawing only, kept out of
+                                                         the accessibility tree so it offers no Toggle. -->
+                                                    <Button x:Name="Mw_SessionTabBroadcastTarget"
+                                                            VerticalAlignment="Center" Margin="0,0,6,0"
+                                                            Padding="0" BorderThickness="0" Background="Transparent"
+                                                            Visibility="{Binding ShowBroadcastTargetMarker, Converter={StaticResource BoolToVisibilityConverter}}"
+                                                            Command="{Binding DataContext.Session.ToggleSessionBroadcastTargetCommand, RelativeSource={RelativeSource AncestorType=TabControl}}"
+                                                            CommandParameter="{Binding}"
+                                                            ToolTip="{loc:Translate BroadcastTabTargetTooltip}"
+                                                            AutomationProperties.Name="{Binding BroadcastTargetAccessibleName}">
+                                                        <Button.Template>
+                                                            <ControlTemplate TargetType="Button">
+                                                                <ContentPresenter/>
+                                                            </ControlTemplate>
+                                                        </Button.Template>
+                                                        <Border Width="14" Height="14" CornerRadius="2"
+                                                                BorderThickness="1"
+                                                                BorderBrush="{DynamicResource BorderBrush}"
+                                                                Background="Transparent">
+                                                            <TextBlock Text="&#xE73E;" FontFamily="Segoe MDL2 Assets"
+                                                                       FontSize="9"
+                                                                       HorizontalAlignment="Center"
+                                                                       VerticalAlignment="Center"
+                                                                       Foreground="{DynamicResource AccentBrush}"
+                                                                       Visibility="{Binding IsBroadcastTarget, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                                        </Border>
+                                                    </Button>
+                                                    <Grid Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,5,0">
+                                                        <Path Data="{Binding ConnectionType, Converter={StaticResource TypeToGeoConverter}}"
+                                                              Style="{StaticResource GeoIconSmall}">
+                                                            <Path.Fill>
+                                                                <MultiBinding Converter="{StaticResource TypeToColorConverter}">
+                                                                    <Binding Path="ConnectionType"/>
+                                                                    <Binding Path="DataContext.ThemeRevision" ElementName="MainWindowRoot"/>
+                                                                </MultiBinding>
+                                                            </Path.Fill>
+                                                        </Path>
+                                                        <Ellipse Width="7" Height="7"
+                                                                 HorizontalAlignment="Right"
+                                                                 VerticalAlignment="Bottom"
+                                                                 Margin="0,0,-1,-1"
+                                                                 Stroke="{DynamicResource BackgroundBrush}"
+                                                                 StrokeThickness="1"
+                                                                 Fill="{Binding TunnelBadgeState, Converter={StaticResource TunnelBadgeStateToBrushConverter}}"
+                                                                 AutomationProperties.Name="{loc:Translate A11yTunnelTabBadge}">
+                                                            <Ellipse.Visibility>
+                                                                <MultiBinding Converter="{StaticResource TunnelBadgeVisibilityConverter}">
+                                                                    <Binding Path="TunnelBadgeState"/>
+                                                                    <Binding Path="DataContext.Tunnels.IsPanelOpen" ElementName="MainWindowRoot"/>
+                                                                </MultiBinding>
+                                                            </Ellipse.Visibility>
+                                                            <Ellipse.Style>
+                                                                <Style TargetType="Ellipse">
+                                                                    <Setter Property="ToolTip" Value=""/>
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding TunnelBadgeState}" Value="{x:Static tunnels:TunnelBadgeState.Healthy}">
+                                                                            <Setter Property="ToolTip" Value="{loc:Translate TooltipTunnelTabBadgeHealthy}"/>
+                                                                        </DataTrigger>
+                                                                        <DataTrigger Binding="{Binding TunnelBadgeState}" Value="{x:Static tunnels:TunnelBadgeState.Unhealthy}">
+                                                                            <Setter Property="ToolTip" Value="{loc:Translate TooltipTunnelTabBadgeUnhealthy}"/>
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </Ellipse.Style>
+                                                        </Ellipse>
+                                                    </Grid>
+                                                    <TextBlock x:Name="TabPinGlyph" Text="&#xE718;" FontFamily="Segoe MDL2 Assets" FontSize="10"
+                                                               Foreground="{DynamicResource AccentBrush}"
+                                                               VerticalAlignment="Center" Margin="0,0,4,0"
+                                                               Visibility="{Binding IsPinned, Converter={StaticResource BoolToVisibilityConverter}}"
+                                                               AutomationProperties.Name="{loc:Translate SessionPinTab}"/>
+                                                    <TextBlock Text="{Binding DisplayTitle}" FontSize="{StaticResource FontSizeBody}" FontWeight="SemiBold"
+                                                               Foreground="{DynamicResource TextPrimaryBrush}"
+                                                               VerticalAlignment="Center"
+                                                               ToolTip="{Binding HeaderToolTip}"
+                                                               TextTrimming="CharacterEllipsis" MaxWidth="160"/>
+                                                    <TextBlock x:Name="BusyIndicator" Text="&#x25CF;" FontSize="8"
+                                                               Foreground="{DynamicResource AccentBrush}"
+                                                               VerticalAlignment="Center" Margin="5,0,0,0"
+                                                               Visibility="Collapsed"
+                                                               AutomationProperties.Name="{Binding Tag, RelativeSource={RelativeSource AncestorType=Grid, AncestorLevel=2}}">
+                                                        <TextBlock.Style>
+                                                            <Style TargetType="TextBlock">
+                                                                <Style.Resources>
+                                                                    <Storyboard x:Key="PulseAnimation">
+                                                                        <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                                                                         From="1" To="0.2" Duration="0:0:0.6"
+                                                                                         AutoReverse="True" RepeatBehavior="Forever"/>
+                                                                    </Storyboard>
+                                                                </Style.Resources>
                                                                 <Style.Triggers>
-                                                                    <DataTrigger Binding="{Binding TunnelBadgeState}" Value="{x:Static tunnels:TunnelBadgeState.Healthy}">
-                                                                        <Setter Property="ToolTip" Value="{loc:Translate TooltipTunnelTabBadgeHealthy}"/>
-                                                                    </DataTrigger>
-                                                                    <DataTrigger Binding="{Binding TunnelBadgeState}" Value="{x:Static tunnels:TunnelBadgeState.Unhealthy}">
-                                                                        <Setter Property="ToolTip" Value="{loc:Translate TooltipTunnelTabBadgeUnhealthy}"/>
-                                                                    </DataTrigger>
+                                                                    <Trigger Property="Visibility" Value="Visible">
+                                                                        <Trigger.EnterActions>
+                                                                            <BeginStoryboard Name="PulseStoryboard" Storyboard="{StaticResource PulseAnimation}"/>
+                                                                        </Trigger.EnterActions>
+                                                                        <Trigger.ExitActions>
+                                                                            <StopStoryboard BeginStoryboardName="PulseStoryboard"/>
+                                                                        </Trigger.ExitActions>
+                                                                    </Trigger>
                                                                 </Style.Triggers>
                                                             </Style>
-                                                        </Ellipse.Style>
-                                                    </Ellipse>
-                                                </Grid>
-                                                <TextBlock x:Name="TabPinGlyph" Text="&#xE718;" FontFamily="Segoe MDL2 Assets" FontSize="10"
-                                                           Foreground="{DynamicResource AccentBrush}"
-                                                           VerticalAlignment="Center" Margin="0,0,4,0"
-                                                           Visibility="{Binding IsPinned, Converter={StaticResource BoolToVisibilityConverter}}"
-                                                           AutomationProperties.Name="{loc:Translate SessionPinTab}"/>
-                                                <TextBlock Text="{Binding DisplayTitle}" FontSize="{StaticResource FontSizeBody}" FontWeight="SemiBold"
-                                                           Foreground="{DynamicResource TextPrimaryBrush}"
-                                                           VerticalAlignment="Center"
-                                                           ToolTip="{Binding HeaderToolTip}"
-                                                           TextTrimming="CharacterEllipsis" MaxWidth="160"/>
-                                                <TextBlock x:Name="BusyIndicator" Text="&#x25CF;" FontSize="8"
-                                                           Foreground="{DynamicResource AccentBrush}"
-                                                           VerticalAlignment="Center" Margin="5,0,0,0"
-                                                           Visibility="Collapsed"
-                                                           AutomationProperties.Name="{Binding Tag, RelativeSource={RelativeSource AncestorType=Grid, AncestorLevel=2}}">
-                                                    <TextBlock.Style>
-                                                        <Style TargetType="TextBlock">
-                                                            <Style.Resources>
-                                                                <Storyboard x:Key="PulseAnimation">
-                                                                    <DoubleAnimation Storyboard.TargetProperty="Opacity"
-                                                                                     From="1" To="0.2" Duration="0:0:0.6"
-                                                                                     AutoReverse="True" RepeatBehavior="Forever"/>
-                                                                </Storyboard>
-                                                            </Style.Resources>
-                                                            <Style.Triggers>
-                                                                <Trigger Property="Visibility" Value="Visible">
-                                                                    <Trigger.EnterActions>
-                                                                        <BeginStoryboard Name="PulseStoryboard" Storyboard="{StaticResource PulseAnimation}"/>
-                                                                    </Trigger.EnterActions>
-                                                                    <Trigger.ExitActions>
-                                                                        <StopStoryboard BeginStoryboardName="PulseStoryboard"/>
-                                                                    </Trigger.ExitActions>
-                                                                </Trigger>
-                                                            </Style.Triggers>
-                                                        </Style>
-                                                        </TextBlock.Style>
-                                                </TextBlock>
-                                                <Button x:Name="PostConnectIndicator"
-                                                        Margin="6,0,0,0"
-                                                        Padding="4,1"
-                                                        MinWidth="34"
-                                                        Height="20"
-                                                        VerticalAlignment="Center"
-                                                        Command="{Binding CancelPostConnectCommand}"
-                                                        ToolTip="{Binding PostConnectTooltip}"
-                                                        Visibility="Collapsed"
-                                                        AutomationProperties.Name="{Binding PostConnectTooltip}"
-                                                        Style="{DynamicResource SecondaryButtonStyle}">
-                                                    <TextBlock Text="{Binding PostConnectProgressText}"
-                                                               FontSize="{StaticResource FontSizeSmallCaption}"
-                                                               Foreground="{DynamicResource AccentBrush}"
-                                                               FontWeight="SemiBold"
-                                                               VerticalAlignment="Center"/>
-                                                </Button>
-                                            </StackPanel>
-                                        </DockPanel>
+                                                            </TextBlock.Style>
+                                                    </TextBlock>
+                                                    <Button x:Name="PostConnectIndicator"
+                                                            Margin="6,0,0,0"
+                                                            Padding="4,1"
+                                                            MinWidth="34"
+                                                            Height="20"
+                                                            VerticalAlignment="Center"
+                                                            Command="{Binding CancelPostConnectCommand}"
+                                                            ToolTip="{Binding PostConnectTooltip}"
+                                                            Visibility="Collapsed"
+                                                            AutomationProperties.Name="{Binding PostConnectTooltip}"
+                                                            Style="{DynamicResource SecondaryButtonStyle}">
+                                                        <TextBlock Text="{Binding PostConnectProgressText}"
+                                                                   FontSize="{StaticResource FontSizeSmallCaption}"
+                                                                   Foreground="{DynamicResource AccentBrush}"
+                                                                   FontWeight="SemiBold"
+                                                                   VerticalAlignment="Center"/>
+                                                    </Button>
+                                                </StackPanel>
+                                            </DockPanel>
+                                        </StackPanel>
                                     </Border>
                                     <DataTemplate.Triggers>
                                         <!-- Show close button at full opacity on hover or active tab -->
@@ -1506,6 +1567,19 @@
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding IsPostConnectRunning}" Value="True">
                                             <Setter TargetName="PostConnectIndicator" Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding HasTabGroup}" Value="True">
+                                            <Setter TargetName="TabHeaderBorder" Property="BorderBrush" Value="{DynamicResource InfoBrush}"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding HasTabGroupColor}" Value="True">
+                                            <Setter TargetName="TabHeaderBorder" Property="BorderBrush" Value="{Binding TabGroupColor, Converter={StaticResource StringToBrushConverter}}"/>
+                                        </DataTrigger>
+                                        <!-- A collapsed group head shows its chip alone. -->
+                                        <DataTrigger Binding="{Binding IsTabGroupCollapsed}" Value="True">
+                                            <Setter TargetName="TabHeaderContent" Property="Visibility" Value="Collapsed"/>
+                                            <Setter TargetName="TabHeaderBorder" Property="BorderBrush" Value="Transparent"/>
+                                            <Setter TargetName="Mw_SessionTabGroupChip" Property="Margin" Value="0"/>
+                                            <Setter TargetName="TabGroupChipChevron" Property="Text" Value="&#xE76C;"/>
                                         </DataTrigger>
                                     </DataTemplate.Triggers>
                                 </DataTemplate>
