@@ -261,6 +261,9 @@ public sealed class SessionPropertiesPanelTests
     [InlineData("Spv_GroupCopy", "Group")]
     [InlineData("Spv_EnvCopy", "Environment")]
     [InlineData("Spv_TagsCopy", "Tags")]
+    [InlineData("Spv_SshKeyCopy", "SshKeyText")]
+    [InlineData("Spv_LatencyCopy", "LatencyText")]
+    [InlineData("Spv_LastOpenedCopy", "LastOpenedText")]
     public void EveryValue_CopiesWhatItShows(string buttonName, string property)
     {
         XDocument control = LoadXaml(Path.Combine("Controls", "SessionPropertiesView.xaml"));
@@ -273,6 +276,29 @@ public sealed class SessionPropertiesPanelTests
         Assert.Contains(
             button.Descendants(),
             element => element.Attributes().Any(a => a.Value.StartsWith($"{{Binding {property}", StringComparison.Ordinal)));
+    }
+
+    /// <summary>
+    /// A binding to a property the row does not have fails silently in WPF: the line just never
+    /// shows. Every simple binding in the control must name a public property of the row.
+    /// </summary>
+    [Fact]
+    public void EveryBinding_NamesAPropertyOfTheRow()
+    {
+        XDocument control = LoadXaml(Path.Combine("Controls", "SessionPropertiesView.xaml"));
+        System.Text.RegularExpressions.Regex simpleBinding = new(@"^\{Binding (\w+)(?:[,}])");
+
+        List<string> paths = control.Descendants()
+            .Where(element => element.Name.LocalName != "Binding")
+            .Attributes()
+            .Select(attribute => simpleBinding.Match(attribute.Value))
+            .Where(match => match.Success)
+            .Select(match => match.Groups[1].Value)
+            .Distinct()
+            .ToList();
+
+        Assert.Contains("LastOpenedText", paths);
+        Assert.All(paths, path => Assert.NotNull(typeof(ServerItemViewModel).GetProperty(path)));
     }
 
     private sealed class RecordingClipboard : IClipboardService
