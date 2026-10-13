@@ -4012,7 +4012,7 @@
   "RdpDisconnectedMessage": "The Remote Desktop session has ended.",
 
   "HelpShortcutsTitle": "Keyboard Shortcuts",
-  "HelpShortcutsContent": "Navigation\n  {0}\tAdd new server\n  {1}\tEdit selected server\n  {2}\tDelete selected server\n  Ctrl+F\tSearch servers\n  Ctrl+B\tToggle sidebar\n  F11\tToggle fullscreen\n  Ctrl+Shift+F11\tToggle fullscreen over embedded sessions\n\nConnections\n  Ctrl+K\tQuick Connect\n  Enter\tConnect to selected server\n\nSession\n  Ctrl+W\tClose current tab\n  Ctrl+F4\tClose current tab, from a terminal too\n  Apps, Shift+F10\tTab menu, from the tab strip\n  Ctrl+Tab\tNext tab\n  Ctrl+Shift+Tab\tPrevious tab\n  Ctrl+Shift+S\tCapture screenshot\n  Ctrl+Shift+N\tNetwork scanner\n  Ctrl+Shift+O\tToggle split orientation\n  Ctrl+Shift+T\tToggle tools panel\n\nSettings\n  Ctrl+,\tOpen settings\n  Ctrl+S\tSave settings\n\nGeneral\n  F1\tShow this help\n  Esc\tExit fullscreen / close palette",
+  "HelpShortcutsContent": "Navigation\n  {0}\tAdd new server\n  {1}\tEdit selected server\n  {2}\tDelete selected server\n  Ctrl+F\tSearch servers\n  Ctrl+B\tToggle sidebar\n  Ctrl+Shift+B\tShow or hide the properties panel\n  F11\tToggle fullscreen\n  Ctrl+Shift+F11\tToggle fullscreen over embedded sessions\n\nConnections\n  Ctrl+K\tQuick Connect\n  Enter\tConnect to selected server\n\nSession\n  Ctrl+W\tClose current tab\n  Ctrl+F4\tClose current tab, from a terminal too\n  Apps, Shift+F10\tTab menu, from the tab strip\n  Ctrl+Tab\tNext tab\n  Ctrl+Shift+Tab\tPrevious tab\n  Ctrl+Shift+S\tCapture screenshot\n  Ctrl+Shift+N\tNetwork scanner\n  Ctrl+Shift+O\tToggle split orientation\n  Ctrl+Shift+T\tToggle tools panel\n\nSettings\n  Ctrl+,\tOpen settings\n  Ctrl+S\tSave settings\n\nGeneral\n  F1\tShow this help\n  Esc\tExit fullscreen / close palette",
 
   "BtnYes": "Yes",
   "BtnNo": "No",
@@ -5766,6 +5766,9 @@
   "FilterShowGatewayBadgeAutomationName": "Show the gateway badge on session rows",
   "FilterShowPropertiesPanel": "Show properties panel",
   "FilterShowPropertiesPanelAutomationName": "Show the properties of the selected session under the tree",
+  "SettingsSectionSessionTree": "Session tree",
+  "SettingsShowPropertiesPanel": "Show the properties panel under the tree (Ctrl+Shift+B)",
+  "SettingsShowPropertiesPanelHint": "The read-only properties of the selected session, docked under the tree and readable while a session tab is open. Also in the tree's filter menu.",
   "PropertiesPanelTitle": "Properties",
   "PropertiesPanelHide": "Hide the properties panel",
   "PropertiesPanelEmpty": "Select a session to see its properties.",

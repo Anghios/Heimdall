@@ -4012,7 +4012,7 @@
   "RdpDisconnectedMessage": "La sesión de Escritorio remoto ha terminado.",
 
   "HelpShortcutsTitle": "Atajos de teclado",
-  "HelpShortcutsContent": "Navegación\n  {0}\tAñadir nuevo servidor\n  {1}\tEditar servidor seleccionado\n  {2}\tEliminar servidor seleccionado\n  Ctrl+F\tBuscar servidores\n  Ctrl+B\tMostrar/ocultar barra lateral\n  F11\tAlternar pantalla completa\n  Ctrl+Mayús+F11\tAlternar pantalla completa sobre sesiones incrustadas\n\nConexiones\n  Ctrl+K\tConexión rápida\n  Intro\tConectar al servidor seleccionado\n\nSesión\n  Ctrl+W\tCerrar pestaña actual\n  Ctrl+F4\tCerrar pestaña actual, también desde un terminal\n  Aplicaciones, Mayús+F10\tMenú de la pestaña, desde la barra de pestañas\n  Ctrl+Tab\tPestaña siguiente\n  Ctrl+Mayús+Tab\tPestaña anterior\n  Ctrl+Mayús+S\tCapturar pantalla\n  Ctrl+Mayús+N\tEscáner de red\n  Ctrl+Mayús+O\tAlternar orientación de la división\n  Ctrl+Mayús+T\tMostrar/ocultar panel de herramientas\n\nAjustes\n  Ctrl+,\tAbrir ajustes\n  Ctrl+S\tGuardar ajustes\n\nGeneral\n  F1\tMostrar esta ayuda\n  Esc\tSalir de pantalla completa / cerrar paleta",
+  "HelpShortcutsContent": "Navegación\n  {0}\tAñadir nuevo servidor\n  {1}\tEditar servidor seleccionado\n  {2}\tEliminar servidor seleccionado\n  Ctrl+F\tBuscar servidores\n  Ctrl+B\tMostrar/ocultar barra lateral\n  Ctrl+May\u00fas+B\tMostrar/ocultar el panel de propiedades\n  F11\tAlternar pantalla completa\n  Ctrl+Mayús+F11\tAlternar pantalla completa sobre sesiones incrustadas\n\nConexiones\n  Ctrl+K\tConexión rápida\n  Intro\tConectar al servidor seleccionado\n\nSesión\n  Ctrl+W\tCerrar pestaña actual\n  Ctrl+F4\tCerrar pestaña actual, también desde un terminal\n  Aplicaciones, Mayús+F10\tMenú de la pestaña, desde la barra de pestañas\n  Ctrl+Tab\tPestaña siguiente\n  Ctrl+Mayús+Tab\tPestaña anterior\n  Ctrl+Mayús+S\tCapturar pantalla\n  Ctrl+Mayús+N\tEscáner de red\n  Ctrl+Mayús+O\tAlternar orientación de la división\n  Ctrl+Mayús+T\tMostrar/ocultar panel de herramientas\n\nAjustes\n  Ctrl+,\tAbrir ajustes\n  Ctrl+S\tGuardar ajustes\n\nGeneral\n  F1\tMostrar esta ayuda\n  Esc\tSalir de pantalla completa / cerrar paleta",
 
   "BtnYes": "Sí",
   "BtnNo": "No",
@@ -5766,6 +5766,9 @@
   "FilterShowGatewayBadgeAutomationName": "Mostrar la insignia de pasarela en las filas de sesión",
   "FilterShowPropertiesPanel": "Mostrar el panel de propiedades",
   "FilterShowPropertiesPanelAutomationName": "Mostrar las propiedades de la sesi\u00f3n seleccionada bajo el \u00e1rbol",
+  "SettingsSectionSessionTree": "\u00c1rbol de sesiones",
+  "SettingsShowPropertiesPanel": "Mostrar el panel de propiedades bajo el \u00e1rbol (Ctrl+May\u00fas+B)",
+  "SettingsShowPropertiesPanelHint": "Las propiedades de la sesi\u00f3n seleccionada, de solo lectura, bajo el \u00e1rbol y legibles mientras hay una pesta\u00f1a abierta. Tambi\u00e9n en el men\u00fa de filtro del \u00e1rbol.",
   "PropertiesPanelTitle": "Propiedades",
   "PropertiesPanelHide": "Ocultar el panel de propiedades",
   "PropertiesPanelEmpty": "Seleccione una sesi\u00f3n para ver sus propiedades.",
