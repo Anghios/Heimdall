@@ -357,6 +357,74 @@ public sealed class ConnectionViewModelTabGroupTests
         Assert.Null(ConnectionViewModel.NextVisibleTab([only], new SessionTabViewModel(), 1));
     }
 
+    [Fact]
+    public void CollapseOtherTabGroups_KeepsThisFolderOpen_FoldsTheOthers_AndMovesTheSelectionIn()
+    {
+        ConnectionViewModel sut = CreateViewModel(groupByFolder: true);
+        SessionTabViewModel ops1 = Open(sut, "ops-1");
+        SessionTabViewModel ops2 = Open(sut, "ops-2");
+        SessionTabViewModel lab1 = Open(sut, "lab-1");
+        SessionTabViewModel lab2 = Open(sut, "lab-2");
+        SessionTabViewModel loose = Open(sut, "no-folder");
+        sut.ActiveSession = lab2;
+
+        sut.CollapseOtherTabGroupsCommand.Execute(ops2);
+
+        Assert.False(ops1.IsTabGroupCollapsed);
+        Assert.False(ops2.IsHiddenInCollapsedGroup);
+        Assert.True(lab1.IsTabGroupCollapsed);
+        Assert.True(lab2.IsHiddenInCollapsedGroup);
+        Assert.False(loose.IsHiddenInCollapsedGroup);
+        Assert.Same(ops2, sut.ActiveSession);
+    }
+
+    [Fact]
+    public void CollapseOtherTabGroups_SelectionAlreadyInTheFolder_StaysPut()
+    {
+        ConnectionViewModel sut = CreateViewModel(groupByFolder: true);
+        SessionTabViewModel ops1 = Open(sut, "ops-1");
+        SessionTabViewModel ops2 = Open(sut, "ops-2");
+        SessionTabViewModel lab1 = Open(sut, "lab-1");
+        sut.ActiveSession = ops1;
+
+        sut.CollapseOtherTabGroupsCommand.Execute(ops2);
+
+        Assert.Same(ops1, sut.ActiveSession);
+        Assert.True(lab1.IsTabGroupCollapsed);
+    }
+
+    [Fact]
+    public void CollapseOtherTabGroups_ReopensThisFolderWhenItWasCollapsed()
+    {
+        ConnectionViewModel sut = CreateViewModel(groupByFolder: true);
+        SessionTabViewModel ops1 = Open(sut, "ops-1");
+        Open(sut, "ops-2");
+        SessionTabViewModel lab1 = Open(sut, "lab-1");
+        sut.ToggleTabGroupCollapsedCommand.Execute(ops1);
+        Assert.True(ops1.IsTabGroupCollapsed);
+
+        sut.CollapseOtherTabGroupsCommand.Execute(ops1);
+
+        Assert.False(ops1.IsTabGroupCollapsed);
+        Assert.True(lab1.IsTabGroupCollapsed);
+        Assert.Same(ops1, sut.ActiveSession);
+    }
+
+    [Fact]
+    public void HasOtherTabGroup_OnlyWhenAnotherFolderIsInTheStrip()
+    {
+        ConnectionViewModel sut = CreateViewModel(groupByFolder: true);
+        SessionTabViewModel ops1 = Open(sut, "ops-1");
+        SessionTabViewModel loose = Open(sut, "no-folder");
+
+        Assert.False(sut.HasOtherTabGroup(ops1));
+        Assert.False(sut.HasOtherTabGroup(loose));
+
+        Open(sut, "lab-1");
+        Assert.True(sut.HasOtherTabGroup(ops1));
+        Assert.False(sut.HasOtherTabGroup(loose));
+    }
+
     private ConnectionViewModel CreateViewModel(bool groupByFolder)
     {
         ConnectionViewModel viewModel = new(

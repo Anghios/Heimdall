@@ -2486,6 +2486,7 @@
   "SessionGroupTabsByFolder": "Agrupar pestañas por carpeta",
   "SessionCollapseTabGroup": "Contraer las pestañas de la carpeta",
   "SessionExpandTabGroup": "Expandir las pestañas de la carpeta",
+  "SessionCollapseOtherTabGroups": "Contraer las otras carpetas",
   "SessionTabGroupChipExpandedA11y": "Pestañas de la carpeta {0}, expandidas",
   "SessionTabGroupChipCollapsedA11y": "Pestañas de la carpeta {0}, contraídas",
   "SessionTabListButton": "Todas las pestañas abiertas",

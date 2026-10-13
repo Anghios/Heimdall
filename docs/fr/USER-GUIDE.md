@@ -145,6 +145,9 @@ est conservé.
 - Cliquez sur une pastille pour replier les onglets de ce dossier jusqu'à la pastille seule, et
   cliquez de nouveau pour les déplier. Le menu de l'onglet propose aussi **Replier les onglets du
   dossier** et **Déplier les onglets du dossier**.
+- **Replier les autres dossiers**, dans le menu d'un onglet, replie d'un coup tous les autres
+  dossiers et garde celui-ci ouvert : un seul geste pour passer d'un ensemble de machines à un
+  autre. Les onglets hors de tout dossier restent visibles.
 - Replier le dossier qui contient l'onglet ouvert passe à l'onglet le plus proche hors de ce
   dossier. Quand tous les onglets appartiennent à ce dossier, ils restent dépliés.
 - Ouvrir une session, ou passer à un onglet, d'un dossier replié déplie ses onglets.

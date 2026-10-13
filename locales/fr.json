@@ -2486,6 +2486,7 @@
   "SessionGroupTabsByFolder": "Grouper les onglets par dossier",
   "SessionCollapseTabGroup": "Replier les onglets du dossier",
   "SessionExpandTabGroup": "D\u00e9plier les onglets du dossier",
+  "SessionCollapseOtherTabGroups": "Replier les autres dossiers",
   "SessionTabGroupChipExpandedA11y": "Onglets du dossier {0}, d\u00e9pli\u00e9s",
   "SessionTabGroupChipCollapsedA11y": "Onglets du dossier {0}, repli\u00e9s",
   "SessionTabListButton": "Tous les onglets ouverts",

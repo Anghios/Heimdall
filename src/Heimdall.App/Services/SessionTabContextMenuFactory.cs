@@ -317,6 +317,16 @@ public sealed class SessionTabContextMenuFactory
             CommandParameter = session
         };
         menu.Items.Add(collapseItem);
+
+        if (vm.Connection.HasOtherTabGroup(session))
+        {
+            menu.Items.Add(new MenuItem
+            {
+                Header = vm.Localize("SessionCollapseOtherTabGroups"),
+                Command = vm.Connection.CollapseOtherTabGroupsCommand,
+                CommandParameter = session
+            });
+        }
     }
 
     // ── Close ────────────────────────────────────────────────────────
