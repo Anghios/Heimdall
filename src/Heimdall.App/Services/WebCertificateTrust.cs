@@ -57,8 +57,58 @@ public sealed class WebCertificateTrust
     /// <summary>Raised when a pin is added or refreshed; the app persists it.</summary>
     public event Action<string, FtpsCertificateEntry>? CertificateTrusted;
 
+    /// <summary>
+    /// Raised when a pin is forgotten. Parameter: the "host:port" key. The open web tabs drop
+    /// what their browser had accepted, so the next visit asks again instead of riding on an
+    /// acceptance the browser keeps until it restarts.
+    /// </summary>
+    public event Action<string>? CertificateRemoved;
+
     public void LoadEntriesFromConfig(IEnumerable<KeyValuePair<string, FtpsCertificateEntry>> entries)
         => _store.LoadEntriesFromConfig(entries);
+
+    /// <summary>Every durable pin, keyed "host:port" ("[ipv6]:port" for an IPv6 literal).</summary>
+    public IReadOnlyDictionary<string, FtpsCertificateEntry> GetAllEntries() => _store.GetAllEntries();
+
+    /// <summary>
+    /// Forgets the pin stored under <paramref name="key"/>, durable and for this run alike.
+    /// </summary>
+    /// <returns>Whether a durable pin was there to forget.</returns>
+    public bool Remove(string key)
+    {
+        if (!TryParseKey(key, out string host, out int port))
+        {
+            return false;
+        }
+
+        bool removed = _store.Remove(host, port);
+        CertificateRemoved?.Invoke(key);
+        return removed;
+    }
+
+    /// <summary>Splits a store key back into the host and port <see cref="FtpsCertificateStore"/> takes.</summary>
+    internal static bool TryParseKey(string? key, out string host, out int port)
+    {
+        host = string.Empty;
+        port = 0;
+        if (string.IsNullOrWhiteSpace(key))
+        {
+            return false;
+        }
+
+        int separator = key.LastIndexOf(':');
+        if (separator <= 0
+            || !int.TryParse(key.AsSpan(separator + 1), System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out port)
+            || port is < 1 or > 65535)
+        {
+            port = 0;
+            return false;
+        }
+
+        // The store brackets an IPv6 literal itself, so the brackets come off here.
+        host = key[..separator].Trim('[', ']');
+        return host.Length > 0;
+    }
 
     internal WebCertificateVerdict Evaluate(string host, int port, string fingerprint)
     {

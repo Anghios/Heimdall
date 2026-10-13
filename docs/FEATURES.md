@@ -80,7 +80,7 @@ The complete catalogue of what Heimdall does, protocol by protocol. If you are l
 - Web consoles (iLO, iDRAC, switches, NAS admin pages) as entries of the tree, in the same folders and tab strip as the other sessions
 - The address is built from the profile's host and port plus HTTPS or HTTP and an optional path, so the tree, the search, the health check and the external tools read the same host as for every other type
 - Rendered by WebView2 in one browser profile shared by every web tab and kept in the data directory: a sign-in made in one tab holds in the others and after a restart
-- A certificate the system does not trust (a self-signed console) is shown with its fingerprint and trusted once or for good, per host and port, as for FTPS; a certificate that changes is asked again with a warning, and Enter does not accept it
+- A certificate the system does not trust (a self-signed console) is shown with its fingerprint and trusted once or for good, per host and port, as for FTPS; a certificate that changes is asked again with a warning, and Enter does not accept it. `Settings > Security` lists the certificates trusted for good, with search, and forgets one: the next visit asks again, in every open tab
 - A stored account answers the browser's sign-in prompt (Basic, NTLM) of the profile's own host only, once per tab; sign-in forms inside the page are not filled
 - Navigation is limited to web addresses, in the page and in its frames: file:, script and custom-protocol links are refused, and a popup opens in the same tab under the same rules
 - A console that answers with an HTTP error, or a link that fails after the console has loaded, leaves the session up: only failing to reach the console at all ends it
@@ -321,7 +321,7 @@ All tools open as session tabs (split with any session or tool, detach, reorder)
 - **Sidebar sessions UX**: two-row toolbar with full-width search above icon-only actions, 320px default width, and smart long-name truncation that preserves the session identifier while ellipsizing trailing parenthesized suffixes
 - Fullscreen mode (F11), toggle sidebar (Ctrl+B), filter (Ctrl+F)
 - **First-launch onboarding**: a 6-step guided tour that spotlights the real control it is describing - the scrim is cut around the target and ringed - and navigates to the right tab before each step rather than after it. Replayable at any time from `Settings > General`, so one reflex Escape no longer ends it for good. A step whose target cannot be resolved degrades to a centred card rather than ringing empty space
-- Trilingual interface: English, French and Spanish (6,965 i18n keys per language, exact parity across the three catalogues)
+- Trilingual interface: English, French and Spanish (6,983 i18n keys per language, exact parity across the three catalogues)
 - Declarative i18n: `{loc:Translate Key}` WPF markup extension with runtime language switching
 - WCAG 2.1 AA accessibility: AutomationProperties.Name on all interactive controls via `{loc:Translate}`, LiveSetting="Polite" on dynamic outputs, keyboard focus indicators, disabled state tooltips, a live-region filter result count announced on change, and keyboard-focused folder rows as reliable Shift+F10 / Apps context-menu targets with a localized automation name
 

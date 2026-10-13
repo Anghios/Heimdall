@@ -147,6 +147,10 @@ public partial class EmbeddedWebView : UserControl, IDisposable, ISessionPaneOwn
             core.HistoryChanged += OnHistoryChanged;
             core.ServerCertificateErrorDetected += OnServerCertificateErrorDetected;
             core.BasicAuthenticationRequested += OnBasicAuthenticationRequested;
+            if (CertificateTrust is not null)
+            {
+                CertificateTrust.CertificateRemoved += OnCertificateRemoved;
+            }
 
             core.Navigate(_session.Address.AbsoluteUri);
         }
@@ -394,6 +398,31 @@ public partial class EmbeddedWebView : UserControl, IDisposable, ISessionPaneOwn
         return CoreWebView2ServerCertificateErrorAction.AlwaysAllow;
     }
 
+    /// <summary>
+    /// A pin was forgotten in the settings. The browser keeps every certificate it was told to
+    /// allow until it restarts, and the profile is shared, so without this the forgotten console
+    /// would go on loading silently in every open tab.
+    /// </summary>
+    private void OnCertificateRemoved(string key)
+    {
+        _ = Dispatcher.InvokeAsync(async () =>
+        {
+            if (_disposed || ConsoleWebView.CoreWebView2 is not { } core)
+            {
+                return;
+            }
+
+            try
+            {
+                await core.ClearServerCertificateErrorActionsAsync();
+            }
+            catch (Exception ex) when (ex is InvalidOperationException or System.Runtime.InteropServices.COMException)
+            {
+                FileLogger.Info($"Web console could not clear its accepted certificates: {ex.Message}");
+            }
+        });
+    }
+
     private async Task<FtpsCertificateDecision> AskAsync(FtpsCertificatePrompt prompt, CertificatePromptWording wording)
     {
         // Yield first, so the dialog's nested message loop does not run inside the browser's
@@ -486,6 +515,11 @@ public partial class EmbeddedWebView : UserControl, IDisposable, ISessionPaneOwn
         }
 
         _disposed = true;
+
+        if (CertificateTrust is not null)
+        {
+            CertificateTrust.CertificateRemoved -= OnCertificateRemoved;
+        }
 
         if (ConsoleWebView.CoreWebView2 is { } core)
         {

@@ -1365,7 +1365,8 @@ public partial class SettingsViewModel : ObservableValidator, IDisposable
         IUpdateInstallFlow installFlow,
         IBrowserLauncher browserLauncher,
         IProfileImportService? profileImportService = null,
-        ICredentialGuardService? credentialGuardService = null)
+        ICredentialGuardService? credentialGuardService = null,
+        TrustedWebCertificatesSettingsViewModel? trustedWebCertificates = null)
     {
         _configManager = configManager;
         _localizer = localizer;
@@ -1380,6 +1381,7 @@ public partial class SettingsViewModel : ObservableValidator, IDisposable
         _credentialGuardService = credentialGuardService ?? new CredentialGuardService();
         TrustedHostKeys = trustedHostKeys;
         TrustedRdpCertificates = trustedRdpCertificates;
+        TrustedWebCertificates = trustedWebCertificates;
 
         // The banner and the tab badges are derived from the error set, so they have to follow it
         // rather than hold the shape it had when Save was last pressed.
@@ -1582,6 +1584,9 @@ public partial class SettingsViewModel : ObservableValidator, IDisposable
 
     /// <summary>The RDP certificate trust decisions this profile inventory carries.</summary>
     public TrustedRdpCertificatesSettingsViewModel TrustedRdpCertificates { get; }
+
+    /// <summary>The web console certificates panel; null where no trust store was supplied (tests).</summary>
+    public TrustedWebCertificatesSettingsViewModel? TrustedWebCertificates { get; }
 
     internal Func<string?>? ImportFilePathProvider { get; set; }
 
@@ -1908,6 +1913,7 @@ public partial class SettingsViewModel : ObservableValidator, IDisposable
             // while this reload is not. Started through its command rather than awaited: the
             // command owns the failure, and the panel is not on screen when settings load.
             TrustedRdpCertificates.RefreshCommand.Execute(null);
+            TrustedWebCertificates?.RefreshCommand.Execute(null);
         }
         finally
         {
@@ -4016,6 +4022,7 @@ public partial class SettingsViewModel : ObservableValidator, IDisposable
         _localizer.LocaleChanged -= OnPanelLocaleChanged;
         TrustedHostKeys.Dispose();
         TrustedRdpCertificates.Dispose();
+        TrustedWebCertificates?.Dispose();
         GC.SuppressFinalize(this);
     }
 
