@@ -351,6 +351,17 @@ public sealed class AppSettings
     public bool ShowGatewayBadge { get; set; } = true;
 
     /// <summary>
+    /// Whether the read-only properties of the selected session are docked under the session
+    /// tree, where they stay readable while a session tab covers the detail pane. Off by default:
+    /// it takes height from the tree.
+    /// </summary>
+    public bool ShowSessionPropertiesPanel { get; set; }
+
+    /// <summary>Height of the properties panel under the tree, in device-independent pixels.</summary>
+    [SettingRange(120, 2000)]
+    public int SessionPropertiesPanelHeight { get; set; } = 240;
+
+    /// <summary>
     /// Whether the session tabs are grouped by the folder of their profile, behind a collapsible
     /// chip carrying the folder's name and colour. Off by default: turning it on reorders the
     /// strip, which nobody should find done to them.

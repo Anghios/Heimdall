@@ -129,6 +129,17 @@ public partial class ServerItemViewModel : ObservableObject, IInlineRenameNode, 
     private string _authSummary = "";
 
     /// <summary>
+    /// Whether the external credential provider is switched on, so a password this profile does
+    /// not store is fetched from it at connect time instead of being asked for.
+    /// </summary>
+    /// <remarks>
+    /// An application setting, not a profile field: the list owner pushes it here with the other
+    /// view preferences, the same way it pushes <see cref="ShowGatewayBadge"/>.
+    /// </remarks>
+    [ObservableProperty]
+    private bool _usesCredentialProvider;
+
+    /// <summary>
     /// Last known reachability state, fed externally by
     /// <see cref="SessionHealthMonitor"/>. The sidebar dot reads from this
     /// when the server is in a non-active connection state.
@@ -720,6 +731,14 @@ public partial class ServerItemViewModel : ObservableObject, IInlineRenameNode, 
 
     partial void OnShowGatewayBadgeChanged(bool value) => RefreshGatewayBadgeVisibility();
 
+    partial void OnUsesCredentialProviderChanged(bool value)
+    {
+        if (_sourceDto is not null)
+        {
+            AuthSummary = BuildAuthSummary(_sourceDto);
+        }
+    }
+
     /// <summary>
     /// The badge shows for a routed session unless the user hid it; a missing gateway always
     /// shows, because hiding it would hide a session that will not connect.
@@ -755,6 +774,8 @@ public partial class ServerItemViewModel : ObservableObject, IInlineRenameNode, 
         "SessionAuthPassword" => "Password",
         "SessionAuthNoneSaved" => "No saved credentials",
         "SessionAuthCurrentUser" => "Current user",
+        "SessionAuthSshAgent" => "SSH agent",
+        "SessionAuthCredentialProvider" => "Credential provider",
         "SessionTreeServerAccessibleName" => "{0}, protocol {1}, state {2}",
         "SessionTreeServerAccessibleNameFavorite" => "{0}, favorite, protocol {1}, state {2}",
         "SessionTreeServerAccessibleHelp" =>
@@ -788,6 +809,15 @@ public partial class ServerItemViewModel : ObservableObject, IInlineRenameNode, 
                 AddIfConfigured(parts, dto.SshUsername, "SessionAuthUsername");
                 AddIfConfigured(parts, dto.SshKeyPath, "SessionAuthSshKey");
                 AddIfConfigured(parts, dto.SshPasswordEncrypted, "SessionAuthPassword");
+
+                // With neither a key nor a password the connection authenticates through
+                // whatever agent is running; "no saved credentials" hid the one method used.
+                if (string.IsNullOrWhiteSpace(dto.SshKeyPath)
+                    && string.IsNullOrWhiteSpace(dto.SshPasswordEncrypted))
+                {
+                    parts.Add(T("SessionAuthSshAgent"));
+                }
+
                 break;
 
             case "RDP":
@@ -816,6 +846,13 @@ public partial class ServerItemViewModel : ObservableObject, IInlineRenameNode, 
 
             default:
                 return "";
+        }
+
+        // The same predicate the connect path uses to decide whether to ask the provider, so
+        // the summary cannot announce a provider the connection will not consult, or the reverse.
+        if (UsesCredentialProvider && ServerListViewModel.GetCredentialTarget(dto) is not null)
+        {
+            parts.Add(T("SessionAuthCredentialProvider"));
         }
 
         return parts.Count > 0

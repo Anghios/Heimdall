@@ -215,6 +215,7 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
             }
         };
         viewModel.ServerList.PropertyChanged += _serverListPropertyChangedHandler;
+        WirePropertiesPanel(viewModel);
 
         // A selection a search or a collapsed folder had hidden comes back on the view model;
         // WPF's own row selection has to follow, and the row has to scroll into view.
@@ -4290,6 +4291,7 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
                 vm.Connection.PropertyChanged -= _connectionPropertyChangedHandler;
             if (_serverListPropertyChangedHandler is not null)
                 vm.ServerList.PropertyChanged -= _serverListPropertyChangedHandler;
+            UnwirePropertiesPanel(vm);
             if (_settingsPropertyChangedHandler is not null)
                 vm.Settings.PropertyChanged -= _settingsPropertyChangedHandler;
             if (_fileShareTftpSavedHandler is not null)

@@ -82,6 +82,7 @@ public sealed class SettingRangesTests
         (nameof(AppSettings.RdpDefaultColorDepth), 16, 32, false),
         (nameof(AppSettings.MaxEmbeddedSessions), 1, 20, false),
         (nameof(AppSettings.SidebarWidth), 0, 1000, false),
+        (nameof(AppSettings.SessionPropertiesPanelHeight), 120, 2000, false),
         (nameof(AppSettings.SessionHealthCheckIntervalSeconds), 15, 3600, false),
         (nameof(AppSettings.SessionHealthProbeTimeoutMs), 250, 30000, false),
         (nameof(AppSettings.SessionHealthMaxConcurrent), 1, 50, false),

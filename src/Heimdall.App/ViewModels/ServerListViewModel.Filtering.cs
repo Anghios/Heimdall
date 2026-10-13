@@ -64,6 +64,20 @@ public partial class ServerListViewModel
     private bool _showGatewayBadge = true;
 
     /// <summary>
+    /// Whether the read-only properties of the selected session are docked under the tree.
+    /// Persisted; off by default so the tree keeps its height for whoever never asked for it.
+    /// </summary>
+    [ObservableProperty]
+    private bool _showPropertiesPanel;
+
+    /// <summary>The height the properties panel was last dragged to, already clamped.</summary>
+    public double PropertiesPanelHeight { get; private set; } =
+        Services.SessionPropertiesPanelLayout.DefaultHeight;
+
+    /// <summary>Whether the external credential provider is on, pushed to every row.</summary>
+    private bool _usesCredentialProvider;
+
+    /// <summary>
     /// Set while a persisted value is being applied, so applying it does not write it back.
     /// </summary>
     private bool _applyingPersistedViewPreferences;
@@ -187,6 +201,39 @@ public partial class ServerListViewModel
         ViewPreferencePersistence = PersistShowGatewayBadgeAsync(value);
     }
 
+    partial void OnShowPropertiesPanelChanged(bool value)
+    {
+        if (_applyingPersistedViewPreferences)
+        {
+            return;
+        }
+
+        ViewPreferencePersistence = PersistViewPreferenceAsync(
+            settings => settings.ShowSessionPropertiesPanel = value,
+            "properties panel visibility");
+    }
+
+    /// <summary>
+    /// Records the height the user dragged the properties panel to and saves it.
+    /// </summary>
+    public void CommitPropertiesPanelHeight(double height)
+    {
+        // Rounded here, not only on disk: the save raises a settings change that re-applies the
+        // stored whole number, and the two must not disagree.
+        int persisted = (int)Math.Round(
+            Services.SessionPropertiesPanelLayout.ClampHeight(height),
+            MidpointRounding.AwayFromZero);
+        if (persisted == PropertiesPanelHeight)
+        {
+            return;
+        }
+
+        PropertiesPanelHeight = persisted;
+        ViewPreferencePersistence = PersistViewPreferenceAsync(
+            settings => settings.SessionPropertiesPanelHeight = persisted,
+            "properties panel height");
+    }
+
     /// <summary>Takes the view preferences a settings object carries without writing them back.</summary>
     private void ApplyPersistedViewPreferences(AppSettings settings)
     {
@@ -194,6 +241,11 @@ public partial class ServerListViewModel
         try
         {
             ShowGatewayBadge = settings.ShowGatewayBadge;
+            ShowPropertiesPanel = settings.ShowSessionPropertiesPanel;
+            PropertiesPanelHeight = Services.SessionPropertiesPanelLayout.ClampHeight(
+                settings.SessionPropertiesPanelHeight);
+            _usesCredentialProvider = settings.UseExternalCredentialProvider;
+            ApplyGatewayBadgePreference();
         }
         finally
         {
@@ -201,24 +253,28 @@ public partial class ServerListViewModel
         }
     }
 
+    /// <summary>Pushes the list-wide row preferences to every row.</summary>
     private void ApplyGatewayBadgePreference()
     {
         foreach (ServerItemViewModel server in _allServers)
         {
             server.ShowGatewayBadge = ShowGatewayBadge;
+            server.UsesCredentialProvider = _usesCredentialProvider;
         }
     }
 
-    private async Task PersistShowGatewayBadgeAsync(bool value)
+    private Task PersistShowGatewayBadgeAsync(bool value) =>
+        PersistViewPreferenceAsync(settings => settings.ShowGatewayBadge = value, "gateway badge preference");
+
+    private async Task PersistViewPreferenceAsync(Action<AppSettings> apply, string what)
     {
         try
         {
-            await _configManager.MergeSettingAsync(
-                settings => settings.ShowGatewayBadge = value).ConfigureAwait(false);
+            await _configManager.MergeSettingAsync(apply).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
-            Core.Logging.FileLogger.Warn($"Failed to save the gateway badge preference: {ex.Message}");
+            Core.Logging.FileLogger.Warn($"Failed to save the {what}: {ex.Message}");
         }
     }
 
