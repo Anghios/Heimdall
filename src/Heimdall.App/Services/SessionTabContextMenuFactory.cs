@@ -70,33 +70,109 @@ public sealed class SessionTabContextMenuFactory
         ArgumentNullException.ThrowIfNull(vm);
         ArgumentNullException.ThrowIfNull(callbacks);
 
-        var menu = new ContextMenu();
         var isToolTab = ConnectionTypeCatalog.IsToolConnectionType(session.ConnectionType);
 
-        AppendCloseItem(menu, session, vm, isToolTab);
-        AppendTitleAndPinItems(menu, session, vm);
+        // Sections from the most frequent to the most destructive: what the session does, how it
+        // is shown, the tab itself, its profile, the terminal, the split, and closing last, away
+        // from where the pointer lands. The close entry used to be the very first one.
+        IReadOnlyList<object>[] sections =
+        [
+            Section(host =>
+            {
+                if (!isToolTab)
+                {
+                    AppendSessionActions(host, session, vm, callbacks);
+                }
+            }),
+            Section(host =>
+            {
+                if (!isToolTab && session.PrimaryPane.HostControl is EmbeddedRdpView rdpView)
+                {
+                    AppendResolutionMenu(host, session, vm, callbacks, rdpView);
+                }
+            }),
+            Section(host =>
+            {
+                AppendTitleAndPinItems(host, session, vm);
+                AppendDetachItem(host, session, vm, callbacks);
+            }),
+            Section(host =>
+            {
+                if (!isToolTab)
+                {
+                    AppendProfileActions(host, session, vm, callbacks);
+                }
+            }),
+            Section(host =>
+            {
+                if (session.HostControl is EmbeddedSshView sshView)
+                {
+                    AppendTranscriptItem(host, session, vm, sshView);
+                    AppendMacroItems(host, vm, sshView);
+                }
+            }),
+            Section(host => AppendSplitItems(host, session, vm, callbacks)),
+            Section(host =>
+            {
+                AppendCloseGroupItems(host, session, vm);
+                AppendCloseItem(host, session, vm, isToolTab);
+            }),
+        ];
 
-        if (!isToolTab)
+        var menu = new ContextMenu();
+        foreach (object item in JoinSections(sections, static () => new Separator()))
         {
-            AppendConnectionActions(menu, session, vm, callbacks);
-            AppendProfileActions(menu, session, vm, callbacks);
+            menu.Items.Add(item);
         }
-
-        AppendDetachItem(menu, session, vm, callbacks);
-
-        if (session.HostControl is EmbeddedSshView sshView)
-        {
-            AppendTranscriptItem(menu, session, vm, sshView);
-            AppendMacroItems(menu, vm, sshView);
-        }
-
-        AppendCloseGroupItems(menu, session, vm);
-
-        menu.Items.Add(new Separator());
-
-        AppendSplitItems(menu, session, vm, callbacks);
 
         return menu;
+    }
+
+    /// <summary>
+    /// Lays sections end to end with one separator between two non-empty sections, and none at
+    /// either end. Pure; a section that has nothing for this tab leaves no trace.
+    /// </summary>
+    /// <remarks>
+    /// The sections used to carry their own separators, so a section that came out empty - the
+    /// resolution menu outside RDP - left two separators touching.
+    /// </remarks>
+    internal static IReadOnlyList<object> JoinSections(
+        IEnumerable<IReadOnlyList<object>> sections,
+        Func<object> createSeparator)
+    {
+        ArgumentNullException.ThrowIfNull(sections);
+        ArgumentNullException.ThrowIfNull(createSeparator);
+
+        var items = new List<object>();
+        foreach (IReadOnlyList<object> section in sections)
+        {
+            if (section.Count == 0)
+            {
+                continue;
+            }
+
+            if (items.Count > 0)
+            {
+                items.Add(createSeparator());
+            }
+
+            items.AddRange(section);
+        }
+
+        return items;
+    }
+
+    /// <summary>
+    /// Runs a section builder against a scratch menu and hands its items back, detached so they
+    /// can join the real menu.
+    /// </summary>
+    private static IReadOnlyList<object> Section(Action<ContextMenu> fill)
+    {
+        var host = new ContextMenu();
+        fill(host);
+        List<object> items = host.Items.Cast<object>().ToList();
+        host.Items.Clear();
+        return items;
     }
 
     /// <summary>
@@ -242,28 +318,14 @@ public sealed class SessionTabContextMenuFactory
         menu.Items.Add(closeItem);
     }
 
-    // ── Connection-only actions (aspect ratio, fullscreen, duplicate) ──
+    // ── Connection-only actions (reconnect, duplicate, fullscreen) ──
 
-    private static void AppendConnectionActions(
+    private static void AppendSessionActions(
         ContextMenu menu,
         SessionTabViewModel session,
         MainViewModel vm,
         ISessionTabContextCallbacks callbacks)
     {
-        menu.Items.Add(new Separator());
-
-        if (session.PrimaryPane.HostControl is EmbeddedRdpView rdpView)
-        {
-            AppendResolutionMenu(menu, session, vm, callbacks, rdpView);
-        }
-
-        menu.Items.Add(new Separator());
-
-        // Fullscreen toggle
-        var fullscreenItem = new MenuItem { Header = vm.Localize("SessionFullscreen") };
-        fullscreenItem.Click += (_, _) => callbacks.ToggleFullscreen();
-        menu.Items.Add(fullscreenItem);
-
         // Reconnect session: close the current tab and re-open the same server.
         // Uses the same flow as the disconnect overlay so the existing tab is
         // always replaced rather than leaving a stale disconnected tab behind.
@@ -276,6 +338,11 @@ public sealed class SessionTabContextMenuFactory
         var duplicateItem = new MenuItem { Header = vm.Localize("SessionDuplicateTab") };
         duplicateItem.Click += (_, _) => vm.Session.DuplicateSession(session);
         menu.Items.Add(duplicateItem);
+
+        // Fullscreen toggle
+        var fullscreenItem = new MenuItem { Header = vm.Localize("SessionFullscreen") };
+        fullscreenItem.Click += (_, _) => callbacks.ToggleFullscreen();
+        menu.Items.Add(fullscreenItem);
 
         if (session.IsAdHoc && session.AdHocProfileSnapshot is not null)
         {
@@ -295,10 +362,12 @@ public sealed class SessionTabContextMenuFactory
         MainViewModel vm,
         ISessionTabContextCallbacks callbacks)
     {
+        // The whole inventory, not the tree's filtered view: with a search typed in the tree, the
+        // profile of an open tab is usually filtered out, and these entries vanished with it.
         string lookupId = session.ProfileLookupServerId;
         ServerItemViewModel? serverVm = string.IsNullOrEmpty(lookupId)
             ? null
-            : vm.ServerList.Servers.FirstOrDefault(
+            : vm.ServerList.AllServers.FirstOrDefault(
                 (ServerItemViewModel server) =>
                     string.Equals(server.Id, lookupId, StringComparison.Ordinal));
 
@@ -306,8 +375,6 @@ public sealed class SessionTabContextMenuFactory
         {
             return;
         }
-
-        menu.Items.Add(new Separator());
 
         MenuItem editItem = new MenuItem
         {

@@ -588,6 +588,90 @@ public sealed partial class SessionCoordinatorPreMountTests
         });
     }
 
+    [Fact]
+    public void SessionTabContextMenu_ConnectionTab_OpensOnReconnect_AndClosesLast()
+    {
+        RunOnStaThread(() =>
+        {
+            using TestHarness harness = TestHarness.Create();
+            SessionTabViewModel session = CreateSession("session-id", "SSH");
+            harness.Main.Connection.ActiveSessions.Add(session);
+
+            ContextMenu menu = CreateSessionTabMenu(harness.Main, session);
+
+            Assert.Equal(harness.Main.Localize("SessionReconnectTab"), Assert.IsType<MenuItem>(menu.Items[0]).Header);
+            Assert.Equal(
+                harness.Main.Localize("SessionDisconnect"),
+                Assert.IsType<MenuItem>(menu.Items[menu.Items.Count - 1]).Header);
+            AssertSeparatorsOnlyBetweenItems(menu);
+        });
+    }
+
+    [Fact]
+    public void SessionTabContextMenu_ToolTab_OpensOnRename_AndClosesLast()
+    {
+        RunOnStaThread(() =>
+        {
+            using TestHarness harness = TestHarness.Create();
+            SessionTabViewModel session = CreateSession("tool-id", "TOOL:PING");
+            harness.Main.Connection.ActiveSessions.Add(session);
+
+            ContextMenu menu = CreateSessionTabMenu(harness.Main, session);
+
+            Assert.Equal(harness.Main.Localize("SessionRenameTab"), Assert.IsType<MenuItem>(menu.Items[0]).Header);
+            Assert.Equal(
+                harness.Main.Localize("SessionCloseTab"),
+                Assert.IsType<MenuItem>(menu.Items[menu.Items.Count - 1]).Header);
+            AssertSeparatorsOnlyBetweenItems(menu);
+        });
+    }
+
+    [Fact]
+    public void SessionTabContextMenu_ProfileFilteredOutOfTheTree_StillOffersItsProfileActions()
+    {
+        RunOnStaThread(() =>
+        {
+            using TestHarness harness = TestHarness.Create();
+            ServerProfileDto server = harness.CreateServer("SSH");
+            harness.PersistServerAsync(server).GetAwaiter().GetResult();
+            SessionTabViewModel session = CreateSession(server.Id, "SSH");
+
+            harness.Main.ServerList.FavoriteFilterEnabled = true;
+            Assert.DoesNotContain(
+                harness.Main.ServerList.Servers,
+                (ServerItemViewModel row) => string.Equals(row.Id, server.Id, StringComparison.Ordinal));
+
+            ContextMenu menu = CreateSessionTabMenu(harness.Main, session);
+
+            Assert.NotNull(FindMenuItem(menu, harness.Main.Localize("TreeCtxEdit")));
+            Assert.NotNull(FindMenuItem(menu, harness.Main.Localize("SessionRevealInTree")));
+        });
+    }
+
+    [Fact]
+    public void JoinSections_SkipsEmptySections_AndSeparatesOnlyBetweenNonEmptyOnes()
+    {
+        IReadOnlyList<object> joined = SessionTabContextMenuFactory.JoinSections(
+            [[], ["a1", "a2"], [], [], ["b1"], []],
+            static () => "|");
+
+        Assert.Equal(new object[] { "a1", "a2", "|", "b1" }, joined);
+        Assert.Empty(SessionTabContextMenuFactory.JoinSections([[], []], static () => "|"));
+    }
+
+    private static void AssertSeparatorsOnlyBetweenItems(ContextMenu menu)
+    {
+        List<object> items = menu.Items.Cast<object>().ToList();
+        Assert.IsNotType<Separator>(items[0]);
+        Assert.IsNotType<Separator>(items[^1]);
+        for (int index = 1; index < items.Count; index++)
+        {
+            Assert.False(
+                items[index] is Separator && items[index - 1] is Separator,
+                $"Two separators touch at position {index}.");
+        }
+    }
+
     private static SessionTabViewModel CreateSession(string serverId, string connectionType)
     {
         return new SessionTabViewModel
