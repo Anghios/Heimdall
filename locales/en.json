@@ -5767,6 +5767,9 @@
   "PropertiesPanelTitle": "Properties",
   "PropertiesPanelHide": "Hide the properties panel",
   "PropertiesPanelEmpty": "Select a session to see its properties.",
+  "PropertiesCopyValueHint": "Click or press Enter to copy",
+  "PropertiesCopied": "Copied: {0}",
+  "PropertiesCopyFailed": "The clipboard is in use by another program; try again.",
   "A11yPropertiesPanelSplitter": "Resize the properties panel",
 
   "AccessDetailConnect": "Connect to selected session",
