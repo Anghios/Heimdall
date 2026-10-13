@@ -124,7 +124,10 @@ public partial class EmbeddedWebView : UserControl, IDisposable, ISessionPaneOwn
                 return;
             }
 
-            CoreWebView2Environment environment = await WebView2Helper.GetWebConsoleEnvironmentAsync();
+            // A console behind a gateway goes through that gateway's SOCKS proxy, in its own profile.
+            CoreWebView2Environment environment = await WebView2Helper.GetWebConsoleEnvironmentAsync(
+                _session?.GatewayId,
+                _session?.ProxyPort);
             await ConsoleWebView.EnsureCoreWebView2Async(environment);
             if (_disposed || _session is null)
             {

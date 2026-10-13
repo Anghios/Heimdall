@@ -3660,6 +3660,8 @@
   "ErrorWebInvalidAddress": "L'h\u00f4te, le port et le chemin de ce profil ne forment pas une adresse web. Modifiez le profil : le champ h\u00f4te prend seulement un nom ou une adresse, sans http:// ni chemin.",
   "ErrorWebExternalShellRefused": "Un interpr\u00e9teur de commandes ne peut pas ouvrir une console web. Choisissez un navigateur dans les options du profil.",
   "ErrorWebExternalLaunchFailed": "Le programme externe n'a pas pu \u00eatre lanc\u00e9 : {0}",
+  "ErrorWebExternalWithGateway": "Ce profil passe par une passerelle SSH, qu'un programme externe ne peut pas utiliser. Ouvrez-le dans un onglet, ou retirez-lui la passerelle.",
+  "ErrorWebGatewayUnavailable": "La passerelle SSH n'a pas pu \u00eatre utilis\u00e9e pour cette console web.",
   "ErrorWebNavigationFailed": "La console web n'a pas pu \u00eatre charg\u00e9e ({0}).",
   "WebFallbackTitle": "Console web indisponible",
   "BtnWebRetry": "R\u00e9essayer",

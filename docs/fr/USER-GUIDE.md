@@ -113,6 +113,10 @@ dans **Chemin**. La ligne sous le chemin montre l'adresse qui sera ouverte.
   `{Port}` sont remplacés dans les arguments.
 - Les onglets web partagent un même profil de navigateur : une console où vous êtes connecté le
   reste dans l'onglet suivant et après un redémarrage.
+- Une console joignable seulement par un bastion : choisissez la passerelle SSH dans l'onglet
+  **Réseau**, comme pour RDP. Saisissez le nom ou l'adresse de la console elle-même ; il est résolu
+  du côté de la passerelle. Les consoles derrière une passerelle ont leur propre profil de
+  navigateur, vous vous y connectez donc à part.
 
 ### Connexion rapide
 

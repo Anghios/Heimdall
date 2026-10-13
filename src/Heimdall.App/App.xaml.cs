@@ -713,6 +713,7 @@ public partial class App : System.Windows.Application
         services.AddSingleton<IHostKeyVerifier, DialogHostKeyVerifier>();
         services.AddSingleton<FtpsCertificateStore>();
         services.AddSingleton<WebCertificateTrust>();
+        services.AddSingleton<WebGatewayProxyPorts>();
         services.AddSingleton<RdpCertificateTrustStore>();
         services.AddSingleton<RdpCertificatePersistence>();
         services.AddSingleton<IRdpCertificateProbe>(_ => new RdpCertificateProbe());

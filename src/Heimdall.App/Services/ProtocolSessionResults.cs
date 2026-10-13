@@ -144,6 +144,12 @@ public sealed record WebSessionResult(
     string? Password = null,
     bool? SessionLoggingOverride = null) : ISessionResult
 {
+    /// <summary>The SSH gateway the console is reached through; null for a direct one.</summary>
+    public string? GatewayId { get; init; }
+
+    /// <summary>The local SOCKS port of that gateway's tunnel; null for a direct console.</summary>
+    public int? ProxyPort { get; init; }
+
     /// <summary>Lists every member but the password, which is only said to be present.</summary>
     private bool PrintMembers(System.Text.StringBuilder builder)
     {
@@ -151,6 +157,8 @@ public sealed record WebSessionResult(
             .Append(", Address = ").Append(Address)
             .Append(", Username = ").Append(Username)
             .Append(", Password = ").Append(Password is null ? "null" : "***")
+            .Append(", GatewayId = ").Append(GatewayId)
+            .Append(", ProxyPort = ").Append(ProxyPort)
             .Append(", SessionLoggingOverride = ").Append(SessionLoggingOverride);
         return true;
     }
