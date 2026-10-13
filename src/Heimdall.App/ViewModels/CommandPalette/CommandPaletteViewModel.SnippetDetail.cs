@@ -538,7 +538,7 @@ public sealed partial class CommandPaletteViewModel
         var originalId = active.OriginalServerId;
         if (string.IsNullOrWhiteSpace(originalId)) return null;
 
-        var match = _main.ServerList.Servers
+        var match = _main.ServerList.AllServers
             .FirstOrDefault(s => string.Equals(s.Id, originalId, StringComparison.Ordinal));
         var host = match?.RemoteServer;
         return string.IsNullOrWhiteSpace(host) ? null : host;
