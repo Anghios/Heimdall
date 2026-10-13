@@ -128,6 +128,9 @@ internal sealed class WebHandler : IProtocolHandler
         {
             GatewayId = viaGateway ? server.SshGatewayId : null,
             ProxyPort = proxyPort,
+            ExternalProgram = server.WebExternalProgram,
+            ExternalArguments = server.WebExternalArguments,
+            DisplayName = server.DisplayName,
         };
         return new ConnectionResult(true, null, session);
     }

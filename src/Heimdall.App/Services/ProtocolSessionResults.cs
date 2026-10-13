@@ -150,6 +150,22 @@ public sealed record WebSessionResult(
     /// <summary>The local SOCKS port of that gateway's tunnel; null for a direct console.</summary>
     public int? ProxyPort { get; init; }
 
+    /// <summary>The program the profile names for opening externally; null for the default browser.</summary>
+    public string? ExternalProgram { get; init; }
+
+    /// <summary>The arguments the profile gives that program, placeholders unexpanded.</summary>
+    public string? ExternalArguments { get; init; }
+
+    /// <summary>The profile's name, for the {ServerName} placeholder.</summary>
+    public string? DisplayName { get; init; }
+
+    /// <summary>
+    /// Whether the tab may offer to open the console outside it. Not through a gateway: an
+    /// external program would not use the tunnel, which is why opening externally through one
+    /// is refused at connect time too.
+    /// </summary>
+    public bool CanOpenExternally => ProxyPort is null;
+
     /// <summary>Lists every member but the password, which is only said to be present.</summary>
     private bool PrintMembers(System.Text.StringBuilder builder)
     {

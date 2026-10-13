@@ -174,6 +174,132 @@ public sealed class WebThroughGatewayTests
         Assert.Null(WebView2Helper.WebConsoleBrowserArguments(null));
     }
 
+    [Fact]
+    public void TheTab_OffersAWayOutOnlyForADirectConsole()
+    {
+        var direct = new WebSessionResult("a", new Uri("https://ilo.example.test/"));
+        var viaGateway = new WebSessionResult("b", new Uri("https://ilo.example.test/")) { GatewayId = "gw-1", ProxyPort = 41001 };
+
+        Assert.True(direct.CanOpenExternally);
+        Assert.False(viaGateway.CanOpenExternally);
+    }
+
+    [Fact]
+    public void OpeningFromTheTab_UsesTheConsolesCurrentPage()
+    {
+        var session = new WebSessionResult("a", new Uri("https://ilo.example.test/"));
+
+        var info = WebExternalLaunch.TryCreateForSession(session, "https://ilo.example.test/html/summary.html", out string? error);
+
+        Assert.Null(error);
+        Assert.Equal("https://ilo.example.test/html/summary.html", info!.FileName);
+    }
+
+    /// <summary>A page the console redirected elsewhere is not handed to the program.</summary>
+    [Theory]
+    [InlineData("https://sso.example.test/login")]
+    [InlineData("http://ilo.example.test/")]
+    [InlineData("https://ilo.example.test:8443/")]
+    [InlineData("about:blank")]
+    [InlineData(null)]
+    public void OpeningFromTheTab_FallsBackToTheProfileAddressOffTheConsole(string? currentPage)
+    {
+        var session = new WebSessionResult("a", new Uri("https://ilo.example.test/index.html"));
+
+        var info = WebExternalLaunch.TryCreateForSession(session, currentPage, out _);
+
+        Assert.Equal("https://ilo.example.test/index.html", info!.FileName);
+    }
+
+    [Fact]
+    public void OpeningFromTheTab_UsesTheProfilesProgramAndArguments()
+    {
+        var session = new WebSessionResult("a", new Uri("https://ilo.example.test:8443/"))
+        {
+            ExternalProgram = @"C:\Legacy\firefox.exe",
+            ExternalArguments = "{Url} {Host}:{Port}",
+            DisplayName = "iLO",
+        };
+
+        var info = WebExternalLaunch.TryCreateForSession(session, null, out _);
+
+        Assert.Equal(@"C:\Legacy\firefox.exe", info!.FileName);
+        Assert.Equal("https://ilo.example.test:8443/ ilo.example.test:8443", info.Arguments);
+    }
+
+    [Fact]
+    public void OpeningFromTheTab_StillRefusesACommandInterpreter()
+    {
+        var session = new WebSessionResult("a", new Uri("https://ilo.example.test/")) { ExternalProgram = "cmd.exe" };
+
+        Assert.Null(WebExternalLaunch.TryCreateForSession(session, null, out string? error));
+        Assert.Equal("ErrorWebExternalShellRefused", error);
+    }
+
+    /// <summary>
+    /// A web console behind a gateway goes through a SOCKS proxy: the dialog used to describe,
+    /// validate and offer to edit a forwarded local port that does not exist for it.
+    /// </summary>
+    [Fact]
+    public void TheDialog_DescribesTheSocksRouteForAWebConsole()
+    {
+        var dto = new ServerProfileDto
+        {
+            Id = "w",
+            DisplayName = "iLO",
+            ConnectionType = "WEB",
+            RemoteServer = "ilo.example.test",
+            SshGatewayId = "gw-1",
+            UseDirectConnection = false,
+        };
+
+        Heimdall.App.ViewModels.Dialogs.ServerDialogViewModel vm = Heimdall.App.ViewModels.Dialogs.ServerDialogViewModel.FromDto(dto);
+
+        Assert.True(vm.UsesGateway);
+        Assert.False(vm.UsesLocalTunnelPort);
+        Assert.False(vm.CanEditTunnelPort);
+        Assert.Equal("ServerDialogClientNodeSocks", vm.ClientNodeCaption);
+        Assert.Equal("ServerDialogTunnelSummarySocks", vm.TunnelSummary);
+
+        dto.ConnectionType = "RDP";
+        Heimdall.App.ViewModels.Dialogs.ServerDialogViewModel rdp = Heimdall.App.ViewModels.Dialogs.ServerDialogViewModel.FromDto(dto);
+        Assert.True(rdp.UsesLocalTunnelPort);
+    }
+
+    /// <summary>
+    /// Every reason reads as a sentence in every language: the raw status names, "Unknown" for a
+    /// refused connection, told the user nothing.
+    /// </summary>
+    [Theory]
+    [InlineData("en")]
+    [InlineData("fr")]
+    [InlineData("es")]
+    public async Task EveryErrorReason_IsTranslated(string locale)
+    {
+        var localizer = new LocalizationManager();
+        await localizer.LoadAsync(System.IO.Path.Combine(AppContext.BaseDirectory, "locales"), locale);
+
+        Assert.All(WebConsolePolicy.ErrorReasonKeys, key => Assert.True(localizer.HasKey(key), $"{key} missing in {locale}"));
+    }
+
+    [Theory]
+    [InlineData("Unknown", "WebErrorNoAnswer")]
+    [InlineData("CannotConnect", "WebErrorNoAnswer")]
+    [InlineData("ConnectionReset", "WebErrorNoAnswer")]
+    [InlineData("HostNameNotResolved", "WebErrorNameNotResolved")]
+    [InlineData("Timeout", "WebErrorTimeout")]
+    [InlineData("CertificateExpired", "WebErrorCertificate")]
+    [InlineData("ValidProxyAuthenticationRequired", "WebErrorProxy")]
+    [InlineData("RedirectFailed", "WebErrorOther")]
+    [InlineData(null, "WebErrorOther")]
+    public void ABrowserStatus_ReadsAsAReason(string? status, string expected)
+    {
+        string key = WebConsolePolicy.ErrorReasonKey(status);
+
+        Assert.Equal(expected, key);
+        Assert.Contains(key, WebConsolePolicy.ErrorReasonKeys);
+    }
+
     private static WebHandler CreateHandler(ITunnelService tunnels, WebGatewayProxyPorts ports)
         => new(Initialized(), new LocalizationManager(), _ => throw new InvalidOperationException("no launch expected"), tunnels, ports);
 

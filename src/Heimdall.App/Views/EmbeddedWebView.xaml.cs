@@ -19,6 +19,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Threading;
 using Heimdall.App.Services;
+using Heimdall.App.Services.Handlers;
 using Heimdall.App.ViewModels;
 using Heimdall.App.ViewModels.Dialogs;
 using Heimdall.Core.Certificates;
@@ -104,6 +105,18 @@ public partial class EmbeddedWebView : UserControl, IDisposable, ISessionPaneOwn
         BackButton.ToolTip = Text("TooltipWebBack");
         SplitButton.ToolTip = Text("TooltipSplitSession");
         FallbackRetryButton.Content = Text("BtnWebRetry");
+        FallbackOpenExternallyButton.Content = Text("BtnWebOpenExternally");
+        FallbackOldConsoleHint.Text = Text("WebFallbackOldConsoleHint");
+        OpenExternallyButton.ToolTip = Text("TooltipWebOpenExternally");
+        System.Windows.Automation.AutomationProperties.SetName(OpenExternallyButton, Text("TooltipWebOpenExternally"));
+        System.Windows.Automation.AutomationProperties.SetName(FallbackOpenExternallyButton, Text("BtnWebOpenExternally"));
+
+        // Behind a gateway the console is only reachable through the tunnel, which an external
+        // program would not use: the way out is not offered where it cannot lead anywhere.
+        Visibility external = session.CanOpenExternally ? Visibility.Visible : Visibility.Collapsed;
+        OpenExternallyButton.Visibility = external;
+        FallbackOpenExternallyButton.Visibility = external;
+        FallbackOldConsoleHint.Visibility = external;
         FallbackTitleText.Text = Text("WebFallbackTitle");
         System.Windows.Automation.AutomationProperties.SetName(ReloadButton, Text("TooltipWebReload"));
         System.Windows.Automation.AutomationProperties.SetName(BackButton, Text("TooltipWebBack"));
@@ -236,7 +249,7 @@ public partial class EmbeddedWebView : UserControl, IDisposable, ISessionPaneOwn
             return;
         }
 
-        string reason = _localizer?.Format("ErrorWebNavigationFailed", e.WebErrorStatus.ToString())
+        string reason = _localizer?.Format("ErrorWebNavigationFailed", Text(WebConsolePolicy.ErrorReasonKey(e.WebErrorStatus.ToString())))
             ?? e.WebErrorStatus.ToString();
         bool canceled = e.WebErrorStatus == CoreWebView2WebErrorStatus.OperationCanceled;
         if (!WebConsolePolicy.IsSessionFailure(e.IsSuccess, e.HttpStatusCode, canceled, _connectedRaised))
@@ -495,6 +508,34 @@ public partial class EmbeddedWebView : UserControl, IDisposable, ISessionPaneOwn
         else
         {
             core.Reload();
+        }
+    }
+
+    private void OnOpenExternallyClick(object sender, RoutedEventArgs e)
+    {
+        if (_session is not { CanOpenExternally: true } session)
+        {
+            return;
+        }
+
+        System.Diagnostics.ProcessStartInfo? startInfo = WebExternalLaunch.TryCreateForSession(
+            session,
+            ConsoleWebView.CoreWebView2?.Source,
+            out string? errorKey);
+        if (startInfo is null)
+        {
+            StatusTextBlock.Text = Text(errorKey ?? "ErrorWebExternalLaunchFailed");
+            return;
+        }
+
+        try
+        {
+            System.Diagnostics.Process.Start(startInfo)?.Dispose();
+        }
+        catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException or System.IO.FileNotFoundException)
+        {
+            FileLogger.Warn($"Web console external open failed: {ex.Message}");
+            StatusTextBlock.Text = _localizer?.Format("ErrorWebExternalLaunchFailed", ex.Message) ?? ex.Message;
         }
     }
 

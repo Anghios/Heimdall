@@ -2665,7 +2665,7 @@
                                             <Style TargetType="Border" BasedOn="{StaticResource DialogSectionCardStyle}">
                                                 <Setter Property="Visibility" Value="Collapsed"/>
                                                 <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding UsesGateway}" Value="True">
+                                                    <DataTrigger Binding="{Binding UsesLocalTunnelPort}" Value="True">
                                                         <Setter Property="Visibility" Value="Visible"/>
                                                     </DataTrigger>
                                                 </Style.Triggers>

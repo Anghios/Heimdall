@@ -109,6 +109,8 @@ dans **Chemin**. La ligne sous le chemin montre l'adresse qui sera ouverte.
   navigateur lui-même (Basic ou NTLM). Un formulaire de connexion dans la page n'est pas rempli.
   Avec le fournisseur d'identifiants activé, indiquez seulement le nom d'utilisateur : le mot de
   passe vient de votre coffre.
+- Si une console s'affiche mal dans son onglet, le bouton en haut à droite de l'onglet ouvre la
+  même page à l'extérieur ; le panneau affiché quand une console ne se charge pas le propose aussi.
 - Pour une console trop ancienne pour les navigateurs actuels, ouvrez l'onglet **Options** et
   cochez **Ouvrir avec un programme externe**. Indiquez le programme, par exemple un ancien
   navigateur portable, ou laissez vide pour votre navigateur par défaut. `{Url}`, `{Host}` et

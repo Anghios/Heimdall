@@ -40,6 +40,16 @@
                         Style="{DynamicResource GhostButtonStyle}"
                         Padding="6,2" FontSize="{StaticResource FontSizeBody}" Margin="4,0"/>
 
+                <!-- Opens the page with the profile's external program, or the default browser:
+                     the way out when the embedded engine does not render a console well. -->
+                <Button x:Name="OpenExternallyButton"
+                        DockPanel.Dock="Right"
+                        Content="&#xE8A7;"
+                        FontFamily="Segoe MDL2 Assets"
+                        Click="OnOpenExternallyClick"
+                        Style="{DynamicResource GhostButtonStyle}"
+                        Padding="6,2" FontSize="{StaticResource FontSizeBody}" Margin="4,0"/>
+
                 <Button x:Name="ReloadButton"
                         DockPanel.Dock="Left"
                         Content="&#xE72C;"
@@ -113,12 +123,25 @@
                                TextWrapping="Wrap"
                                TextAlignment="Center"
                                Foreground="{DynamicResource TextSecondaryBrush}"/>
-                    <Button x:Name="FallbackRetryButton"
-                            Click="OnReloadClick"
-                            Style="{DynamicResource PrimaryButtonStyle}"
-                            HorizontalAlignment="Center"
-                            Padding="16,6"
-                            Margin="0,16,0,0"/>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,16,0,0">
+                        <Button x:Name="FallbackRetryButton"
+                                Click="OnReloadClick"
+                                Style="{DynamicResource PrimaryButtonStyle}"
+                                Padding="16,6"/>
+                        <Button x:Name="FallbackOpenExternallyButton"
+                                Click="OnOpenExternallyClick"
+                                Style="{DynamicResource SecondaryButtonStyle}"
+                                Padding="16,6"
+                                Margin="8,0,0,0"/>
+                    </StackPanel>
+                    <!-- The engine reports a console too old for it (an iLO2 speaking TLS 1.0) as a
+                         plain connection failure, so the way out is offered on every failure. -->
+                    <TextBlock x:Name="FallbackOldConsoleHint"
+                               Margin="0,12,0,0"
+                               TextWrapping="Wrap"
+                               TextAlignment="Center"
+                               FontSize="{StaticResource FontSizeCaption}"
+                               Foreground="{DynamicResource TextTertiaryBrush}"/>
                 </StackPanel>
             </Border>
         </Grid>

@@ -102,6 +102,8 @@ will open.
 - A username and password in the profile answer the browser's own sign-in window (Basic or
   NTLM). A sign-in form inside the page is not filled in. With the credential provider turned
   on, give the profile a username only: the password comes from your vault.
+- If a console looks wrong in its tab, the button at the top right of the tab opens the same page
+  externally; the panel shown when a console cannot be loaded offers it too.
 - For a console too old for today's browsers, open the **Options** tab and tick **Open with an
   external program**. Name the program, for example an old portable browser, or leave it empty
   for your default browser. `{Url}`, `{Host}` and `{Port}` in the arguments are replaced.
