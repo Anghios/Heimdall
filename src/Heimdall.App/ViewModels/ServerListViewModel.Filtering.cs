@@ -471,6 +471,44 @@ public partial class ServerListViewModel
                 node.ViewModel!.Color = ResolveFolderColor(node.ViewModel.FullPath);
             }
         }
+
+        FolderLayoutChanged?.Invoke();
+    }
+
+    /// <summary>
+    /// Raised after the folders, or what they look like, changed: a profile moved, a folder
+    /// renamed, recoloured, created or removed. The session tab groups follow the tree on it.
+    /// </summary>
+    public event Action? FolderLayoutChanged;
+
+    /// <summary>
+    /// The folder a profile is filed under, as the tree shows it: the folder's own spelling,
+    /// name and resolved colour. Null when the profile is in no folder or not in the inventory.
+    /// </summary>
+    /// <remarks>
+    /// Read from the tree's folder nodes rather than recomputed, so a tab group can never show a
+    /// name or a colour the tree does not.
+    /// </remarks>
+    internal SessionTabGroupInfo? ResolveTabGroup(string profileId)
+    {
+        ServerItemViewModel? server = _allServers.FirstOrDefault(
+            candidate => string.Equals(candidate.Id, profileId, StringComparison.Ordinal));
+        if (server is null)
+        {
+            return null;
+        }
+
+        string path = string.Join('/', NormalizeFolderPath(server.Group)
+            .Split('/', StringSplitOptions.RemoveEmptyEntries));
+        if (path.Length == 0
+            || !_stableFoldersByPath.TryGetValue(path, out StableFolderNode? node)
+            || node.IsNoGroup)
+        {
+            return null;
+        }
+
+        FolderViewModel folder = node.ViewModel!;
+        return new SessionTabGroupInfo(folder.FullPath, folder.Name, folder.Color);
     }
 
     /// <summary>
@@ -564,6 +602,7 @@ public partial class ServerListViewModel
             .ThenBy(server => server.DisplayName, DisplayNameOrdering.Comparer)
             .ToList();
         StableTreeBuildCount++;
+        FolderLayoutChanged?.Invoke();
     }
 
     private void DetachStableTreeFolderEvents()
@@ -639,6 +678,9 @@ public partial class ServerListViewModel
                 : node.ViewModel!.FullPath;
             _stableFoldersByPath[key] = node;
         }
+
+        // A rename rekeys the folders only here, after the colour pass already told the tabs.
+        FolderLayoutChanged?.Invoke();
     }
 
     private static void SortStableTree(StableFolderNode node) =>

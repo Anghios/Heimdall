@@ -950,7 +950,7 @@ public sealed class ConnectionViewModelCloseTests
         };
     }
 
-    private sealed class TrackingSplitService : ISplitService
+    internal sealed class TrackingSplitService : ISplitService
     {
         public SplitLayoutMemory LayoutMemory { get; } = new(Path.GetTempPath());
 
@@ -963,9 +963,9 @@ public sealed class ConnectionViewModelCloseTests
 
         public SessionTabViewModel? LastClosedSession { get; private set; }
 
+        // Opening a tab registers it; nothing here observes the registration.
         public void RegisterSession(SessionTabViewModel session)
         {
-            throw new NotSupportedException();
         }
 
         public void CancelSession(SessionTabViewModel session)
@@ -1070,7 +1070,7 @@ public sealed class ConnectionViewModelCloseTests
         }
     }
 
-    private sealed class TrackingDialogService(bool confirmResult) : IDialogService
+    internal sealed class TrackingDialogService(bool confirmResult) : IDialogService
     {
         public int ConfirmCallCount { get; private set; }
 

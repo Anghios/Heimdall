@@ -112,7 +112,10 @@ public partial class ConnectionViewModel : ObservableObject
     // (SessionWindowService, MainViewModel and the two in SessionCoordinator) and never call a
     // ConnectionViewModel method. Hooking the collection is what covers them.
     private void OnTrackedSessionsChanged(object? sender, NotifyCollectionChangedEventArgs e)
-        => ReconcileAccessibleNameSubscriptions();
+    {
+        ReconcileAccessibleNameSubscriptions();
+        RefreshTabGroupFlags();
+    }
 
     /// <summary>
     /// Brings the subscription set back in line with the collection - subscribe to what is
@@ -143,6 +146,20 @@ public partial class ConnectionViewModel : ObservableObject
 
     private void OnTrackedSessionPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
+        // The profile behind a tab is often named after the tab joined the strip, so its folder
+        // group is only known from here.
+        if (GroupTabsByFolder
+            && sender is SessionTabViewModel session
+            && string.Equals(e.PropertyName, nameof(SessionTabViewModel.ProfileLookupServerId), StringComparison.Ordinal))
+        {
+            string? previousKey = session.TabGroupKey;
+            AssignTabGroup(session);
+            if (!string.Equals(previousKey, session.TabGroupKey, StringComparison.OrdinalIgnoreCase))
+            {
+                ApplyPinnedOrdering();
+            }
+        }
+
         if (e.PropertyName is null
             or nameof(SessionTabViewModel.Title)
             or nameof(SessionTabViewModel.CustomTitle)
@@ -260,6 +277,8 @@ public partial class ConnectionViewModel : ObservableObject
 
         _splitService.RegisterSession(session);
         ActiveSessions.Add(session);
+        AssignTabGroup(session);
+        ApplyPinnedOrdering();
         ActiveSession = session;
         HasActiveSessions = ActiveSessions.Count > 0;
 
@@ -282,6 +301,7 @@ public partial class ConnectionViewModel : ObservableObject
         }
 
         session.IsPinned = pinned;
+        AssignTabGroup(session);
         ApplyPinnedOrdering();
     }
 
@@ -328,16 +348,17 @@ public partial class ConnectionViewModel : ObservableObject
         }
 
         ActiveSessions.Add(session);
+        AssignTabGroup(session);
         ApplyPinnedOrdering();
     }
 
     /// <summary>
-    /// Re-partitions <see cref="ActiveSessions"/> through <see cref="OrderByPinned"/> and
+    /// Re-partitions <see cref="ActiveSessions"/> through <see cref="OrderForStrip"/> and
     /// restores the current selection, which the reorder would otherwise drop.
     /// </summary>
     private void ApplyPinnedOrdering()
     {
-        var desired = OrderByPinned(ActiveSessions);
+        var desired = OrderForStrip(ActiveSessions);
         var selected = ActiveSession;
 
         for (var target = 0; target < desired.Count; target++)
@@ -350,6 +371,7 @@ public partial class ConnectionViewModel : ObservableObject
         }
 
         ActiveSession = selected;
+        RefreshTabGroupFlags();
     }
 
     /// <summary>

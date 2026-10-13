@@ -511,6 +511,48 @@ public sealed partial class SessionCoordinatorPreMountTests
         }
     }
 
+    [Fact]
+    public void SessionTabContextMenu_ArrangeByFolder_FollowsTheCheckedStateNotTheClick()
+    {
+        RunOnStaThread(() =>
+        {
+            using TestHarness harness = TestHarness.Create();
+            SessionTabViewModel session = CreateSession("session-id", "SSH");
+            harness.Main.Connection.ActiveSessions.Add(session);
+            MenuItem item = AssertMenuItem(
+                CreateSessionTabMenu(harness.Main, session),
+                harness.Main.Localize("SessionGroupTabsByFolder"));
+            Assert.True(item.IsCheckable);
+            Assert.False(item.IsChecked);
+
+            // What the UIA Toggle pattern does: flip the state, raise no Click.
+            item.IsChecked = true;
+            Assert.True(harness.Main.Connection.GroupTabsByFolder);
+
+            item.IsChecked = false;
+            Assert.False(harness.Main.Connection.GroupTabsByFolder);
+        });
+    }
+
+    [Fact]
+    public void SessionTabContextMenu_TabInAFolder_OffersToCollapseItsFolder()
+    {
+        RunOnStaThread(() =>
+        {
+            using TestHarness harness = TestHarness.Create();
+            SessionTabViewModel session = CreateSession("session-id", "SSH");
+            harness.Main.Connection.ActiveSessions.Add(session);
+            string collapse = harness.Main.Localize("SessionCollapseTabGroup");
+
+            Assert.Null(FindMenuItem(CreateSessionTabMenu(harness.Main, session), collapse));
+
+            session.TabGroupKey = "Ops";
+            MenuItem item = AssertMenuItem(CreateSessionTabMenu(harness.Main, session), collapse);
+            Assert.Same(harness.Main.Connection.ToggleTabGroupCollapsedCommand, item.Command);
+            Assert.Same(session, item.CommandParameter);
+        });
+    }
+
     private static SessionTabViewModel CreateSession(string serverId, string connectionType)
     {
         return new SessionTabViewModel

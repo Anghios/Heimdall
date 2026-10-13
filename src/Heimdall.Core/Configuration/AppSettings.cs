@@ -349,6 +349,13 @@ public sealed class AppSettings
     /// where the badge on every row says nothing.
     /// </summary>
     public bool ShowGatewayBadge { get; set; } = true;
+
+    /// <summary>
+    /// Whether the session tabs are grouped by the folder of their profile, behind a collapsible
+    /// chip carrying the folder's name and colour. Off by default: turning it on reorders the
+    /// strip, which nobody should find done to them.
+    /// </summary>
+    public bool GroupSessionTabsByFolder { get; set; }
     public Dictionary<string, bool> SidebarExpandedCategories { get; set; } = new();
     public List<string> FavoriteToolIds { get; set; } = new();
     public bool OnboardingCompleted { get; set; }

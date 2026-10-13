@@ -110,6 +110,22 @@ directly such as `admin@192.168.1.10`. It is the fastest way to reach something 
 - After a move, inline rename, or session reorder, the bar below the tree names the change and offers **Undo** for 30 seconds. One step is kept during the current application session. Undo does not cover deletion, and refuses an incompatible later edit. Deleting a folder withdraws the offer. For folders, a later organization or folder-defaults change prevents undo.
 - The **Delete** key acts on sessions, never on a folder: to delete a folder, use **Delete folder** in its menu.
 
+### Arrange your tabs by folder
+
+Right-click any session tab and tick **Arrange tabs by folder**. The tabs of each folder then sit
+side by side in the tab strip, behind a chip with the folder's name and colour, and a coloured
+line under each of them. The choice is remembered.
+
+- Click a chip to fold that folder's tabs into the chip alone, and click it again to unfold them.
+  The tab menu also offers **Collapse this folder's tabs** and **Expand this folder's tabs**.
+- Collapsing the folder that holds the open tab moves to the nearest tab outside it. When every
+  tab belongs to that folder, its tabs stay open.
+- Opening a session, or switching to a tab, of a collapsed folder unfolds its tabs.
+- The tabs follow the folder: move the session to another folder, or rename or recolour the
+  folder, and the tab follows. A workspace restored at startup comes back arranged the same way.
+- Pinned tabs stay at the front of the strip, outside any folder's tabs. Tool tabs, quick
+  connections and sessions outside any folder are never arranged.
+
 ## Where your passwords are kept
 
 Passwords you save in a session are encrypted on your own machine, tied to your Windows account.
