@@ -47,8 +47,13 @@ internal static class WebConsolePolicy
     /// Only the profile's own host and port get the account: a page that redirects to, or loads
     /// from, another server must not receive the console's password by asking for it.
     /// </remarks>
+    /// <remarks>
+    /// Without a stored password the account is not sent either: an empty password is a failed
+    /// attempt that iLO and iDRAC count towards their lockout, spent before the user is asked.
+    /// </remarks>
     public static bool ShouldAnswerChallenge(
         string? username,
+        string? password,
         bool alreadyAnsweredForHost,
         Uri challengeUri,
         Uri profileAddress)
@@ -57,11 +62,20 @@ internal static class WebConsolePolicy
         ArgumentNullException.ThrowIfNull(profileAddress);
 
         return !string.IsNullOrEmpty(username)
+            && !string.IsNullOrEmpty(password)
             && !alreadyAnsweredForHost
             && string.Equals(challengeUri.Scheme, profileAddress.Scheme, StringComparison.OrdinalIgnoreCase)
             && string.Equals(challengeUri.Host, profileAddress.Host, StringComparison.OrdinalIgnoreCase)
             && challengeUri.Port == profileAddress.Port;
     }
+
+    /// <summary>
+    /// Whether a navigation that did not succeed ends the session. Only a failure to reach the
+    /// console before it ever loaded does: an HTTP error status is a page the console chose to
+    /// show, and a failure after the first load is one link among many.
+    /// </summary>
+    public static bool IsSessionFailure(bool isSuccess, int httpStatusCode, bool canceled, bool loadedBefore)
+        => !isSuccess && httpStatusCode == 0 && !canceled && !loadedBefore;
 
     /// <summary>The key a challenge is remembered by: scheme, host and port, case-folded.</summary>
     public static string ChallengeKey(Uri uri)

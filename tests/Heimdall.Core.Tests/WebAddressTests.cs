@@ -48,6 +48,8 @@ public sealed class WebAddressTests
     [InlineData("ilo.example.test/login", 443)]
     [InlineData("admin@ilo.example.test", 443)]
     [InlineData("ilo.example.test:8443", 443)]
+    [InlineData("[::1]:8443", 443)]
+    [InlineData("ilo.example.test?x=1", 443)]
     [InlineData("ilo example", 443)]
     [InlineData("", 443)]
     [InlineData(null, 443)]

@@ -3635,6 +3635,7 @@
   "StatusVncConnecting": "Connexion au serveur VNC...",
   "StatusWebConnecting": "Chargement...",
   "StatusWebConnected": "Charg\u00e9e",
+  "StatusWebHttpError": "La page a r\u00e9pondu HTTP {0}",
   "StatusVncConnected": "Session VNC active",
   "StatusVncDisconnected": "Session VNC d\u00e9connect\u00e9e",
   "ErrorVncConnectionFailed": "\u00c9chec de la connexion VNC : {0}",

@@ -25,17 +25,29 @@ public static class ProfileExecutionTrust
 {
     /// <summary>
     /// Returns true when a LOCAL profile carries a custom local shell executable, arguments,
-    /// working directory, or a request to run elevated.
+    /// working directory, or a request to run elevated, or a WEB profile names a program to open
+    /// its address with.
     /// </summary>
     /// <remarks>
     /// The working directory and the elevation mode were outside this payload, so an imported
     /// profile could set both without the confirmation prompt ever appearing. Elevation still
     /// raises a UAC prompt of its own, but a consent dialog that arrives unannounced is the
     /// thing this gate exists to prevent.
+    ///
+    /// A web profile set to open externally starts the program it names, with arguments it
+    /// carries: the same payload as a local shell, and an imported one must be confirmed before
+    /// it runs. Without a program the address goes to the default browser, which runs nothing
+    /// the profile chose, and the arguments are not used.
     /// </remarks>
     public static bool CarriesLocalExecutionPayload(ServerProfileDto profile)
     {
         ArgumentNullException.ThrowIfNull(profile);
+
+        if (string.Equals(profile.ConnectionType, "WEB", StringComparison.OrdinalIgnoreCase))
+        {
+            return profile.WebOpenExternally
+                && !string.IsNullOrWhiteSpace(profile.WebExternalProgram);
+        }
 
         return string.Equals(profile.ConnectionType, "LOCAL", StringComparison.OrdinalIgnoreCase)
             && (!string.IsNullOrWhiteSpace(profile.LocalShellExecutable)

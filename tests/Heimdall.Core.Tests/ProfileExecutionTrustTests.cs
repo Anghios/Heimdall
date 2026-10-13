@@ -37,6 +37,38 @@ public sealed class ProfileExecutionTrustTests
         Assert.True(requiresConfirmation);
     }
 
+    /// <summary>
+    /// A web profile that opens externally runs the program it names; imported, it must be
+    /// confirmed like a local shell. Without a program it only hands the address to the default
+    /// browser, and its arguments are not used.
+    /// </summary>
+    [Theory]
+    [InlineData(true, @"\\share\x.exe", null, true)]
+    [InlineData(true, "rundll32.exe", "shell32.dll,Control_RunDLL", true)]
+    [InlineData(true, null, "--anything", false)]
+    [InlineData(true, "  ", null, false)]
+    [InlineData(false, "firefox.exe", "{Url}", false)]
+    public void CarriesLocalExecutionPayload_WebProgram_IsGatedWhenItWouldRun(
+        bool openExternally,
+        string? program,
+        string? arguments,
+        bool expected)
+    {
+        ServerProfileDto profile = new()
+        {
+            ConnectionType = "WEB",
+            WebOpenExternally = openExternally,
+            WebExternalProgram = program,
+            WebExternalArguments = arguments,
+        };
+
+        Assert.Equal(expected, ProfileExecutionTrust.CarriesLocalExecutionPayload(profile));
+        Assert.Equal(expected, ProfileExecutionTrust.RequiresExecutionConfirmation(profile));
+
+        profile.ExecutionConfirmed = true;
+        Assert.False(ProfileExecutionTrust.RequiresExecutionConfirmation(profile));
+    }
+
     [Fact]
     public void CarriesLocalExecutionPayload_LocalArgumentsOnly_ReturnsTrue()
     {

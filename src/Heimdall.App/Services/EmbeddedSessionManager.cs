@@ -604,6 +604,14 @@ public sealed class EmbeddedSessionManager : IEmbeddedSessionManager, IDisposabl
                 WriteHostStatus(sessionTab, view.OwningPane, errorMsg);
                 Core.Logging.FileLogger.Warn($"Web console error for {serverId}: {errorMsg}");
             };
+            view.SessionRetrying += (serverId) =>
+            {
+                // Error only leads back through Initializing; walk the path a fresh connect takes.
+                _connectionSm.TryTransition(serverId, ConnectionState.Initializing);
+                _connectionSm.TryTransition(serverId, ConnectionState.ValidatingConfig);
+                _connectionSm.TryTransition(serverId, ConnectionState.LaunchingWeb);
+                WriteHostStatus(sessionTab, view.OwningPane, SessionStatusTokens.Connecting);
+            };
             view.RequestSplit += (_) => SplitRequestedCallback?.Invoke(sessionTab);
             _ = view.InitializeSessionAsync(web, sessionTab, displayName, _localizer)
                 .ContinueWith(t =>

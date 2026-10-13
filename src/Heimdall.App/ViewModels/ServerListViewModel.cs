@@ -385,9 +385,12 @@ public partial class ServerListViewModel : ObservableObject, IDisposable, ISessi
     {
         ArgumentNullException.ThrowIfNull(profile);
 
-        string executable = string.IsNullOrWhiteSpace(profile.LocalShellExecutable)
-            ? "powershell.exe"
-            : profile.LocalShellExecutable;
+        // The prompt names what would run: for a web profile the program and its arguments.
+        string executable = string.Equals(profile.ConnectionType, "WEB", StringComparison.OrdinalIgnoreCase)
+            ? $"{profile.WebExternalProgram} {profile.WebExternalArguments}".Trim()
+            : string.IsNullOrWhiteSpace(profile.LocalShellExecutable)
+                ? "powershell.exe"
+                : profile.LocalShellExecutable;
         string body = _localizer.Format(
             "ConfirmExecutionImportedBody",
             profile.DisplayName,

@@ -1378,6 +1378,30 @@ public sealed class ServerListBulkActionTests : IDisposable
         Assert.Equal([2022, 2022, 2022], storedPorts);
     }
 
+    /// <summary>
+    /// A web profile connects on its WebPort. The bulk edit wrote RemotePort only, reported the
+    /// change as made, and the console kept opening on the old port.
+    /// </summary>
+    [Fact]
+    public async Task BulkEditPortAsync_WebProfile_WritesThePortTheConsoleOpensOn()
+    {
+        await using var fixture = await ServerListBulkFixture.CreateAsync(confirmResult: true);
+        var console = CreateServer("ilo", "iLO", "ops");
+        console.ConnectionType = "WEB";
+        var alpha = CreateServer("alpha", "Alpha", "ops");
+        await fixture.LoadServersAsync(fixture.ExpandGroups("ops"), alpha, console);
+        fixture.DialogService.NextBulkEditPortResult = 8443;
+
+        fixture.ViewModel.SelectSingle(fixture.ServerById("alpha"));
+        fixture.ViewModel.ToggleSelection(fixture.ServerById("ilo"));
+        await fixture.ViewModel.BulkEditPortCommand.ExecuteAsync(fixture.ViewModel.SelectedItems.ToList());
+
+        Assert.Equal(8443, fixture.ServerById("ilo").EffectivePort);
+        ServerProfileDto stored = (await fixture.ConfigManager.LoadServersAsync()).Single(server => server.Id == "ilo");
+        Assert.Equal(8443, stored.WebPort);
+        Assert.Equal("https://ilo.example.com:8443/", WebAddress.From(stored)!.AbsoluteUri);
+    }
+
     [Fact]
     public async Task BulkEditPortAsync_IncludesToolEntries()
     {
@@ -2595,6 +2619,7 @@ public sealed class ServerListBulkActionTests : IDisposable
             "FTP" => server.FtpPort,
             "VNC" => server.VncPort,
             "TELNET" => server.TelnetPort,
+            "WEB" => server.WebPort,
             _ => server.RemotePort
         };
 

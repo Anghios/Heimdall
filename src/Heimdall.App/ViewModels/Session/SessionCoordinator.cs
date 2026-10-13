@@ -872,6 +872,11 @@ public sealed partial class SessionCoordinator : ObservableObject, IDisposable
 
                 _main.StatusText = _localizer["StatusLaunchedExternalClient"];
             }
+            else if (string.Equals(connectionType, "WEB", StringComparison.OrdinalIgnoreCase))
+            {
+                // A web profile without a session was opened by an external program.
+                _main.StatusText = _localizer["StatusLaunchedExternalClient"];
+            }
             else
             {
                 _main.StatusText = _localizer.Format("StatusConnected", displayName);

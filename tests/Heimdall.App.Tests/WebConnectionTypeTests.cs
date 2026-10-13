@@ -40,7 +40,8 @@ public sealed class WebConnectionTypeTests
         int launches = 0;
         WebHandler handler = CreateHandler(stateMachine, _ => { launches++; return null; });
         ServerProfileDto profile = Profile();
-        profile.RemoteServer = "https://ilo.example.test/";
+        // No colon: an IPv6-looking host would be refused by the bracket rule alone.
+        profile.RemoteServer = "ilo.example.test/login";
         profile.WebOpenExternally = true;
 
         ConnectionResult result = await handler.ConnectAsync(profile, new AppSettings(), CancellationToken.None);
@@ -145,6 +146,8 @@ public sealed class WebConnectionTypeTests
     [InlineData("https://ilo.example.test/", true)]
     [InlineData("http://ilo.example.test/x", true)]
     [InlineData("about:blank", true)]
+    [InlineData("blob:https://ilo.example.test/1234", true)]
+    [InlineData("data:text/html,hello", false)]
     [InlineData("file:///C:/Windows/win.ini", false)]
     [InlineData("javascript:alert(1)", false)]
     [InlineData("ms-settings:privacy", false)]
@@ -156,17 +159,20 @@ public sealed class WebConnectionTypeTests
     }
 
     [Theory]
-    [InlineData("https://ilo.example.test/x", "admin", false, true)]
-    [InlineData("https://ILO.example.test/x", "admin", false, true)]
-    [InlineData("https://ilo.example.test/x", "admin", true, false)]
-    [InlineData("https://ilo.example.test/x", "", false, false)]
-    [InlineData("https://ilo.example.test/x", null, false, false)]
-    [InlineData("https://evil.example.test/", "admin", false, false)]
-    [InlineData("http://ilo.example.test/", "admin", false, false)]
-    [InlineData("https://ilo.example.test:8443/", "admin", false, false)]
+    [InlineData("https://ilo.example.test/x", "admin", "pw", false, true)]
+    [InlineData("https://ILO.example.test/x", "admin", "pw", false, true)]
+    [InlineData("https://ilo.example.test/x", "admin", "pw", true, false)]
+    [InlineData("https://ilo.example.test/x", "", "pw", false, false)]
+    [InlineData("https://ilo.example.test/x", null, "pw", false, false)]
+    [InlineData("https://ilo.example.test/x", "admin", null, false, false)]
+    [InlineData("https://ilo.example.test/x", "admin", "", false, false)]
+    [InlineData("https://evil.example.test/", "admin", "pw", false, false)]
+    [InlineData("http://ilo.example.test/", "admin", "pw", false, false)]
+    [InlineData("https://ilo.example.test:8443/", "admin", "pw", false, false)]
     public void TheAccount_AnswersOnlyTheProfilesOwnChallengeAndOnlyOnce(
         string challenge,
         string? username,
+        string? password,
         bool alreadyAnswered,
         bool expected)
     {
@@ -174,7 +180,28 @@ public sealed class WebConnectionTypeTests
 
         Assert.Equal(
             expected,
-            WebConsolePolicy.ShouldAnswerChallenge(username, alreadyAnswered, new Uri(challenge), profileAddress));
+            WebConsolePolicy.ShouldAnswerChallenge(username, password, alreadyAnswered, new Uri(challenge), profileAddress));
+    }
+
+    /// <summary>
+    /// Only failing to reach the console before it ever loaded ends the session. An HTTP error
+    /// page or a dead link after the first load used to hide the console and set the row to Error.
+    /// </summary>
+    [Theory]
+    [InlineData(false, 0, false, false, true)]
+    [InlineData(false, 0, false, true, false)]
+    [InlineData(false, 404, false, false, false)]
+    [InlineData(false, 401, false, true, false)]
+    [InlineData(false, 0, true, false, false)]
+    [InlineData(true, 200, false, false, false)]
+    public void ANavigationFailure_EndsTheSessionOnlyBeforeTheConsoleAnswered(
+        bool isSuccess,
+        int httpStatus,
+        bool canceled,
+        bool loadedBefore,
+        bool expected)
+    {
+        Assert.Equal(expected, WebConsolePolicy.IsSessionFailure(isSuccess, httpStatus, canceled, loadedBefore));
     }
 
     [Fact]
@@ -184,9 +211,15 @@ public sealed class WebConnectionTypeTests
 
         Assert.Equal(WebCertificateVerdict.Unknown, trust.Evaluate("ilo.example.test", 443, "SHA256:AA"));
 
+        var persisted = new List<string>();
+        trust.CertificateTrusted += (key, _) => persisted.Add(key);
+
         trust.Apply("ilo.example.test", 443, Entry("SHA256:AA"), FtpsCertificateDecision.TrustOnce);
 
         Assert.Equal(WebCertificateVerdict.Trusted, trust.Evaluate("ilo.example.test", 443, "SHA256:AA"));
+
+        // "This session" must never reach the settings file.
+        Assert.Empty(persisted);
         Assert.Equal(WebCertificateVerdict.Unknown, trust.Evaluate("ilo.example.test", 8443, "SHA256:AA"));
     }
 
@@ -227,9 +260,19 @@ public sealed class WebConnectionTypeTests
     [Fact]
     public void TheChangedCertificatePrompt_DoesNotAcceptOnEnter()
     {
-        Assert.False(CertificatePromptWording.WebChanged.AcceptIsDefault);
-        Assert.True(CertificatePromptWording.WebFirstUse.AcceptIsDefault);
-        Assert.Equal("FtpsCertificateFirstUseTitle", CertificatePromptWording.Ftps.HeaderKey);
+        var prompt = new FtpsCertificatePrompt("ilo.example.test", 443, "SHA256:AA", "CN=ilo", "CN=ilo", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow, "");
+        var localizer = new LocalizationManager();
+
+        var changed = new FtpsCertificatePromptDialogViewModel(localizer, prompt, CertificatePromptWording.WebChanged);
+        var firstUse = new FtpsCertificatePromptDialogViewModel(localizer, prompt, CertificatePromptWording.WebFirstUse);
+        var ftps = new FtpsCertificatePromptDialogViewModel(localizer, prompt);
+
+        Assert.False(changed.AcceptIsDefault);
+        Assert.Equal("WebCertificateChangedTitle", changed.HeaderText);
+        Assert.True(firstUse.AcceptIsDefault);
+        Assert.Equal("WebCertificateFirstUseTitle", firstUse.HeaderText);
+        Assert.True(ftps.AcceptIsDefault);
+        Assert.Equal("FtpsCertificateFirstUseTitle", ftps.HeaderText);
     }
 
     [Fact]

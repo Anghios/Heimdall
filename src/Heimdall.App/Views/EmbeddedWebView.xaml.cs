@@ -53,6 +53,12 @@ public partial class EmbeddedWebView : UserControl, IDisposable, ISessionPaneOwn
     /// <summary>Raised when the console cannot be shown. Parameters: ServerId, message.</summary>
     public event Action<string, string>? SessionError;
 
+    /// <summary>
+    /// Raised when the user retries after a failure, before the console is opened again, so the
+    /// row can leave its error state. Parameter: ServerId.
+    /// </summary>
+    public event Action<string>? SessionRetrying;
+
     /// <summary>Raised to request a split pane. Parameter: SessionTab.</summary>
     public event Action<SessionTabViewModel?>? RequestSplit;
 
@@ -134,6 +140,9 @@ public partial class EmbeddedWebView : UserControl, IDisposable, ISessionPaneOwn
             core.Settings.IsGeneralAutofillEnabled = false;
 
             core.NavigationStarting += OnNavigationStarting;
+            core.FrameNavigationStarting += OnFrameNavigationStarting;
+            core.NewWindowRequested += OnNewWindowRequested;
+            core.LaunchingExternalUriScheme += OnLaunchingExternalUriScheme;
             core.NavigationCompleted += OnNavigationCompleted;
             core.HistoryChanged += OnHistoryChanged;
             core.ServerCertificateErrorDetected += OnServerCertificateErrorDetected;
@@ -143,9 +152,48 @@ public partial class EmbeddedWebView : UserControl, IDisposable, ISessionPaneOwn
         }
         catch (Exception ex) when (ex is not OutOfMemoryException)
         {
+            // A tab closed while the browser was starting is not a failed session.
+            if (_disposed)
+            {
+                return;
+            }
+
             FileLogger.Error($"Web console init failed for {_session?.ServerId}: {ex.Message}");
             ReportFailure(ex.Message);
         }
+    }
+
+    private void OnFrameNavigationStarting(object? sender, CoreWebView2NavigationStartingEventArgs e)
+    {
+        if (!WebConsolePolicy.IsNavigable(e.Uri))
+        {
+            e.Cancel = true;
+            FileLogger.Warn("Web console blocked a frame navigation to a non-web address.");
+        }
+    }
+
+    /// <summary>
+    /// Opens a popup in this tab rather than in a bare browser window: that window would have
+    /// none of this view's rules (navigation filter, certificate pins, developer tools off) while
+    /// writing into the shared profile.
+    /// </summary>
+    private void OnNewWindowRequested(object? sender, CoreWebView2NewWindowRequestedEventArgs e)
+    {
+        e.Handled = true;
+        if (WebConsolePolicy.IsNavigable(e.Uri) && ConsoleWebView.CoreWebView2 is { } core)
+        {
+            core.Navigate(e.Uri);
+            return;
+        }
+
+        FileLogger.Warn("Web console blocked a popup to a non-web address.");
+    }
+
+    /// <summary>A page must not hand the machine a custom protocol (ms-settings:, search-ms:...).</summary>
+    private void OnLaunchingExternalUriScheme(object? sender, CoreWebView2LaunchingExternalUriSchemeEventArgs e)
+    {
+        e.Cancel = true;
+        FileLogger.Warn("Web console blocked an external protocol launch.");
     }
 
     private void OnNavigationStarting(object? sender, CoreWebView2NavigationStartingEventArgs e)
@@ -181,14 +229,29 @@ public partial class EmbeddedWebView : UserControl, IDisposable, ISessionPaneOwn
             return;
         }
 
-        // A navigation the user or a newer navigation cancelled is not a failure.
-        if (e.WebErrorStatus == CoreWebView2WebErrorStatus.OperationCanceled)
+        string reason = _localizer?.Format("ErrorWebNavigationFailed", e.WebErrorStatus.ToString())
+            ?? e.WebErrorStatus.ToString();
+        bool canceled = e.WebErrorStatus == CoreWebView2WebErrorStatus.OperationCanceled;
+        if (!WebConsolePolicy.IsSessionFailure(e.IsSuccess, e.HttpStatusCode, canceled, _connectedRaised))
         {
+            // The page itself shows what went wrong; the header only says it.
+            if (!canceled)
+            {
+                StatusTextBlock.Text = e.HttpStatusCode > 0
+                    ? _localizer?.Format("StatusWebHttpError", e.HttpStatusCode) ?? e.HttpStatusCode.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                    : reason;
+            }
+
+            if (e.HttpStatusCode > 0 && !_connectedRaised)
+            {
+                // The console answered: the session is up, even if this page is an error.
+                _connectedRaised = true;
+                SessionConnected?.Invoke(_session.ServerId);
+            }
+
             return;
         }
 
-        string reason = _localizer?.Format("ErrorWebNavigationFailed", e.WebErrorStatus.ToString())
-            ?? e.WebErrorStatus.ToString();
         FileLogger.Warn($"Web console {_session.ServerId} navigation failed: {e.WebErrorStatus}.");
         ReportFailure(reason);
     }
@@ -208,6 +271,7 @@ public partial class EmbeddedWebView : UserControl, IDisposable, ISessionPaneOwn
         string key = WebConsolePolicy.ChallengeKey(challengeUri);
         if (!WebConsolePolicy.ShouldAnswerChallenge(
                 _session.Username,
+                _session.Password,
                 _answeredChallenges.Contains(key),
                 challengeUri,
                 _session.Address))
@@ -217,7 +281,7 @@ public partial class EmbeddedWebView : UserControl, IDisposable, ISessionPaneOwn
 
         _answeredChallenges.Add(key);
         e.Response.UserName = _session.Username;
-        e.Response.Password = _session.Password ?? string.Empty;
+        e.Response.Password = _session.Password;
     }
 
     private async void OnServerCertificateErrorDetected(
@@ -225,18 +289,30 @@ public partial class EmbeddedWebView : UserControl, IDisposable, ISessionPaneOwn
         CoreWebView2ServerCertificateErrorDetectedEventArgs e)
     {
         CoreWebView2Deferral deferral = e.GetDeferral();
+        CoreWebView2ServerCertificateErrorAction action = CoreWebView2ServerCertificateErrorAction.Cancel;
         try
         {
-            e.Action = await DecideCertificateAsync(e);
+            action = await DecideCertificateAsync(e);
         }
         catch (Exception ex) when (ex is not OutOfMemoryException)
         {
             FileLogger.Warn($"Web console certificate check failed: {ex.Message}");
-            e.Action = CoreWebView2ServerCertificateErrorAction.Cancel;
         }
-        finally
+
+        // The tab may have closed while the user was answering: the browser behind the event is
+        // gone, and an exception thrown from here would end the process (async void).
+        try
         {
+            if (!_disposed)
+            {
+                e.Action = action;
+            }
+
             deferral.Complete();
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or System.Runtime.InteropServices.COMException)
+        {
+            FileLogger.Info($"Web console certificate answer arrived after the tab closed: {ex.Message}");
         }
     }
 
@@ -357,10 +433,18 @@ public partial class EmbeddedWebView : UserControl, IDisposable, ISessionPaneOwn
             return;
         }
 
+        bool wasFailed = FallbackPanel.Visibility == Visibility.Visible;
         FallbackPanel.Visibility = Visibility.Collapsed;
         ConsoleWebView.Visibility = Visibility.Visible;
         _answeredChallenges.Clear();
         _rejectedCertificates.Clear();
+
+        // After a failure the row is in error; the next successful load must bring it back.
+        if (wasFailed)
+        {
+            _connectedRaised = false;
+            SessionRetrying?.Invoke(_session.ServerId);
+        }
 
         if (ConsoleWebView.CoreWebView2 is not { } core)
         {
@@ -406,6 +490,9 @@ public partial class EmbeddedWebView : UserControl, IDisposable, ISessionPaneOwn
         if (ConsoleWebView.CoreWebView2 is { } core)
         {
             core.NavigationStarting -= OnNavigationStarting;
+            core.FrameNavigationStarting -= OnFrameNavigationStarting;
+            core.NewWindowRequested -= OnNewWindowRequested;
+            core.LaunchingExternalUriScheme -= OnLaunchingExternalUriScheme;
             core.NavigationCompleted -= OnNavigationCompleted;
             core.HistoryChanged -= OnHistoryChanged;
             core.ServerCertificateErrorDetected -= OnServerCertificateErrorDetected;
