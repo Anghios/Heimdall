@@ -115,6 +115,25 @@ public sealed class SessionPropertiesPanelTests
         Assert.Equal(expected, row.AuthSummary);
     }
 
+    [Theory]
+    [InlineData("admin", "Username + Credential provider")]
+    [InlineData(null, "No saved credentials")]
+    public void TheCredentialProvider_IsNamedForAWebConsoleOnlyWhenItSignsIn(string? username, string expected)
+    {
+        ServerItemViewModel row = ServerItemViewModel.FromDto(new ServerProfileDto
+        {
+            Id = "w",
+            DisplayName = "iLO",
+            ConnectionType = "WEB",
+            RemoteServer = "ilo.example.test",
+            WebUsername = username,
+        });
+
+        row.UsesCredentialProvider = true;
+
+        Assert.Equal(expected, row.AuthSummary);
+    }
+
     [Fact]
     public void TheCredentialProvider_IsNotNamedForAWinRmSessionRunningAsTheCurrentUser()
     {

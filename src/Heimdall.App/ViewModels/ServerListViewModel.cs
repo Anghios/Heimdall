@@ -1328,6 +1328,20 @@ public partial class ServerListViewModel : ObservableObject, IDisposable, ISessi
                 _ => { });
         }
 
+        // A web console only uses an account to answer the browser's sign-in prompt, which it
+        // does when the profile names a user. Without one the console signs in through a form in
+        // the page, which is never filled, and asking the provider would only unlock a vault for
+        // nothing on every visit.
+        if (connType is "WEB"
+            && !string.IsNullOrWhiteSpace(dto.WebUsername)
+            && string.IsNullOrEmpty(dto.WebPasswordEncrypted))
+        {
+            return new CredentialTarget(
+                dto.WebPort, dto.WebUsername,
+                encrypted => dto.WebPasswordEncrypted = encrypted,
+                _ => { });
+        }
+
         return null;
     }
 

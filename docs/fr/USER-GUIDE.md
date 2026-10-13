@@ -107,6 +107,8 @@ dans **Chemin**. La ligne sous le chemin montre l'adresse qui sera ouverte.
   sous **Certificats de consoles web approuvés** et oubliez-le.
 - Un nom d'utilisateur et un mot de passe dans le profil répondent à la fenêtre de connexion du
   navigateur lui-même (Basic ou NTLM). Un formulaire de connexion dans la page n'est pas rempli.
+  Avec le fournisseur d'identifiants activé, indiquez seulement le nom d'utilisateur : le mot de
+  passe vient de votre coffre.
 - Pour une console trop ancienne pour les navigateurs actuels, ouvrez l'onglet **Options** et
   cochez **Ouvrir avec un programme externe**. Indiquez le programme, par exemple un ancien
   navigateur portable, ou laissez vide pour votre navigateur par défaut. `{Url}`, `{Host}` et

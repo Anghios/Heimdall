@@ -205,4 +205,39 @@ public sealed class ServerListCredentialTargetTests
         Assert.Null(dto.RdpPasswordEncrypted);
         Assert.Null(dto.RdpUsername);
     }
+
+    /// <summary>
+    /// A web console uses an account only to answer the browser's sign-in prompt, which it does
+    /// when the profile names a user: then the provider fills the missing password.
+    /// </summary>
+    [Fact]
+    public void GetCredentialTarget_WebWithAUserAndNoPassword_TargetsTheWebPassword()
+    {
+        var dto = new ServerProfileDto { ConnectionType = "WEB", WebPort = 8443, WebUsername = "admin" };
+
+        var target = ServerListViewModel.GetCredentialTarget(dto);
+
+        Assert.NotNull(target);
+        Assert.Equal(8443, target!.Value.Port);
+        Assert.Equal("admin", target.Value.Username);
+        target.Value.SetPassword("enc-web");
+        target.Value.SetUsernameIfEmpty("other");
+        Assert.Equal("enc-web", dto.WebPasswordEncrypted);
+        Assert.Equal("admin", dto.WebUsername);
+    }
+
+    /// <summary>
+    /// Without a user the console signs in through a form in the page, which is never filled:
+    /// asking the provider would only unlock a vault for nothing on every visit.
+    /// </summary>
+    [Theory]
+    [InlineData(null, null)]
+    [InlineData("", null)]
+    [InlineData("admin", "stored")]
+    public void GetCredentialTarget_WebWithoutAUserOrWithAPassword_AsksNothing(string? username, string? password)
+    {
+        var dto = new ServerProfileDto { ConnectionType = "WEB", WebUsername = username, WebPasswordEncrypted = password };
+
+        Assert.Null(ServerListViewModel.GetCredentialTarget(dto));
+    }
 }
