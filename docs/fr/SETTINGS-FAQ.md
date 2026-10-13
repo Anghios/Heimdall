@@ -269,8 +269,10 @@ dans votre dos.
 
 Les mesures complètes sont dans [Mémoire RDP et réglage des sessions](RDP-PERFORMANCE.md).
 
-**Sessions embarquées maximum** - plafond de sessions embarquées simultanées. Augmentez-le si
-vous en gardez beaucoup et que vous avez la mémoire ; chacune coûte environ 194 Mo.
+**Avertir au-delà de ce nombre de sessions ouvertes** - au-delà de ce nombre de sessions
+intégrées, un bandeau dit ce qu'elles coûtent ; rien n'est refusé. Chacune coûte environ 194 Mo,
+surtout en RDP. Le volet SFTP ouvert à côté d'une session SSH et le volet de fichiers d'un shell
+local ne sont pas comptés.
 
 **Résolution dynamique** - laisse la session se redimensionner avec la fenêtre au lieu de se
 reconnecter. Laissez actif, sauf si un serveur se comporte mal quand la résolution change en

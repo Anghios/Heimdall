@@ -638,7 +638,7 @@ public sealed class ConnectionViewModelCloseTests
     }
 
     [Fact]
-    public void IsAtEmbeddedSessionLimit_CountsSplitPanesAcrossTabs()
+    public void IsAtSessionThreshold_CountsSplitPanesAcrossTabs()
     {
         SessionTabViewModel split = new()
         {
@@ -652,9 +652,9 @@ public sealed class ConnectionViewModelCloseTests
         single.PrimaryPane.ConnectionType = "SSH";
         single.PrimaryPane.HostControl = new object();
 
-        Assert.True(SplitService.IsAtEmbeddedSessionLimit([split, single], 3));
-        Assert.False(SplitService.IsAtEmbeddedSessionLimit([split, single], 4));
-        Assert.False(SplitService.IsAtEmbeddedSessionLimit(null, 1));
+        Assert.True(ConnectionViewModel.IsAtSessionThreshold([split, single], 3));
+        Assert.False(ConnectionViewModel.IsAtSessionThreshold([split, single], 4));
+        Assert.False(ConnectionViewModel.IsAtSessionThreshold(null, 1));
     }
 
     private static ConnectionViewModel CreatePinningViewModel()

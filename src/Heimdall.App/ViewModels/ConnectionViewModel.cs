@@ -22,6 +22,7 @@ using CommunityToolkit.Mvvm.Input;
 using Heimdall.App.Services;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Localization;
+using Heimdall.Core.Models;
 using Heimdall.Core.StateMachine;
 
 namespace Heimdall.App.ViewModels;
@@ -115,6 +116,7 @@ public partial class ConnectionViewModel : ObservableObject
     {
         ReconcileAccessibleNameSubscriptions();
         RefreshTabGroupFlags();
+        RefreshSessionLoadNotice();
     }
 
     /// <summary>
@@ -213,38 +215,29 @@ public partial class ConnectionViewModel : ObservableObject
         }
     }
 
-    /// <summary>
-    /// Adds a new remote embedded session when the configured limit has not
-    /// been reached. Local tool tabs, external-client tabs, and reintroduced
-    /// sessions must use the three-argument overload because they do not create
-    /// another remote embedded session.
-    /// </summary>
     /// <summary>Every open session: the tabs in the strip and those detached to their own window.</summary>
     internal IEnumerable<SessionTabViewModel> AllOpenSessions =>
         ActiveSessions.Concat(_sessionWindows.DetachedSessions);
 
-    public SessionTabViewModel? AddSession(
+    /// <summary>
+    /// Adds a new embedded connection, and shows the open-sessions notice when it goes past
+    /// <paramref name="sessionThreshold"/>. Never refuses: see <see cref="NoteNewConnection"/>.
+    /// Local tool tabs, external-client tabs, and reintroduced sessions use the three-argument
+    /// overload because they do not open another embedded connection.
+    /// </summary>
+    public SessionTabViewModel AddSession(
         string serverId,
         string title,
         string connectionType,
-        int maxEmbeddedSessions)
+        int sessionThreshold)
     {
-        int currentEmbeddedSessions = CountEmbeddedPanes(
-            ActiveSessions.Concat(_sessionWindows.DetachedSessions));
-
-        if (currentEmbeddedSessions >= maxEmbeddedSessions)
-        {
-            _dialogService.ShowWarning(
-                _localizer["SessionLimitReachedTitle"],
-                _localizer.Format("SessionLimitReachedMessage", maxEmbeddedSessions));
-            return null;
-        }
-
+        NoteNewConnection(sessionThreshold);
         return AddSession(serverId, title, connectionType);
     }
 
     /// <summary>
-    /// Counts the embedded panes across a set of session tabs.
+    /// Counts the embedded connections across a set of session tabs: every hosted pane except
+    /// tools and the companion panes Heimdall opens beside a session on its own.
     /// </summary>
     /// <remarks>
     /// <para>The limit is a limit on what the machine is hosting, so it has to be counted over
@@ -254,12 +247,55 @@ public partial class ConnectionViewModel : ObservableObject
     /// <para>Distinct because a reattach puts the session back in the tab collection before the
     /// floating window closes, so for that moment it is legitimately in both places and must
     /// still count once. Tool panes are excluded, matching what the limit has always meant.</para>
+    /// <para>Companion panes are excluded too. Every pane used to count, so the SFTP pane that
+    /// opens beside each SSH session by default made one SSH tab cost two: the default limit of
+    /// 10 stopped an SSH user at 5 tabs, and the highest setting at 10. See
+    /// <see cref="IsCompanionPane"/>.</para>
     /// </remarks>
-    internal static int CountEmbeddedPanes(IEnumerable<SessionTabViewModel> sessions) => sessions
+    internal static int CountEmbeddedConnections(IEnumerable<SessionTabViewModel> sessions) => sessions
         .Distinct()
-        .SelectMany(session => Core.Models.SplitTreeHelper.EnumerateLeaves(session.RootContent))
-        .Count(pane => pane.HostControl is not null
-            && !ConnectionTypeCatalog.IsToolConnectionType(pane.ConnectionType));
+        .Sum(CountConnections);
+
+    private static int CountConnections(SessionTabViewModel session)
+    {
+        List<SessionPaneModel> hosted = Core.Models.SplitTreeHelper.EnumerateLeaves(session.RootContent)
+            .Where(pane => pane.HostControl is not null
+                && !ConnectionTypeCatalog.IsToolConnectionType(pane.ConnectionType))
+            .ToList();
+
+        return hosted.Count(pane => !IsCompanionPane(pane, hosted));
+    }
+
+    /// <summary>
+    /// True for a pane opened beside a session rather than a connection of its own: the local
+    /// file browser of a local shell, which has no session key, and an SFTP pane on the same
+    /// profile as another pane of the tab, which is how the SFTP companion of an SSH session
+    /// arrives. A standalone SFTP tab, or a split between two different hosts, still counts.
+    /// </summary>
+    internal static bool IsCompanionPane(SessionPaneModel pane, IReadOnlyList<SessionPaneModel> tabPanes)
+    {
+        ArgumentNullException.ThrowIfNull(pane);
+        ArgumentNullException.ThrowIfNull(tabPanes);
+
+        if (string.Equals(pane.ConnectionType, LocalConnectionType, StringComparison.OrdinalIgnoreCase)
+            && string.IsNullOrWhiteSpace(pane.ServerId))
+        {
+            return true;
+        }
+
+        if (!string.Equals(pane.ConnectionType, SftpConnectionType, StringComparison.OrdinalIgnoreCase)
+            || string.IsNullOrWhiteSpace(pane.ProfileLookupServerId))
+        {
+            return false;
+        }
+
+        return tabPanes.Any(other => !ReferenceEquals(other, pane)
+            && !string.Equals(other.ConnectionType, SftpConnectionType, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(other.ProfileLookupServerId, pane.ProfileLookupServerId, StringComparison.Ordinal));
+    }
+
+    private const string LocalConnectionType = "LOCAL";
+    private const string SftpConnectionType = "SFTP";
 
     /// <summary>
     /// Adds an uncounted tab for a local tool, an external client, a diagnostic,

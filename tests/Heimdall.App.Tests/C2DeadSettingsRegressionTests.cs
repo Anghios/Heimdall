@@ -32,9 +32,10 @@ public sealed class C2DeadSettingsRegressionTests : IDisposable
     private readonly string _temporaryRoot =
         Path.Combine(Path.GetTempPath(), $"heimdall-c2-settings-{Guid.NewGuid():N}");
 
-    // Producer: ConnectionViewModel.AddSession, the common tab registration path.
+    // Producer: ConnectionViewModel.AddSession, the common tab registration path. The setting is a
+    // threshold now: past it the tab still opens, and what the setting changes is the notice.
     [Fact]
-    public void AddSession_WithRemoteLimit_RejectsBeforeRegistrationAndShowsLocalizedWarning()
+    public void AddSession_PastTheSessionThreshold_RegistersTheTabAndShowsTheNotice()
     {
         var dialog = DispatchProxy.Create<IDialogService, TrackingDialogProxy>();
         var split = DispatchProxy.Create<ISplitService, TrackingSplitProxy>();
@@ -48,18 +49,19 @@ public sealed class C2DeadSettingsRegressionTests : IDisposable
             [typeof(string), typeof(string), typeof(string), typeof(int)]);
 
         Assert.NotNull(guardedAdd);
-        object? rejected = guardedAdd!.Invoke(
+        object? opened = guardedAdd!.Invoke(
             viewModel,
-            ["rejected", "Rejected", "SSH", 1]);
+            ["opened", "Opened", "SSH", 1]);
 
-        Assert.Null(rejected);
-        Assert.Single(viewModel.ActiveSessions);
-        Assert.Equal(1, ((TrackingSplitProxy)(object)split).RegisterCallCount);
-        Assert.Equal(1, ((TrackingDialogProxy)(object)dialog).WarningCallCount);
+        Assert.NotNull(opened);
+        Assert.Equal(2, viewModel.ActiveSessions.Count);
+        Assert.Equal(2, ((TrackingSplitProxy)(object)split).RegisterCallCount);
+        Assert.Equal(0, ((TrackingDialogProxy)(object)dialog).WarningCallCount);
+        Assert.True(viewModel.IsSessionLoadNoticeShown);
     }
 
     // Producer: SessionWindowService reintroduces an already-open pane through the
-    // unguarded three-argument overload. Reintroduction must remain possible at the limit.
+    // three-argument overload, which notes no new connection: it is not a new one.
     [Fact]
     public void AddSession_WithoutRemoteLimit_ReintroducesExistingSessionAtLimit()
     {
@@ -76,6 +78,7 @@ public sealed class C2DeadSettingsRegressionTests : IDisposable
         Assert.Same(restored, viewModel.ActiveSession);
         Assert.Equal(2, ((TrackingSplitProxy)(object)split).RegisterCallCount);
         Assert.Equal(0, ((TrackingDialogProxy)(object)dialog).WarningCallCount);
+        Assert.False(viewModel.IsSessionLoadNoticeShown);
     }
 
     // Producer: MainViewModel.OpenToolTabAsync uses the unguarded overload because a

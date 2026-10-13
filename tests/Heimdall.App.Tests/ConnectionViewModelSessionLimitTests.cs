@@ -22,49 +22,122 @@ using Heimdall.Core.Localization;
 namespace Heimdall.App.Tests;
 
 /// <summary>
-/// The embedded-session limit counts what the machine is hosting, not what one window can see.
+/// The open-sessions threshold counts what the machine is hosting, not what one window can see,
+/// and going past it shows a notice: it never refuses a session.
 /// </summary>
 /// <remarks>
 /// Detaching a session removed it from the counted collection while its host stayed alive, so
-/// detaching repeatedly let the limit be passed without bound - and every one of those hosts is an
-/// ActiveX or WebView2 surface that keeps costing.
+/// detaching repeatedly let the count be passed without bound - and every one of those hosts is an
+/// ActiveX or WebView2 surface that keeps costing. Every test here also proves that no dialog is
+/// raised: the dialog proxy throws on any call.
 /// </remarks>
 public sealed class ConnectionViewModelSessionLimitTests
 {
     [Fact]
-    public void ADetachedSessionStillCountsTowardTheLimit()
+    public void ADetachedSessionStillCountsTowardTheThreshold()
     {
         SessionTabViewModel detached = HostedSession("detached", "SSH");
-        ConnectionViewModel viewModel = CreateViewModel(out TrackingDialogProxy dialog, detached);
+        ConnectionViewModel viewModel = CreateViewModel(out _, detached);
 
-        // The window itself is empty. Before the fix, the census read zero here and let the
-        // session through.
+        // The window itself is empty. Before the fix, the census read zero here.
         Assert.Empty(viewModel.ActiveSessions);
 
-        SessionTabViewModel? rejected = InvokeGuardedAddSession(viewModel, "new", "SSH", limit: 1);
+        SessionTabViewModel opened = InvokeGuardedAddSession(viewModel, "new", "SSH", limit: 1);
 
-        Assert.Null(rejected);
-        Assert.Empty(viewModel.ActiveSessions);
-        Assert.Equal(1, dialog.WarningCallCount);
+        Assert.Contains(opened, viewModel.ActiveSessions);
+        Assert.True(viewModel.IsSessionLoadNoticeShown);
     }
 
     [Fact]
-    public void TheLimitIsTheTotalAcrossBothPlaces()
+    public void TheThresholdIsTheTotalAcrossBothPlaces_AndNothingIsRefused()
     {
         SessionTabViewModel detached = HostedSession("detached", "RDP");
-        ConnectionViewModel viewModel = CreateViewModel(out TrackingDialogProxy dialog, detached);
+        ConnectionViewModel viewModel = CreateViewModel(out _, detached);
 
         SessionTabViewModel attached = viewModel.AddSession("attached", "Attached", "SSH");
         attached.HostControl = new object();
 
-        // One here, one detached, limit of two: the total is at the limit, so nothing more fits.
-        Assert.Null(InvokeGuardedAddSession(viewModel, "third", "SSH", limit: 2));
-        Assert.Equal(1, dialog.WarningCallCount);
+        // One here, one detached, threshold of three: a third stays under it.
+        InvokeGuardedAddSession(viewModel, "third", "SSH", limit: 3).HostControl = new object();
+        Assert.False(viewModel.IsSessionLoadNoticeShown);
 
-        // Raising the limit by one admits exactly one more, which shows the refusal above was the
-        // count reaching the limit and not a blanket refusal.
-        Assert.NotNull(InvokeGuardedAddSession(viewModel, "third", "SSH", limit: 3));
-        Assert.Equal(1, dialog.WarningCallCount);
+        // A fourth goes past it: opened all the same, with the notice.
+        SessionTabViewModel fourth = InvokeGuardedAddSession(viewModel, "fourth", "SSH", limit: 3);
+        Assert.Contains(fourth, viewModel.ActiveSessions);
+        Assert.True(viewModel.IsSessionLoadNoticeShown);
+        Assert.Equal("SessionLoadNoticeText", viewModel.SessionLoadNoticeText);
+    }
+
+    [Fact]
+    public void AHiddenNotice_StaysHiddenWhilePastTheThreshold_AndComesBackAfterDroppingUnder()
+    {
+        ConnectionViewModel viewModel = CreateViewModel(out _);
+        viewModel.AddSession("one", "One", "SSH").HostControl = new object();
+        SessionTabViewModel second = InvokeGuardedAddSession(viewModel, "two", "SSH", limit: 1);
+        second.HostControl = new object();
+        Assert.True(viewModel.IsSessionLoadNoticeShown);
+
+        viewModel.DismissSessionLoadNoticeCommand.Execute(null);
+        InvokeGuardedAddSession(viewModel, "three", "SSH", limit: 1).HostControl = new object();
+        Assert.False(viewModel.IsSessionLoadNoticeShown);
+
+        // Back under the threshold: the notice goes, and the dismissal is forgotten.
+        foreach (SessionTabViewModel session in viewModel.ActiveSessions.ToList())
+        {
+            viewModel.RemoveFromStrip(session);
+        }
+
+        Assert.False(viewModel.IsSessionLoadNoticeShown);
+
+        viewModel.AddSession("again-1", "Again", "SSH").HostControl = new object();
+        InvokeGuardedAddSession(viewModel, "again-2", "SSH", limit: 1);
+        Assert.True(viewModel.IsSessionLoadNoticeShown);
+    }
+
+    [Fact]
+    public void GoingBackUnderTheThreshold_TakesTheNoticeDown()
+    {
+        ConnectionViewModel viewModel = CreateViewModel(out _);
+        SessionTabViewModel first = viewModel.AddSession("one", "One", "SSH");
+        first.HostControl = new object();
+        InvokeGuardedAddSession(viewModel, "two", "SSH", limit: 1).HostControl = new object();
+        Assert.True(viewModel.IsSessionLoadNoticeShown);
+
+        viewModel.RemoveFromStrip(first);
+        Assert.True(viewModel.IsSessionLoadNoticeShown);
+
+        viewModel.RemoveFromStrip(viewModel.ActiveSessions.Single());
+        Assert.False(viewModel.IsSessionLoadNoticeShown);
+    }
+
+    [Fact]
+    public void AStripChangeWithNoNotice_NeverReadsTheFloatingWindows()
+    {
+        int reads = 0;
+        SessionWindowService windows = new(
+            static (_, _) => { },
+            () =>
+            {
+                reads++;
+                return [];
+            });
+        ConnectionViewModel viewModel = new(
+            new LocalizationManager(),
+            DispatchProxy.Create<IDialogService, TrackingDialogProxy>(),
+            DispatchProxy.Create<ISplitService, TrackingSplitProxy>(),
+            new PaneCloseArbiter(),
+            windows);
+
+        // Opening against a threshold reads them once, on the thread that opens the session.
+        SessionTabViewModel opened = InvokeGuardedAddSession(viewModel, "one", "SSH", limit: 5);
+        int readsAfterOpening = reads;
+        Assert.False(viewModel.IsSessionLoadNoticeShown);
+
+        // Strip changes with no notice up must not read them again: they run on any thread.
+        viewModel.AddSession("tool", "Tool", "TOOL:HASH");
+        viewModel.RemoveFromStrip(opened);
+
+        Assert.Equal(readsAfterOpening, reads);
     }
 
     [Fact]
@@ -75,6 +148,7 @@ public sealed class ConnectionViewModelSessionLimitTests
 
         // Tools were never counted while docked, and detaching one must not start counting it.
         Assert.NotNull(InvokeGuardedAddSession(viewModel, "new", "SSH", limit: 1));
+        Assert.False(viewModel.IsSessionLoadNoticeShown);
         Assert.Equal(0, dialog.WarningCallCount);
     }
 
@@ -88,7 +162,7 @@ public sealed class ConnectionViewModelSessionLimitTests
         SessionTabViewModel attached = viewModel.AddSession("moving", "Moving", "SSH");
         attached.HostControl = new object();
 
-        int counted = ConnectionViewModel.CountEmbeddedPanes([attached, attached]);
+        int counted = ConnectionViewModel.CountEmbeddedConnections([attached, attached]);
 
         Assert.Equal(1, counted);
         Assert.Equal(0, dialog.WarningCallCount);
@@ -116,7 +190,7 @@ public sealed class ConnectionViewModelSessionLimitTests
             session.HostControl = new object();
         }
 
-        Assert.Equal(expected, ConnectionViewModel.CountEmbeddedPanes([session]));
+        Assert.Equal(expected, ConnectionViewModel.CountEmbeddedConnections([session]));
     }
 
     [Fact]
@@ -162,7 +236,7 @@ public sealed class ConnectionViewModelSessionLimitTests
             windows);
     }
 
-    private static SessionTabViewModel? InvokeGuardedAddSession(
+    private static SessionTabViewModel InvokeGuardedAddSession(
         ConnectionViewModel viewModel,
         string serverId,
         string connectionType,
@@ -173,9 +247,9 @@ public sealed class ConnectionViewModelSessionLimitTests
             [typeof(string), typeof(string), typeof(string), typeof(int)]);
 
         Assert.NotNull(guardedAdd);
-        return (SessionTabViewModel?)guardedAdd!.Invoke(
+        return (SessionTabViewModel)guardedAdd!.Invoke(
             viewModel,
-            [serverId, serverId, connectionType, limit]);
+            [serverId, serverId, connectionType, limit])!;
     }
 
     private class TrackingDialogProxy : DispatchProxy
