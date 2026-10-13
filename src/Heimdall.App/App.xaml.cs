@@ -392,6 +392,13 @@ public partial class App : System.Windows.Application
                 _ = PersistTrustedWebCertificateEntryAsync(configManager, key, entry);
             };
 
+            var webZoomMemory = _serviceProvider.GetRequiredService<WebZoomMemory>();
+            webZoomMemory.LoadFromConfig(settings.WebConsoleZoomByProfile);
+            webZoomMemory.ZoomChanged += (profileId, zoom) =>
+            {
+                _ = PersistWebConsoleZoomAsync(configManager, profileId, zoom);
+            };
+
             var rdpCertificateStore = _serviceProvider.GetRequiredService<RdpCertificateTrustStore>();
             LoadTrustedRdpCertificates(rdpCertificateStore, settings);
             _serviceProvider.GetRequiredService<RdpCertificatePersistence>();
@@ -713,6 +720,7 @@ public partial class App : System.Windows.Application
         services.AddSingleton<IHostKeyVerifier, DialogHostKeyVerifier>();
         services.AddSingleton<FtpsCertificateStore>();
         services.AddSingleton<WebCertificateTrust>();
+        services.AddSingleton<WebZoomMemory>();
         services.AddSingleton<WebGatewayProxyPorts>();
         services.AddSingleton<RdpCertificateTrustStore>();
         services.AddSingleton<RdpCertificatePersistence>();
@@ -1145,6 +1153,32 @@ public partial class App : System.Windows.Application
         {
             Heimdall.Core.Logging.FileLogger.Warn(
                 $"Failed to persist FTPS certificate metadata for {key}: {ex.Message}");
+        }
+    }
+
+    internal static async Task PersistWebConsoleZoomAsync(
+        IConfigManager configManager,
+        string profileId,
+        double? zoom)
+    {
+        try
+        {
+            await configManager.MergeSettingAsync(settings =>
+            {
+                if (zoom is double kept)
+                {
+                    settings.WebConsoleZoomByProfile[profileId] = kept;
+                }
+                else
+                {
+                    settings.WebConsoleZoomByProfile.Remove(profileId);
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            Heimdall.Core.Logging.FileLogger.Warn(
+                $"Failed to persist the web console zoom for {profileId}: {ex.Message}");
         }
     }
 
