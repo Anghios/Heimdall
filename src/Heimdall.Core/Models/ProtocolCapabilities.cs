@@ -29,6 +29,7 @@ public static class ProtocolCapabilities
         return string.Equals(connectionType, "RDP", StringComparison.OrdinalIgnoreCase)
                || string.Equals(connectionType, "SSH", StringComparison.OrdinalIgnoreCase)
                || string.Equals(connectionType, "SFTP", StringComparison.OrdinalIgnoreCase)
-               || string.Equals(connectionType, "WINRM", StringComparison.OrdinalIgnoreCase);
+               || string.Equals(connectionType, "WINRM", StringComparison.OrdinalIgnoreCase)
+               || string.Equals(connectionType, "WEB", StringComparison.OrdinalIgnoreCase);
     }
 }

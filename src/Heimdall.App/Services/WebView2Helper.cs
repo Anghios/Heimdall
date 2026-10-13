@@ -77,7 +77,10 @@ public static class WebView2Helper
     internal const string WebConsoleProfileFolder = "WebView2-Web";
 
     private static readonly object WebConsoleEnvironmentLock = new();
-    private static Task<CoreWebView2Environment>? _webConsoleEnvironment;
+
+    /// <summary>One environment per route: the direct one under the empty key, one per gateway.</summary>
+    private static readonly Dictionary<string, Task<CoreWebView2Environment>> WebConsoleEnvironments =
+        new(StringComparer.Ordinal);
 
     /// <summary>
     /// The one browser environment every web console tab shares, so a login made in one tab
@@ -88,26 +91,73 @@ public static class WebView2Helper
     /// keep theirs: those hold no state worth keeping, while this one holds the cookies of every
     /// console, and a disk cleanup emptying the temporary folder would sign the user out of all
     /// of them. A failed creation is not cached, so the next tab tries again.
+    ///
+    /// A console behind an SSH gateway gets an environment of its own, per gateway, whose browser
+    /// goes through the SOCKS proxy that gateway's tunnel opens: the console's real name reaches
+    /// the browser, so its certificate, its pin, its redirects and a name only the admin network
+    /// resolves all work. A proxy is a browser-process setting, and one profile folder can only
+    /// serve one browser process at a time, hence one folder per gateway: a sign-in made directly
+    /// is not shared with the same console reached through a gateway.
     /// </remarks>
-    public static Task<CoreWebView2Environment> GetWebConsoleEnvironmentAsync()
+    public static Task<CoreWebView2Environment> GetWebConsoleEnvironmentAsync(
+        string? gatewayId = null,
+        int? proxyPort = null)
     {
+        string key = WebConsoleRouteKey(gatewayId, proxyPort);
         lock (WebConsoleEnvironmentLock)
         {
-            if (_webConsoleEnvironment is { IsFaulted: false, IsCanceled: false } existing)
+            if (WebConsoleEnvironments.TryGetValue(key, out Task<CoreWebView2Environment>? existing)
+                && existing is { IsFaulted: false, IsCanceled: false })
             {
                 return existing;
             }
 
             string userDataFolder = Path.Combine(
                 Core.Configuration.ApplicationDataPathResolver.Resolve(),
-                WebConsoleProfileFolder);
+                WebConsoleProfileFolderFor(gatewayId, proxyPort));
             string? browserExecutableFolder = IsBundled ? BundledRuntimePath : null;
-            _webConsoleEnvironment = CoreWebView2Environment.CreateAsync(
+            string? arguments = WebConsoleBrowserArguments(proxyPort);
+            CoreWebView2EnvironmentOptions? options = arguments is null
+                ? null
+                : new CoreWebView2EnvironmentOptions(additionalBrowserArguments: arguments);
+            Task<CoreWebView2Environment> created = CoreWebView2Environment.CreateAsync(
                 browserExecutableFolder: browserExecutableFolder,
-                userDataFolder: userDataFolder);
-            return _webConsoleEnvironment;
+                userDataFolder: userDataFolder,
+                options: options);
+            WebConsoleEnvironments[key] = created;
+            return created;
         }
     }
+
+    /// <summary>The cache key of a route: empty for direct, the gateway and its port otherwise.</summary>
+    internal static string WebConsoleRouteKey(string? gatewayId, int? proxyPort)
+        => string.IsNullOrWhiteSpace(gatewayId) || proxyPort is not > 0
+            ? string.Empty
+            : $"{gatewayId}:{proxyPort}";
+
+    /// <summary>
+    /// The profile folder of a route. The gateway identifier is a GUID in practice; anything that
+    /// is not a letter, a digit or a dash is dropped so a hand-edited one cannot leave the folder.
+    /// </summary>
+    internal static string WebConsoleProfileFolderFor(string? gatewayId, int? proxyPort)
+    {
+        if (string.IsNullOrWhiteSpace(gatewayId) || proxyPort is not > 0)
+        {
+            return WebConsoleProfileFolder;
+        }
+
+        string safe = new(gatewayId.Where(c => char.IsAsciiLetterOrDigit(c) || c == '-').ToArray());
+        return safe.Length == 0 ? WebConsoleProfileFolder + "-gw" : $"{WebConsoleProfileFolder}-gw-{safe}";
+    }
+
+    /// <summary>
+    /// The browser arguments of a route. SOCKS5 through Chromium hands host names to the proxy,
+    /// so a console name the gateway's network resolves needs no DNS on this machine.
+    /// </summary>
+    internal static string? WebConsoleBrowserArguments(int? proxyPort)
+        => proxyPort is > 0
+            ? $"--proxy-server=socks5://127.0.0.1:{proxyPort.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)}"
+            : null;
 
     private static bool CheckAvailability()
     {

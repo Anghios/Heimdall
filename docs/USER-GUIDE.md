@@ -106,6 +106,9 @@ will open.
   for your default browser. `{Url}`, `{Host}` and `{Port}` in the arguments are replaced.
 - Web tabs share one browser profile: a console you signed in to stays signed in in the next tab
   and after a restart.
+- A console only reachable through a bastion: pick the SSH gateway in the **Network** tab, as for
+  RDP. Type the console's own name or address; it is resolved on the gateway's side. Consoles
+  behind a gateway have a browser profile of their own, so you sign in to them separately.
 
 ### Quick connect
 

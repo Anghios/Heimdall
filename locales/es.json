@@ -3663,6 +3663,8 @@
   "ErrorWebInvalidAddress": "El host, el puerto y la ruta de este perfil no forman una direcci\u00f3n web. Edite el perfil: el campo host solo admite un nombre o una direcci\u00f3n, sin http:// ni ruta.",
   "ErrorWebExternalShellRefused": "Un int\u00e9rprete de comandos no puede abrir una consola web. Elija un navegador en las opciones del perfil.",
   "ErrorWebExternalLaunchFailed": "No se pudo iniciar el programa externo: {0}",
+  "ErrorWebExternalWithGateway": "Este perfil pasa por una pasarela SSH, que un programa externo no puede usar. \u00c1bralo en una pesta\u00f1a o qu\u00edtele la pasarela.",
+  "ErrorWebGatewayUnavailable": "No se pudo usar la pasarela SSH para esta consola web.",
   "ErrorWebNavigationFailed": "No se pudo cargar la consola web ({0}).",
   "WebFallbackTitle": "Consola web no disponible",
   "BtnWebRetry": "Reintentar",

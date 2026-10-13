@@ -27,6 +27,7 @@ public sealed class ProtocolCapabilitiesTests
             { "SSH", true },
             { "SFTP", true },
             { "WINRM", true },
+            { "WEB", true },
             { "TELNET", false },
             { "VNC", false },
             { "FTP", false },
@@ -51,6 +52,7 @@ public sealed class ProtocolCapabilitiesTests
     [InlineData("sSh")]
     [InlineData("Sftp")]
     [InlineData("winrm")]
+    [InlineData("web")]
     public void SupportsSshGateway_MatchesProtocolCaseInsensitively(string connectionType)
     {
         Assert.True(ProtocolCapabilities.SupportsSshGateway(connectionType));

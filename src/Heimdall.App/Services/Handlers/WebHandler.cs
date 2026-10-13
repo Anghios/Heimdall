@@ -30,47 +30,88 @@ namespace Heimdall.App.Services.Handlers;
 /// </summary>
 internal sealed class WebHandler : IProtocolHandler
 {
+    /// <summary>
+    /// The target the gateway's SOCKS tunnel is opened against. The tunnel carries the browser's
+    /// traffic through its SOCKS proxy and nothing ever connects to its local forward, so the
+    /// target only has to be the same for every console behind one gateway: that is what lets
+    /// them share one tunnel instead of each binding the proxy port another one holds.
+    /// </summary>
+    internal const string GatewayTunnelTargetHost = "127.0.0.1";
+
     private readonly ConnectionStateMachine _connectionSm;
     private readonly LocalizationManager _localizer;
     private readonly Func<ProcessStartInfo, Process?> _startProcess;
+    private readonly ITunnelService? _tunnelService;
+    private readonly WebGatewayProxyPorts _proxyPorts;
 
-    public WebHandler(ConnectionStateMachine connectionSm, LocalizationManager localizer)
-        : this(connectionSm, localizer, Process.Start)
+    public WebHandler(
+        ConnectionStateMachine connectionSm,
+        LocalizationManager localizer,
+        ITunnelService tunnelService,
+        WebGatewayProxyPorts proxyPorts)
+        : this(connectionSm, localizer, Process.Start, tunnelService, proxyPorts)
     {
     }
 
     internal WebHandler(
         ConnectionStateMachine connectionSm,
         LocalizationManager localizer,
-        Func<ProcessStartInfo, Process?> startProcess)
+        Func<ProcessStartInfo, Process?> startProcess,
+        ITunnelService? tunnelService = null,
+        WebGatewayProxyPorts? proxyPorts = null)
     {
         _connectionSm = connectionSm;
         _localizer = localizer;
         _startProcess = startProcess;
+        _tunnelService = tunnelService;
+        _proxyPorts = proxyPorts ?? new WebGatewayProxyPorts();
     }
 
     public string Protocol => "WEB";
 
-    public Task<ConnectionResult> ConnectAsync(
+    public async Task<ConnectionResult> ConnectAsync(
         ServerProfileDto server,
         AppSettings settings,
         CancellationToken ct,
         RdpModeOverride rdpModeOverride = RdpModeOverride.UseProfile)
     {
         ArgumentNullException.ThrowIfNull(server);
+        ArgumentNullException.ThrowIfNull(settings);
 
         _connectionSm.TryTransition(server.Id, ConnectionState.ValidatingConfig);
 
         if (WebAddress.From(server) is not { } address)
         {
-            return Task.FromResult(Fail(server.Id, _localizer["ErrorWebInvalidAddress"]));
+            return Fail(server.Id, _localizer["ErrorWebInvalidAddress"]);
+        }
+
+        bool viaGateway = UsesGateway(server);
+        if (viaGateway && server.WebOpenExternally)
+        {
+            // The external program would not go through the tunnel; opening it anyway would
+            // reach the console directly, or not at all, while the profile says it cannot.
+            return Fail(server.Id, _localizer["ErrorWebExternalWithGateway"]);
+        }
+
+        int? proxyPort = null;
+        if (viaGateway)
+        {
+            TunnelSetupOutcome? tunnel = await OpenGatewayProxyAsync(server, settings, ct).ConfigureAwait(false);
+            if (tunnel is not { Success: true })
+            {
+                return tunnel is null
+                    ? Fail(server.Id, _localizer["ErrorWebGatewayUnavailable"])
+                    : new ConnectionResult(false, tunnel.ErrorMessage, null);
+            }
+
+            proxyPort = _proxyPorts.GetOrAllocate(server.SshGatewayId!);
         }
 
         _connectionSm.TryTransition(server.Id, ConnectionState.LaunchingWeb);
 
         if (server.WebOpenExternally)
         {
-            return Task.FromResult(LaunchExternally(server, address));
+            return LaunchExternally(server, address);
         }
 
         string? password = string.IsNullOrEmpty(server.WebPasswordEncrypted)
@@ -83,8 +124,42 @@ internal sealed class WebHandler : IProtocolHandler
             address,
             username,
             password,
-            server.SessionLoggingOverride);
-        return Task.FromResult(new ConnectionResult(true, null, session));
+            server.SessionLoggingOverride)
+        {
+            GatewayId = viaGateway ? server.SshGatewayId : null,
+            ProxyPort = proxyPort,
+        };
+        return new ConnectionResult(true, null, session);
+    }
+
+    /// <summary>Whether the profile is routed through an SSH gateway, as the tunnel service decides it.</summary>
+    internal static bool UsesGateway(ServerProfileDto server)
+        => !server.UseDirectConnection && !string.IsNullOrWhiteSpace(server.SshGatewayId);
+
+    /// <summary>
+    /// Opens, or joins, the gateway's SOCKS tunnel for this console. The tunnel service records
+    /// the lease against the profile, and closing the tab gives it back the way it does for RDP.
+    /// </summary>
+    private async Task<TunnelSetupOutcome?> OpenGatewayProxyAsync(
+        ServerProfileDto server,
+        AppSettings settings,
+        CancellationToken ct)
+    {
+        if (_tunnelService is null)
+        {
+            return null;
+        }
+
+        ServerProfileDto tunnelProfile = server.CloneFaithfully();
+        tunnelProfile.RemoteServer = GatewayTunnelTargetHost;
+        tunnelProfile.SocksProxyPort = _proxyPorts.GetOrAllocate(server.SshGatewayId!);
+        tunnelProfile.RemoteBindPort = 0;
+        tunnelProfile.RemoteLocalPort = 0;
+        tunnelProfile.LocalPort = 0;
+
+        return await _tunnelService
+            .SetupTunnelIfNeededAsync(tunnelProfile, DefaultPorts.Ssh, settings, ct)
+            .ConfigureAwait(false);
     }
 
     private ConnectionResult LaunchExternally(ServerProfileDto server, Uri address)
