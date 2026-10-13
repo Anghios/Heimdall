@@ -553,6 +553,41 @@ public sealed partial class SessionCoordinatorPreMountTests
         });
     }
 
+    [Fact]
+    public void TabListMenu_ListsEveryTab_FoldedOnesIncluded_AndSelectsTheClickedOne()
+    {
+        RunOnStaThread(() =>
+        {
+            using TestHarness harness = TestHarness.Create();
+            SessionTabViewModel first = CreateSession("first", "SSH");
+            SessionTabViewModel folded = CreateSession("folded", "SSH");
+            folded.Title = "Folded session";
+            harness.Main.Connection.ActiveSessions.Add(first);
+            harness.Main.Connection.ActiveSessions.Add(folded);
+            harness.Main.Connection.ActiveSession = first;
+
+            // Set after the adds: adding a tab recomputes every tab's folder flags.
+            folded.TabGroupKey = "Ops";
+            folded.TabGroupLabel = "Ops";
+            folded.IsHiddenInCollapsedGroup = true;
+            Assert.True(folded.IsHiddenInCollapsedGroup);
+
+            ContextMenu menu = TabListMenuFactory.Create(harness.Main.Connection);
+
+            List<MenuItem> items = menu.Items.OfType<MenuItem>().ToList();
+            Assert.Equal(2, items.Count);
+            Assert.True(items[0].IsChecked);
+            Assert.False(items[1].IsChecked);
+            Assert.Equal(System.Windows.FontWeights.SemiBold, items[0].FontWeight);
+            Assert.Equal(System.Windows.FontWeights.Normal, items[1].FontWeight);
+            Assert.Equal("Ops", items[1].InputGestureText);
+
+            items[1].RaiseEvent(new System.Windows.RoutedEventArgs(MenuItem.ClickEvent));
+
+            Assert.Same(folded, harness.Main.Connection.ActiveSession);
+        });
+    }
+
     private static SessionTabViewModel CreateSession(string serverId, string connectionType)
     {
         return new SessionTabViewModel

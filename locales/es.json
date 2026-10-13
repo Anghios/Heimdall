@@ -2486,6 +2486,7 @@
   "SessionExpandTabGroup": "Expandir las pestañas de la carpeta",
   "SessionTabGroupChipExpandedA11y": "Pestañas de la carpeta {0}, expandidas",
   "SessionTabGroupChipCollapsedA11y": "Pestañas de la carpeta {0}, contraídas",
+  "SessionTabListButton": "Todas las pestañas abiertas",
   "SessionTitleSuffixForcedEmbedded": "(incrustado forzado)",
   "SessionTitleSuffixForcedExternal": "(externo forzado)",
   "ConfirmCloseSessionTitle": "Cerrar sesión activa",
