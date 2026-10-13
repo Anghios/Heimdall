@@ -12,6 +12,83 @@
 
 All notable changes to Heimdall are documented in this file.
 
+## 2026-10-13: session tabs arranged by folder (v2026.101301)
+
+### Session tabs: arranged by the folder of their profile
+
+- **Tabs can be arranged by folder** (#549, #550). Right-click a tab, "Arrange tabs by folder": the
+  tabs of each folder sit side by side behind a chip with the folder's name and colour, and every
+  tab of the folder carries a coloured bottom line. Off by default, because turning it on reorders
+  the strip; the choice is saved. The arrangement is derived from the tree on every change and
+  never stored, so a reconnect, a duplicate, a profile moved to another folder, a folder renamed or
+  recoloured, and a workspace restored at startup all land in the right place. Pinned tabs stay at
+  the front, outside folders; tool tabs, quick connections and profiles outside any folder are
+  never arranged.
+- **A folder folds into its chip.** A click on the chip, or "Collapse this folder's tabs" in the
+  tab menu, hides the folder's tabs behind the chip. Collapsing the folder that holds the open tab
+  selects the nearest tab outside it, and selecting a tab of a collapsed folder, from the keyboard,
+  the tree or a new connection, unfolds it.
+- **"Collapse the other folders"** (#559, from discussion #500), in the menu of a tab inside a
+  folder, folds every other folder at once and keeps this one open: one gesture to switch from one
+  set of machines to another. Tabs outside any folder stay visible.
+- **"Close this folder's tabs"** in the closing section of the menu of a tab inside a folder (#555).
+- **A tab dragged onto a tab of another folder is refused** while tabs are arranged by folder, and
+  the refused target is not highlighted (#555).
+
+### Session tabs: a strip that stays usable when it overflows
+
+- **The selected tab scrolls into view** (#551). With more tabs than the window shows, the tab you
+  opened or selected could sit past the right edge, selected but invisible.
+- **"All open tabs"** (#551): while the tabs overflow, a button at the right end of the strip lists
+  every tab, those scrolled out and those folded in a collapsed folder included, with the open one
+  in bold and the folder beside each title. The mouse wheel scrolls the strip sideways, and its
+  scroll bar is gone.
+- **Ctrl+Tab skips a collapsed folder** instead of unfolding it (#551).
+- **Dropping a tab on the empty part of the strip moves it to the end** (#551). It used to merge it
+  into the displayed session as a split; the content area keeps that gesture.
+
+### Session tabs: menu and keyboard
+
+- **The tab menu goes from the most frequent action to the most destructive** (#552): Reconnect
+  first, then display, tab, profile, terminal and split actions, and Disconnect or Close tab last.
+  It used to open on Disconnect, under the pointer. No separator is doubled any more.
+- **Profile entries stay in the tab menu under a tree filter** (#552). Edit, Copy hostname, Copy
+  username and Reveal in tree looked the profile up in the tree's filtered view, so a search or a
+  filter that hid it removed them.
+- **Apps and Shift+F10 open the menu of the selected tab** (#554), placed under the tab.
+  **Shift+F10 was dead everywhere**: WPF reports F10 as a system key, and the window never matched
+  it. It now opens the session tree's menu too.
+- **Ctrl+F4 closes the active tab, from a terminal too** (#554); a connected session still asks
+  first. Ctrl+W stays with the shell in a terminal, and a focused RDP view keeps Ctrl+F4 for the
+  remote desktop.
+- **Middle-click closes a tab** (#555), with the same confirmation.
+- **"Reopen closed tab"** (#555) in the tab menu, once a profile tab was closed: the last ten tabs
+  closed by hand are remembered, and profiles deleted since are skipped.
+- **Labels** (#555): sentence case in the English menu, the F11 shortcut in the shortcut column
+  rather than in the label, French accents restored.
+- **The close button of an inactive tab is easier to see** (#555): measured in the default dark
+  theme, its contrast goes from 2.37:1 to 4.24:1 (WCAG asks 3:1).
+
+### Sessions: a threshold that warns and counts connections
+
+- **The session limit no longer refuses a session** (#553). Past the threshold, a banner says how
+  many embedded sessions are open and can be hidden; it comes back only after the count has gone
+  under the threshold and past it again. Most refusals happened after the connection was made, so
+  a working connection was thrown away. The setting now reads "Warn above this many open
+  sessions".
+- **It counts connections, not panes** (#553). The SFTP pane that opens beside an SSH session (on
+  by default) and the file pane of a local shell used to count as sessions, so the default of 10
+  stopped an SSH user at 5 tabs. A standalone SFTP tab and a split between two hosts still count.
+
+### Tree filters no longer hide profiles from lookups
+
+- **Reveal in tree, the command palette and Duplicate session look in the whole inventory**
+  (#555, #556). They read the tree's filtered view, so with a Favorites, Connected, gateway,
+  protocol or project filter on, Reveal in tree and Duplicate did nothing, and the palette could
+  not find or suggest a profile the filter hid. Reveal now resets the tree filters only when they
+  hide the profile. The split palette's partner suggestion and the host shown in a snippet's detail
+  use the whole inventory too.
+
 ## 2026-10-06: split panes act on their own session, and settings survive a damaged file (v2026.100601)
 
 ### Settings: a last good copy, and an import that shows what it runs
