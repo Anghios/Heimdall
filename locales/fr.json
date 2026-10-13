@@ -2470,7 +2470,7 @@
   "ErrorWinRmSessionNotEntered": "La session WinRM distante n'a pas pu \u00eatre ouverte. Lisez le message PowerShell ci-dessus pour en conna\u00eetre la cause, puis v\u00e9rifiez le nom d'h\u00f4te, le port et l'identit\u00e9 de ce profil.",
   "ErrorWinRmPreflightTlsFailedNoVerify": "La connexion TLS WinRM vers '{0}' sur le port {1} a \u00e9chou\u00e9 alors que la validation du certificat est ignor\u00e9e : le port ne r\u00e9pond probablement pas en TLS. V\u00e9rifiez que le port {1} est bien l'\u00e9couteur WinRM HTTPS (habituellement 5986).",
 
-  "SessionDisconnect": "Deconnecter",
+  "SessionDisconnect": "D\u00e9connecter",
   "SessionAspectStretch": "\u00c9tirer",
   "SessionFullscreen": "Plein \u00e9cran",
   "SessionCloseSession": "Fermer la session",
