@@ -119,6 +119,13 @@ directly such as `admin@192.168.1.10`. It is the fastest way to reach something 
 - To move a tab to the end, drag it onto the empty part of the strip after the last tab.
   Dropping it on the session area below splits that session instead.
 
+### Closing and reopening tabs
+
+- Middle-click a tab to close it; a connected session asks first, as with its close button.
+- **Reopen closed tab**, in any tab's menu, reconnects the last session you closed. Up to ten are
+  remembered while Heimdall runs; tool tabs and quick connections are not.
+- With the tabs arranged by folder, a tab's menu also offers **Close this folder's tabs**.
+
 ### Arrange your tabs by folder
 
 Right-click any session tab and tick **Arrange tabs by folder**. The tabs of each folder then sit

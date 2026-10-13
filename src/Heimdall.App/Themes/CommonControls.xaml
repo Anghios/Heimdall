@@ -158,6 +158,9 @@
     <sys:Double x:Key="SessionTreeFolderIconSize">13</sys:Double>
     <!-- The "all open tabs" button over the right end of an overflowing session tab strip. -->
     <sys:Double x:Key="SessionTabListButtonWidth">32</sys:Double>
+    <!-- Close button of a tab neither hovered nor selected. 0.3 measured 2.37:1 against the strip
+         in the default dark theme, under the 3:1 a control needs (WCAG 1.4.11); 0.5 measures 4.19:1. -->
+    <sys:Double x:Key="TabCloseButtonIdleOpacity">0.5</sys:Double>
     <!-- Transparent frame around the status dot: the hover target is the dot plus this on each side. -->
     <Thickness x:Key="SessionTreeStatusHitPadding">3</Thickness>
     <!-- The multiplication sign that closes a filter chip. -->
