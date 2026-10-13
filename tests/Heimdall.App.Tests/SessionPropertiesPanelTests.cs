@@ -195,6 +195,84 @@ public sealed class SessionPropertiesPanelTests
         Assert.Equal("host.example.test:2222", row.Endpoint);
     }
 
+    [Fact]
+    public void AValue_IsCopiedAsShown()
+    {
+        var clipboard = new RecordingClipboard();
+
+        Assert.Equal(
+            Controls.SessionPropertiesView.CopyOutcome.Copied,
+            Controls.SessionPropertiesView.TryCopy(clipboard, "ilo.example.test:443"));
+        Assert.Equal(["ilo.example.test:443"], clipboard.Texts);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void AnEmptyValue_TouchesNotTheClipboard(string? value)
+    {
+        var clipboard = new RecordingClipboard();
+
+        Assert.Equal(
+            Controls.SessionPropertiesView.CopyOutcome.NothingToCopy,
+            Controls.SessionPropertiesView.TryCopy(clipboard, value));
+        Assert.Empty(clipboard.Texts);
+    }
+
+    /// <summary>Another program holding the clipboard is reported, not thrown out of a click.</summary>
+    [Fact]
+    public void ABusyClipboard_IsReported()
+    {
+        var clipboard = new RecordingClipboard { Throw = true };
+
+        Assert.Equal(
+            Controls.SessionPropertiesView.CopyOutcome.ClipboardBusy,
+            Controls.SessionPropertiesView.TryCopy(clipboard, "admin"));
+    }
+
+    /// <summary>
+    /// Every value copies exactly what it shows: the button's Tag, which is what is copied, binds
+    /// the same property as the text inside it, and the click goes to the copy handler.
+    /// </summary>
+    [Theory]
+    [InlineData("Spv_EndpointCopy", "Endpoint")]
+    [InlineData("Spv_UsernameCopy", "Username")]
+    [InlineData("Spv_GatewayCopy", "GatewayDetailText")]
+    [InlineData("Spv_GroupCopy", "Group")]
+    [InlineData("Spv_EnvCopy", "Environment")]
+    [InlineData("Spv_TagsCopy", "Tags")]
+    public void EveryValue_CopiesWhatItShows(string buttonName, string property)
+    {
+        XDocument control = LoadXaml(Path.Combine("Controls", "SessionPropertiesView.xaml"));
+        XElement button = FindNamed(control, buttonName);
+
+        Assert.Equal("Button", button.Name.LocalName);
+        Assert.Equal($"{{Binding {property}}}", (string?)button.Attribute("Tag"));
+        Assert.Equal("OnCopyValueClick", (string?)button.Attribute("Click"));
+        Assert.Equal("{StaticResource SpvCopyValueStyle}", (string?)button.Attribute("Style"));
+        Assert.Contains(
+            button.Descendants(),
+            element => element.Attributes().Any(a => a.Value.StartsWith($"{{Binding {property}", StringComparison.Ordinal)));
+    }
+
+    private sealed class RecordingClipboard : IClipboardService
+    {
+        public List<string> Texts { get; } = [];
+
+        public bool Throw { get; init; }
+
+        public void SetText(string text)
+        {
+            if (Throw)
+            {
+                throw new System.Runtime.InteropServices.COMException("OpenClipboard failed", unchecked((int)0x800401D0));
+            }
+
+            Texts.Add(text);
+        }
+    }
+
     private static void AssertHostsPropertiesView(XElement host)
     {
         Assert.Contains(
