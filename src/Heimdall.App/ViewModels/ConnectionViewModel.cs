@@ -615,6 +615,7 @@ public partial class ConnectionViewModel : ObservableObject
         }
 
         RemoveFromStrip(session);
+        RememberClosedTab(session, request);
 
         HasActiveSessions = ActiveSessions.Count > 0;
         session.MarkClosed();

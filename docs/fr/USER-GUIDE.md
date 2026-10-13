@@ -125,6 +125,16 @@ que vous utilisez souvent.
 - Pour envoyer un onglet en dernier, glissez-le sur la partie vide de la barre, après le dernier
   onglet. Le déposer sur la zone de session en dessous scinde cette session.
 
+### Fermer et rouvrir des onglets
+
+- Un clic du milieu sur un onglet le ferme ; une session connectée demande d'abord, comme avec
+  son bouton de fermeture.
+- **Rouvrir l'onglet fermé**, dans le menu de n'importe quel onglet, reconnecte la dernière session
+  fermée. Jusqu'à dix sont retenues tant que Heimdall tourne ; les onglets d'outils et les connexions
+  rapides ne le sont pas.
+- Quand les onglets sont rangés par dossier, le menu d'un onglet propose aussi **Fermer les onglets
+  du dossier**.
+
 ### Ranger vos onglets par dossier
 
 Faites un clic droit sur un onglet de session et cochez **Grouper les onglets par dossier**. Les

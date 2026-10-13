@@ -672,6 +672,63 @@ public sealed partial class SessionCoordinatorPreMountTests
         }
     }
 
+    [Fact]
+    public void SessionTabContextMenu_Fullscreen_ShowsF11InTheShortcutColumn()
+    {
+        RunOnStaThread(() =>
+        {
+            using TestHarness harness = TestHarness.Create();
+            SessionTabViewModel session = CreateSession("session-id", "SSH");
+            harness.Main.Connection.ActiveSessions.Add(session);
+
+            MenuItem fullscreen = AssertMenuItem(
+                CreateSessionTabMenu(harness.Main, session),
+                harness.Main.Localize("SessionFullscreen"));
+
+            Assert.Equal("F11", fullscreen.InputGestureText);
+            Assert.DoesNotContain("F11", (string)fullscreen.Header, StringComparison.Ordinal);
+        });
+    }
+
+    [Fact]
+    public void SessionTabContextMenu_ReopenClosedTab_OnlyOnceATabWasClosed()
+    {
+        RunOnStaThread(() =>
+        {
+            using TestHarness harness = TestHarness.Create();
+            SessionTabViewModel closing = harness.Main.Connection.AddSession("closing-session", "Closing", "SSH");
+            closing.OriginalServerId = "closing";
+            SessionTabViewModel session = CreateSession("session-id", "SSH");
+            harness.Main.Connection.ActiveSessions.Add(session);
+            string reopen = harness.Main.Localize("SessionReopenClosedTab");
+
+            Assert.Null(FindMenuItem(CreateSessionTabMenu(harness.Main, session), reopen));
+
+            harness.Main.Connection.CloseSessionAsync(closing, DisconnectReason.TabClose, confirm: false)
+                .GetAwaiter().GetResult();
+            Assert.True(harness.Main.Connection.HasRecentlyClosedTab);
+
+            Assert.NotNull(FindMenuItem(CreateSessionTabMenu(harness.Main, session), reopen));
+        });
+    }
+
+    [Fact]
+    public void SessionTabContextMenu_TabInAFolder_OffersToCloseTheFolderTabs()
+    {
+        RunOnStaThread(() =>
+        {
+            using TestHarness harness = TestHarness.Create();
+            SessionTabViewModel session = CreateSession("session-id", "SSH");
+            harness.Main.Connection.ActiveSessions.Add(session);
+            string closeFolder = harness.Main.Localize("SessionCloseFolderTabs");
+
+            Assert.Null(FindMenuItem(CreateSessionTabMenu(harness.Main, session), closeFolder));
+
+            session.TabGroupKey = "Ops";
+            Assert.NotNull(FindMenuItem(CreateSessionTabMenu(harness.Main, session), closeFolder));
+        });
+    }
+
     private static SessionTabViewModel CreateSession(string serverId, string connectionType)
     {
         return new SessionTabViewModel

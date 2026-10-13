@@ -179,7 +179,16 @@ public partial class MainWindow
         e.Effects = System.Windows.DragDropEffects.Move;
 
         var targetTab = ResolveDropTargetTab(e);
-        if (targetTab is not null && targetTab.DataContext != _tabState.DragItem)
+        if (targetTab is not null
+            && targetTab.DataContext != _tabState.DragItem
+            && targetTab.DataContext is SessionTabViewModel hovered
+            && _tabState.DragItem is { } draggedTab
+            && !TabDropDecision.CanReorderOnto(hovered, draggedTab, IsArrangedByFolder()))
+        {
+            // A tab of another folder is not a place this tab can go: no highlight, no zone.
+            ContentDropZone.Visibility = Visibility.Collapsed;
+        }
+        else if (targetTab is not null && targetTab.DataContext != _tabState.DragItem)
         {
             DropTargetVisualState.SetIsDropTarget(targetTab, true);
             _tabState.LastDropHighlight = targetTab;
@@ -227,7 +236,8 @@ public partial class MainWindow
         // to a floating window, which only a drop outside the host does.
         e.Handled = true;
 
-        switch (TabDropDecision.Decide(IsOverTabStrip(e), targetItem, draggedItem, vm.DragDisplaySession))
+        switch (TabDropDecision.Decide(
+            IsOverTabStrip(e), targetItem, draggedItem, vm.DragDisplaySession, vm.Connection.GroupTabsByFolder))
         {
             case TabDropAction.Reorder:
                 // Confined to the dragged tab's pinned group by MoveSession.
@@ -260,6 +270,28 @@ public partial class MainWindow
 
             default:
                 return;
+        }
+    }
+
+    private bool IsArrangedByFolder() => GetMainVm()?.Connection.GroupTabsByFolder == true;
+
+    /// <summary>
+    /// Closes the tab under a middle-click, as browsers and editors do. Goes through the close
+    /// command, so a connected session still asks first.
+    /// </summary>
+    private void OnTabMiddleClick(object sender, MouseButtonEventArgs e)
+    {
+        if (e.ChangedButton != MouseButton.Middle
+            || FindAncestor<TabItem>(e.OriginalSource as DependencyObject)?.DataContext is not SessionTabViewModel session
+            || GetMainVm() is not { } vm)
+        {
+            return;
+        }
+
+        e.Handled = true;
+        if (vm.Connection.CloseSessionCommand.CanExecute(session))
+        {
+            vm.Connection.CloseSessionCommand.Execute(session);
         }
     }
 

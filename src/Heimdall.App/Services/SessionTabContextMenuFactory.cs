@@ -226,6 +226,17 @@ public sealed class SessionTabContextMenuFactory
         return result;
     }
 
+    /// <summary>
+    /// Every tab of the folder <paramref name="folderKey"/>, in tab order, the tab the menu was
+    /// opened on included. Pure; used by "Close this folder's tabs".
+    /// </summary>
+    internal static IReadOnlyList<SessionTabViewModel> SessionsInFolder(
+        IReadOnlyList<SessionTabViewModel> ordered,
+        string folderKey)
+        => ordered
+            .Where(session => string.Equals(session.TabGroupKey, folderKey, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
     // --- Rename / Reset title / Pin ---
 
     private static void AppendTitleAndPinItems(
@@ -287,6 +298,13 @@ public sealed class SessionTabContextMenuFactory
         groupItem.Unchecked += (_, _) => vm.Connection.GroupTabsByFolder = false;
         menu.Items.Add(groupItem);
 
+        if (vm.Connection.HasRecentlyClosedTab)
+        {
+            var reopenItem = new MenuItem { Header = vm.Localize("SessionReopenClosedTab") };
+            reopenItem.Click += (_, _) => vm.Session.ReopenClosedTab();
+            menu.Items.Add(reopenItem);
+        }
+
         if (!session.HasTabGroup)
         {
             return;
@@ -340,7 +358,11 @@ public sealed class SessionTabContextMenuFactory
         menu.Items.Add(duplicateItem);
 
         // Fullscreen toggle
-        var fullscreenItem = new MenuItem { Header = vm.Localize("SessionFullscreen") };
+        var fullscreenItem = new MenuItem
+        {
+            Header = vm.Localize("SessionFullscreen"),
+            InputGestureText = "F11"
+        };
         fullscreenItem.Click += (_, _) => callbacks.ToggleFullscreen();
         menu.Items.Add(fullscreenItem);
 
@@ -798,6 +820,19 @@ public sealed class SessionTabContextMenuFactory
                 DisconnectReason.UserAction);
         };
         menu.Items.Add(closeRightItem);
+
+        if (session.TabGroupKey is { } folder)
+        {
+            IReadOnlyList<SessionTabViewModel> folderTargets = SessionsInFolder(ordered.ToList(), folder);
+            var closeFolderItem = new MenuItem { Header = vm.Localize("SessionCloseFolderTabs") };
+            closeFolderItem.Click += async (_, _) =>
+            {
+                await vm.Connection.CloseSessionsAsync(
+                    folderTargets,
+                    DisconnectReason.UserAction);
+            };
+            menu.Items.Add(closeFolderItem);
+        }
     }
 
     // ── Split / merge / unsplit items ────────────────────────────────

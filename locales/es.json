@@ -2472,10 +2472,12 @@
 
   "SessionDisconnect": "Desconectar",
   "SessionAspectStretch": "Ajustar",
-  "SessionFullscreen": "Pantalla completa (F11)",
+  "SessionFullscreen": "Pantalla completa",
   "SessionCloseSession": "Cerrar sesión",
   "SessionCloseOthers": "Cerrar las demás",
   "SessionCloseToRight": "Cerrar las de la derecha",
+  "SessionCloseFolderTabs": "Cerrar las pestañas de la carpeta",
+  "SessionReopenClosedTab": "Reabrir la pestaña cerrada",
   "SessionRevealInTree": "Mostrar en el árbol",
   "SessionRenameTab": "Renombrar pestaña",
   "SessionResetTitle": "Restablecer título",

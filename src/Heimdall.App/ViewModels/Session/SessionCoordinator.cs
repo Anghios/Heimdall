@@ -1270,8 +1270,33 @@ public sealed partial class SessionCoordinator : ObservableObject, IDisposable
             return;
         }
 
-        ServerItemViewModel? server = _main.ServerList.Servers.FirstOrDefault(
+        // The whole inventory, not the tree's filtered view: with a search or a filter hiding the
+        // profile in the tree, Duplicate did nothing.
+        ServerItemViewModel? server = _main.ServerList.AllServers.FirstOrDefault(
             candidate => string.Equals(candidate.Id, lookupId, StringComparison.Ordinal));
+        if (server is not null)
+        {
+            _main.ServerList.ConnectCommand.Execute(server);
+        }
+    }
+
+    /// <summary>
+    /// Reconnects the profile of the most recently closed tab, skipping profiles deleted since.
+    /// </summary>
+    public void ReopenClosedTab()
+    {
+        if (_main.ServerList.ConnectCommand is null)
+        {
+            return;
+        }
+
+        string? profileId = _main.Connection.TakeMostRecentlyClosed(
+            id => _main.ServerList.AllServers.Any(
+                candidate => string.Equals(candidate.Id, id, StringComparison.Ordinal)));
+        ServerItemViewModel? server = profileId is null
+            ? null
+            : _main.ServerList.AllServers.First(
+                candidate => string.Equals(candidate.Id, profileId, StringComparison.Ordinal));
         if (server is not null)
         {
             _main.ServerList.ConnectCommand.Execute(server);

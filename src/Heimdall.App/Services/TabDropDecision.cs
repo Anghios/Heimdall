@@ -49,17 +49,21 @@ internal static class TabDropDecision
     /// <param name="targetTab">The tab under the drop point, or null.</param>
     /// <param name="dragged">The tab being dragged.</param>
     /// <param name="displayed">The session shown in the content area while dragging, or null.</param>
+    /// <param name="tabsArrangedByFolder">The strip arranges the tabs by folder.</param>
     internal static TabDropAction Decide(
         bool overTabStrip,
         SessionTabViewModel? targetTab,
         SessionTabViewModel dragged,
-        SessionTabViewModel? displayed)
+        SessionTabViewModel? displayed,
+        bool tabsArrangedByFolder = false)
     {
         ArgumentNullException.ThrowIfNull(dragged);
 
         if (targetTab is not null)
         {
-            return ReferenceEquals(targetTab, dragged) ? TabDropAction.None : TabDropAction.Reorder;
+            return ReferenceEquals(targetTab, dragged) || !CanReorderOnto(targetTab, dragged, tabsArrangedByFolder)
+                ? TabDropAction.None
+                : TabDropAction.Reorder;
         }
 
         if (overTabStrip)
@@ -70,5 +74,23 @@ internal static class TabDropDecision
         return displayed is null || ReferenceEquals(displayed, dragged)
             ? TabDropAction.None
             : TabDropAction.Merge;
+    }
+
+    /// <summary>
+    /// Whether a tab may be dropped onto <paramref name="target"/> to take its place. With the
+    /// tabs arranged by folder, only within its own folder: the arrangement puts a tab moved into
+    /// another folder straight back, so the drop used to land and then undo itself unexplained.
+    /// A drop target refused here is not highlighted either.
+    /// </summary>
+    internal static bool CanReorderOnto(
+        SessionTabViewModel target,
+        SessionTabViewModel dragged,
+        bool tabsArrangedByFolder)
+    {
+        ArgumentNullException.ThrowIfNull(target);
+        ArgumentNullException.ThrowIfNull(dragged);
+
+        return !tabsArrangedByFolder
+            || string.Equals(target.TabGroupKey, dragged.TabGroupKey, StringComparison.OrdinalIgnoreCase);
     }
 }
