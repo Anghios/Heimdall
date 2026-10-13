@@ -1955,29 +1955,13 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
                 TryExecute(vm.Connection.CloseSessionCommand, active);
         }, canExecute: () => !IsTerminalFocusedContext());
 
-        // Ctrl+Tab: cycle to next session
+        // Ctrl+Tab: cycle to next session, skipping tabs folded away in a collapsed folder
         _keyboardShortcutService.Register(Key.Tab, ModifierKeys.Control, () =>
-        {
-            if (GetMainVm() is not { } vm) return;
-            var sessions = vm.Connection.ActiveSessions;
-            if (sessions.Count > 1 && vm.Connection.ActiveSession is not null)
-            {
-                var idx = sessions.IndexOf(vm.Connection.ActiveSession);
-                vm.Connection.ActiveSession = sessions[(idx + 1) % sessions.Count];
-            }
-        });
+            GetMainVm()?.Connection.SelectAdjacentTab(1));
 
-        // Ctrl+Shift+Tab: cycle to previous session
+        // Ctrl+Shift+Tab: cycle to previous session, same skipping
         _keyboardShortcutService.Register(Key.Tab, ModifierKeys.Control | ModifierKeys.Shift, () =>
-        {
-            if (GetMainVm() is not { } vm) return;
-            var sessions = vm.Connection.ActiveSessions;
-            if (sessions.Count > 1 && vm.Connection.ActiveSession is not null)
-            {
-                var idx = sessions.IndexOf(vm.Connection.ActiveSession);
-                vm.Connection.ActiveSession = sessions[(idx - 1 + sessions.Count) % sessions.Count];
-            }
-        });
+            GetMainVm()?.Connection.SelectAdjacentTab(-1));
 
         // ── Modifier-laxist function keys (legacy: fire regardless of modifiers) ──
         // F1: show keyboard shortcut help

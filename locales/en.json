@@ -2486,6 +2486,7 @@
   "SessionExpandTabGroup": "Expand this folder's tabs",
   "SessionTabGroupChipExpandedA11y": "Tabs of folder {0}, expanded",
   "SessionTabGroupChipCollapsedA11y": "Tabs of folder {0}, collapsed",
+  "SessionTabListButton": "All open tabs",
   "SessionTitleSuffixForcedEmbedded": "(forced embedded)",
   "SessionTitleSuffixForcedExternal": "(forced external)",
   "ConfirmCloseSessionTitle": "Close Active Session",

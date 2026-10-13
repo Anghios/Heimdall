@@ -306,6 +306,57 @@ public sealed class ConnectionViewModelTabGroupTests
         Assert.Null(ConnectionViewModel.NearestTabOutsideGroup([member], Ops));
     }
 
+    [Fact]
+    public void SelectAdjacentTab_SkipsACollapsedFolderWhole_AndLeavesItCollapsed()
+    {
+        ConnectionViewModel sut = CreateViewModel(groupByFolder: true);
+        SessionTabViewModel loose = Open(sut, "no-folder");
+        SessionTabViewModel ops1 = Open(sut, "ops-1");
+        Open(sut, "ops-2");
+        SessionTabViewModel lab1 = Open(sut, "lab-1");
+        sut.ToggleTabGroupCollapsedCommand.Execute(ops1);
+        sut.ActiveSession = loose;
+
+        sut.SelectAdjacentTab(1);
+
+        Assert.Same(lab1, sut.ActiveSession);
+        Assert.True(ops1.IsTabGroupCollapsed);
+
+        sut.SelectAdjacentTab(1);
+        Assert.Same(loose, sut.ActiveSession);
+
+        sut.SelectAdjacentTab(-1);
+        Assert.Same(lab1, sut.ActiveSession);
+        Assert.True(ops1.IsTabGroupCollapsed);
+    }
+
+    [Fact]
+    public void SelectAdjacentTab_ExpandedFolder_IsWalkedTabByTab()
+    {
+        ConnectionViewModel sut = CreateViewModel(groupByFolder: true);
+        SessionTabViewModel ops1 = Open(sut, "ops-1");
+        SessionTabViewModel ops2 = Open(sut, "ops-2");
+        SessionTabViewModel lab1 = Open(sut, "lab-1");
+        sut.ActiveSession = ops1;
+
+        sut.SelectAdjacentTab(1);
+        Assert.Same(ops2, sut.ActiveSession);
+
+        sut.SelectAdjacentTab(1);
+        Assert.Same(lab1, sut.ActiveSession);
+    }
+
+    [Fact]
+    public void NextVisibleTab_NoOtherReachableTab_ReturnsNull()
+    {
+        SessionTabViewModel only = new() { Title = "only" };
+        SessionTabViewModel folded = new() { Title = "folded", IsTabGroupCollapsed = true };
+
+        Assert.Null(ConnectionViewModel.NextVisibleTab([only, folded], only, 1));
+        Assert.Null(ConnectionViewModel.NextVisibleTab([only], only, -1));
+        Assert.Null(ConnectionViewModel.NextVisibleTab([only], new SessionTabViewModel(), 1));
+    }
+
     private ConnectionViewModel CreateViewModel(bool groupByFolder)
     {
         ConnectionViewModel viewModel = new(

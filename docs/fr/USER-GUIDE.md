@@ -116,6 +116,15 @@ que vous utilisez souvent.
 - Après un déplacement, un renommage dans l'arbre ou un réordonnancement de sessions, la barre sous l'arbre nomme la modification et propose **Annuler** pendant 30 secondes. Une seule étape est conservée pendant la session courante de l'application. L'annulation ne couvre pas la suppression et refuse une modification ultérieure incompatible. Supprimer un dossier retire la proposition. Pour les dossiers, un changement ultérieur d'organisation ou de valeurs par défaut empêche l'annulation.
 - La touche **Suppr** agit sur les sessions, jamais sur un dossier : pour supprimer un dossier, utilisez **Supprimer le dossier** dans son menu.
 
+### Quand les onglets ne tiennent plus
+
+- La barre défile d'elle-même jusqu'à l'onglet choisi, et la molette la fait défiler sur le côté.
+- Un bouton **Tous les onglets ouverts** apparaît au bout de la barre. Il liste tous les onglets
+  ouverts, y compris ceux sortis de la vue et ceux d'un dossier replié, l'onglet ouvert en gras ;
+  choisissez-en un pour y passer.
+- Pour envoyer un onglet en dernier, glissez-le sur la partie vide de la barre, après le dernier
+  onglet. Le déposer sur la zone de session en dessous scinde cette session.
+
 ### Ranger vos onglets par dossier
 
 Faites un clic droit sur un onglet de session et cochez **Grouper les onglets par dossier**. Les
@@ -323,6 +332,7 @@ Appuyez sur **F1** à tout moment pour la liste complète. Ceux qui se rentabili
 | `Ctrl+S` | Dans l'onglet Paramètres, enregistrer les paramètres quand il y a des modifications à enregistrer |
 | `F11` | Plein écran, `Echap` pour en sortir |
 | `Ctrl+Shift+T` | Basculer le panneau gauche entre Sessions et Outils |
+| `Ctrl+Tab` | Onglet suivant, `Ctrl+Shift+Tab` pour le précédent ; un dossier replié est sauté |
 | `Ctrl+A` | Dans l'arborescence, sélectionner toutes les sessions des dossiers ouverts |
 | `Alt+Haut` / `Alt+Bas` | Déplacer la session en surbrillance dans son dossier |
 | `F2` | Renommer la session ou le dossier sélectionné |

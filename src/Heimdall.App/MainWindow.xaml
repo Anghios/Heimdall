@@ -1331,6 +1331,8 @@
                                     PreviewMouseLeftButtonDown="OnTabDragStart"
                                     PreviewMouseMove="OnTabDragMove"
                                     QueryContinueDrag="OnTabQueryContinueDrag"
+                                    Loaded="OnSessionTabStripLoaded"
+                                    SelectionChanged="OnSessionTabSelectionChanged"
                                     Tag="{loc:Translate A11yCloseSessionTab}"
                                     AutomationProperties.Name="{loc:Translate NavTabSessions}">
                             <TabControl.ItemContainerStyle>
@@ -1585,6 +1587,29 @@
                                 </DataTemplate>
                             </TabControl.ItemTemplate>
                         </TabControl>
+
+                        <!-- Every open tab, folded-away ones included, shown only while the tabs
+                             overflow the strip. Drawn over the strip's right end; the strip
+                             makes room for it so the selected tab never sits underneath. -->
+                        <Button x:Name="Mw_SessionTabListButton"
+                                Grid.Row="0"
+                                HorizontalAlignment="Right"
+                                VerticalAlignment="Stretch"
+                                Width="{StaticResource SessionTabListButtonWidth}"
+                                Margin="0,8,0,1"
+                                Padding="0"
+                                Visibility="Collapsed"
+                                Click="OnSessionTabListButtonClick"
+                                Background="{DynamicResource SurfaceBrush}"
+                                ToolTip="{loc:Translate SessionTabListButton}"
+                                AutomationProperties.Name="{loc:Translate SessionTabListButton}"
+                                Style="{DynamicResource SecondaryButtonStyle}">
+                            <!-- The icon font sits on the glyph alone: the tab list menu takes its font
+                                 from the button it opens from, and drew every title as empty boxes. -->
+                            <TextBlock Text="&#xE70D;"
+                                       FontFamily="Segoe MDL2 Assets"
+                                       FontSize="{StaticResource FontSizeSmallCaption}"/>
+                        </Button>
 
                         <Grid x:Name="SessionContentHost"
                               Grid.Row="1"

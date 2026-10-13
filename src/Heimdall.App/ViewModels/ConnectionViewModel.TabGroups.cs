@@ -126,6 +126,59 @@ public partial class ConnectionViewModel
     }
 
     /// <summary>
+    /// Selects the next tab (<paramref name="step"/> = 1) or the previous one (-1), wrapping round
+    /// the strip. A collapsed folder is skipped whole, its chip included, as a browser skips a
+    /// collapsed tab group: landing on any of its tabs would unfold it and undo the collapse.
+    /// </summary>
+    public void SelectAdjacentTab(int step)
+    {
+        if (ActiveSession is not { } current
+            || NextVisibleTab(ActiveSessions, current, step) is not { } next)
+        {
+            return;
+        }
+
+        ActiveSession = next;
+    }
+
+    /// <summary>
+    /// The tab <paramref name="step"/> places away from <paramref name="current"/>, wrapping round
+    /// and skipping every tab of a collapsed folder. Null when there is no other tab to reach.
+    /// </summary>
+    internal static SessionTabViewModel? NextVisibleTab(
+        IReadOnlyList<SessionTabViewModel> ordered,
+        SessionTabViewModel current,
+        int step)
+    {
+        int start = -1;
+        for (int index = 0; index < ordered.Count; index++)
+        {
+            if (ReferenceEquals(ordered[index], current))
+            {
+                start = index;
+                break;
+            }
+        }
+
+        if (start < 0 || step == 0)
+        {
+            return null;
+        }
+
+        int direction = Math.Sign(step);
+        for (int offset = 1; offset < ordered.Count; offset++)
+        {
+            int index = ((start + (direction * offset)) % ordered.Count + ordered.Count) % ordered.Count;
+            if (!ordered[index].IsTabGroupCollapsed)
+            {
+                return ordered[index];
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
     /// Stable order for the strip: pinned tabs first, then the rest with the tabs of each folder
     /// group gathered where the group's first tab stands. Ungrouped tabs keep their place
     /// relative to the groups. With no group assigned this is exactly the pinned partition.

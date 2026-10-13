@@ -110,6 +110,15 @@ directly such as `admin@192.168.1.10`. It is the fastest way to reach something 
 - After a move, inline rename, or session reorder, the bar below the tree names the change and offers **Undo** for 30 seconds. One step is kept during the current application session. Undo does not cover deletion, and refuses an incompatible later edit. Deleting a folder withdraws the offer. For folders, a later organization or folder-defaults change prevents undo.
 - The **Delete** key acts on sessions, never on a folder: to delete a folder, use **Delete folder** in its menu.
 
+### When the tabs no longer fit
+
+- The strip scrolls by itself to the tab you switch to, and the mouse wheel scrolls it sideways.
+- An **All open tabs** button appears at the right end of the strip. It lists every open tab,
+  those scrolled out of sight and those of a collapsed folder included, with the open one in
+  bold; pick one to switch to it.
+- To move a tab to the end, drag it onto the empty part of the strip after the last tab.
+  Dropping it on the session area below splits that session instead.
+
 ### Arrange your tabs by folder
 
 Right-click any session tab and tick **Arrange tabs by folder**. The tabs of each folder then sit
@@ -298,6 +307,7 @@ Press **F1** at any time for the full list. The ones that pay for themselves imm
 | `Ctrl+S` | On the Settings tab, save the settings when there are changes to save |
 | `F11` | Fullscreen, `Escape` to leave it |
 | `Ctrl+Shift+T` | Switch the left panel between Sessions and Tools |
+| `Ctrl+Tab` | Next tab, `Ctrl+Shift+Tab` for the previous one; a collapsed folder is skipped |
 | `Ctrl+A` | In the sessions tree, select every session in the open folders |
 | `Alt+Up` / `Alt+Down` | Move the focused session within its folder |
 | `F2` | Rename the selected session or folder |

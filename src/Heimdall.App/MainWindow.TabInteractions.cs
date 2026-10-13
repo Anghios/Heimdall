@@ -17,6 +17,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using Heimdall.App.Services;
 using Heimdall.App.Theming;
 using Heimdall.App.ViewModels;
 
@@ -184,6 +185,11 @@ public partial class MainWindow
             _tabState.LastDropHighlight = targetTab;
             ContentDropZone.Visibility = Visibility.Collapsed;
         }
+        else if (targetTab is null && IsOverTabStrip(e))
+        {
+            // The empty strip after the last tab moves the tab to the end; it is not a split.
+            ContentDropZone.Visibility = Visibility.Collapsed;
+        }
         else if (targetTab is null && _tabState.DragItem is not null)
         {
             // Dragging over the content area - show split drop zone
@@ -214,54 +220,56 @@ public partial class MainWindow
         var draggedItem = e.Data.GetData("SessionTab") as SessionTabViewModel;
         if (draggedItem is null) return;
 
-        // Find the drop target tab
         var dropTarget = ResolveDropTargetTab(e);
         var targetItem = dropTarget?.DataContext as SessionTabViewModel;
 
-        if (targetItem is not null && targetItem != draggedItem)
-        {
-            // Drop on tab header → reorder, confined to the dragged tab's pinned group
-            var sessions = vm.Connection.ActiveSessions;
-            int oldIndex = sessions.IndexOf(draggedItem);
-            int newIndex = sessions.IndexOf(targetItem);
+        // Whatever the outcome, the drop was taken here: a handled drop never detaches the tab
+        // to a floating window, which only a drop outside the host does.
+        e.Handled = true;
 
-            if (oldIndex >= 0 && newIndex >= 0 && oldIndex != newIndex)
-            {
-                vm.Connection.MoveSession(draggedItem, newIndex);
-            }
-
-            e.Handled = true;
-            return;
-        }
-        else if (targetItem is null)
+        switch (TabDropDecision.Decide(IsOverTabStrip(e), targetItem, draggedItem, vm.DragDisplaySession))
         {
-            // Drop on content area → merge with the frozen target session, not
-            // the live selected tab that WPF may have switched during the drag.
-            var targetSession = vm.DragDisplaySession;
-            if (targetSession is null || targetSession == draggedItem)
-            {
-                e.Handled = true;
+            case TabDropAction.Reorder:
+                // Confined to the dragged tab's pinned group by MoveSession.
+                vm.Connection.MoveSession(draggedItem, vm.Connection.ActiveSessions.IndexOf(targetItem!));
                 return;
-            }
 
-            // Determine orientation based on drop position relative to the
-            // content host, not the header-only tab strip.
-            var pos = e.GetPosition(SessionContentHost);
-            var width = SessionContentHost.ActualWidth;
-            var height = SessionContentHost.ActualHeight;
+            case TabDropAction.MoveToEnd:
+                vm.Connection.MoveSession(draggedItem, vm.Connection.ActiveSessions.Count - 1);
+                return;
 
-            // If aspect ratio favors horizontal proximity, split horizontal
-            var relY = (height > 0) ? pos.Y / height : 0.5;
-            var relX = (width > 0) ? pos.X / width : 0.5;
-            var distFromHEdge = Math.Min(relY, 1 - relY);
-            var distFromVEdge = Math.Min(relX, 1 - relX);
-            var orientation = distFromHEdge < distFromVEdge
-                ? Heimdall.Core.Models.SplitOrientation.Horizontal
-                : Heimdall.Core.Models.SplitOrientation.Vertical;
+            case TabDropAction.Merge:
+                // Merge with the frozen target session, not the live selected tab that WPF may
+                // have switched during the drag. The orientation follows the drop position
+                // relative to the content host, not the header-only tab strip.
+                var pos = e.GetPosition(SessionContentHost);
+                var width = SessionContentHost.ActualWidth;
+                var height = SessionContentHost.ActualHeight;
 
-            vm.MergeExistingSession(targetSession, draggedItem.ServerId, orientation);
-            e.Handled = true;
-            return; // Prevent detach-to-floating-window fallback
+                // If aspect ratio favors horizontal proximity, split horizontal
+                var relY = (height > 0) ? pos.Y / height : 0.5;
+                var relX = (width > 0) ? pos.X / width : 0.5;
+                var distFromHEdge = Math.Min(relY, 1 - relY);
+                var distFromVEdge = Math.Min(relX, 1 - relX);
+                var orientation = distFromHEdge < distFromVEdge
+                    ? Heimdall.Core.Models.SplitOrientation.Horizontal
+                    : Heimdall.Core.Models.SplitOrientation.Vertical;
+
+                vm.MergeExistingSession(vm.DragDisplaySession!, draggedItem.ServerId, orientation);
+                return;
+
+            default:
+                return;
         }
+    }
+
+    /// <summary>True when the drag point is inside the tab strip rather than the content area.</summary>
+    private bool IsOverTabStrip(System.Windows.DragEventArgs e)
+    {
+        var position = e.GetPosition(SessionTabControl);
+        return position.X >= 0
+            && position.Y >= 0
+            && position.X <= SessionTabControl.ActualWidth
+            && position.Y <= SessionTabControl.ActualHeight;
     }
 }
