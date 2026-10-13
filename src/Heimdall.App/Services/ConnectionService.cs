@@ -250,6 +250,12 @@ public sealed class ConnectionService : IConnectionService
         CancellationToken ct = default)
         => DispatchAsync("VNC", server, settings, ct);
 
+    public Task<ConnectionResult> ConnectWebAsync(
+        ServerProfileDto server,
+        AppSettings settings,
+        CancellationToken ct = default)
+        => DispatchAsync("WEB", server, settings, ct);
+
     public Task<ConnectionResult> ConnectTelnetAsync(
         ServerProfileDto server,
         AppSettings settings,

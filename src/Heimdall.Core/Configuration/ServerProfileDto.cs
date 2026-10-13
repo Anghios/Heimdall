@@ -463,6 +463,32 @@ public sealed class ServerProfileDto : IJsonOnDeserialized
     public string? TelnetUsername { get; set; }
     public string? TelnetPasswordEncrypted { get; set; }
 
+    // Web settings. The address is the profile's host plus these fields, so the tree, the
+    // health probe and the external tools keep reading one host like every other type.
+    public int WebPort { get; set; } = DefaultPorts.HttpsStd;
+
+    /// <summary>Whether the console is reached over plain HTTP; HTTPS otherwise.</summary>
+    public bool WebUseHttp { get; set; }
+
+    /// <summary>Path, query and fragment appended to the address, such as <c>/login.html</c>.</summary>
+    public string? WebPath { get; set; }
+
+    /// <summary>Answers an HTTP authentication challenge (Basic, NTLM); never fills a form.</summary>
+    public string? WebUsername { get; set; }
+    public string? WebPasswordEncrypted { get; set; }
+
+    /// <summary>
+    /// Opens the address with <see cref="WebExternalProgram"/> instead of the embedded browser,
+    /// for consoles whose web UI no current browser engine accepts.
+    /// </summary>
+    public bool WebOpenExternally { get; set; }
+
+    /// <summary>The program to start; empty means the system's default browser.</summary>
+    public string? WebExternalProgram { get; set; }
+
+    /// <summary>Arguments for <see cref="WebExternalProgram"/>; {Url}, {Host} and {Port} are expanded.</summary>
+    public string? WebExternalArguments { get; set; }
+
     /// <summary>
     /// Returns an independent copy of this profile, identical in every observable respect.
     /// </summary>

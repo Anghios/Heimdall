@@ -66,6 +66,7 @@ public static class ConnectionStateSets
             ConnectionState.LaunchingTelnet,
             ConnectionState.LaunchingCitrix,
             ConnectionState.LaunchingWinRm,
+            ConnectionState.LaunchingWeb,
             ConnectionState.Disconnecting
         }.ToFrozenSet();
 

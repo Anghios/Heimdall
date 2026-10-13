@@ -78,6 +78,7 @@ public sealed class ServerStatusToColorConverter : IMultiValueConverter
                 or "tunnelestablished" or "launchingrdp" or "launchingssh"
                 or "launchingsftp" or "launchingftp" or "launchingvnc"
                 or "launchingtelnet" or "launchinglocal" or "launchingcitrix" or "launchingwinrm"
+                or "launchingweb"
                 or "disconnecting" => ResolveBrush("WarningBrush", Brushes.Orange),
             // Disconnected (or unknown state): prefer the live health verdict when
             // available, otherwise fall back to the legacy connection-type palette.
@@ -105,6 +106,7 @@ public sealed class ServerStatusToColorConverter : IMultiValueConverter
         "SFTP" => ResolveBrush("WarningBrush", Brushes.Orange),
         "FTP" => ResolveBrush("WarningBrush", Brushes.Orange),
         "VNC" => ResolveBrush("InfoBrush", Brushes.Cyan),
+        "WEB" => ResolveBrush("InfoBrush", Brushes.Cyan),
         "TELNET" => ResolveBrush("SuccessBrush", Brushes.Green),
         "CITRIX" => ResolveBrush("InfoBrush", Brushes.Cyan),
         "LOCAL" => ResolveBrush("BorderBrush", Brushes.Gray),

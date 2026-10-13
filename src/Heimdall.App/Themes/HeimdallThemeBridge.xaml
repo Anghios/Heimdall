@@ -57,6 +57,7 @@
     <SolidColorBrush x:Key="ProtocolWinRmBrush" Color="{DynamicResource PurpleColor}" />
     <SolidColorBrush x:Key="ProtocolSftpBrush" Color="{DynamicResource OrangeColor}" />
     <SolidColorBrush x:Key="ProtocolVncBrush" Color="{DynamicResource CyanColor}" />
+    <SolidColorBrush x:Key="ProtocolWebBrush" Color="{DynamicResource PinkColor}" />
     <SolidColorBrush x:Key="ProtocolTelnetBrush" Color="{DynamicResource CommentColor}" />
     <SolidColorBrush x:Key="ProtocolFtpBrush" Color="{DynamicResource BlueColor}" />
     <SolidColorBrush x:Key="ProtocolCitrixBrush" Color="{DynamicResource PurpleColor}" />
@@ -68,6 +69,7 @@
     <SolidColorBrush x:Key="WinRmBadgeBrush" Color="{DynamicResource PurpleColor}" />
     <SolidColorBrush x:Key="SftpBadgeBrush" Color="{DynamicResource OrangeColor}" />
     <SolidColorBrush x:Key="VncBadgeBrush" Color="{DynamicResource CyanColor}" />
+    <SolidColorBrush x:Key="WebBadgeBrush" Color="{DynamicResource PinkColor}" />
     <SolidColorBrush x:Key="FtpBadgeBrush" Color="{DynamicResource BlueColor}" />
     <SolidColorBrush x:Key="CitrixBadgeBrush" Color="{DynamicResource PurpleColor}" />
     <SolidColorBrush x:Key="TelnetBadgeBrush" Color="{DynamicResource CommentColor}" />

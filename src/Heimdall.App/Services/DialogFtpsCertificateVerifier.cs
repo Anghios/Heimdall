@@ -54,7 +54,7 @@ internal sealed class DialogFtpsCertificateVerifier(
             // The queue needs the dispatcher to display prompts. Bypass it on the UI
             // thread to avoid deadlocking a caller that waits synchronously. This
             // request is not coalesced, but the UI thread serializes its own dialogs.
-            return ShowDialog(app, prompt, ct);
+            return ShowDialog(app, _localizer, prompt, CertificatePromptWording.Ftps, ct);
         }
 
         try
@@ -83,18 +83,24 @@ internal sealed class DialogFtpsCertificateVerifier(
     {
         if (app.Dispatcher.CheckAccess())
         {
-            return Task.FromResult(ShowDialog(app, prompt, ct));
+            return Task.FromResult(ShowDialog(app, _localizer, prompt, CertificatePromptWording.Ftps, ct));
         }
 
         return app.Dispatcher.InvokeAsync(
-            () => ShowDialog(app, prompt, ct),
+            () => ShowDialog(app, _localizer, prompt, CertificatePromptWording.Ftps, ct),
             System.Windows.Threading.DispatcherPriority.Normal,
             ct).Task;
     }
 
-    private FtpsCertificateDecision ShowDialog(
+    /// <summary>
+    /// Shows the certificate prompt modally on the calling (UI) thread. Also used by web
+    /// consoles, which ask from the browser's own certificate event and pass their wording.
+    /// </summary>
+    internal static FtpsCertificateDecision ShowDialog(
         Application app,
+        LocalizationManager localizer,
         FtpsCertificatePrompt prompt,
+        CertificatePromptWording wording,
         CancellationToken ct)
     {
         if (ct.IsCancellationRequested)
@@ -102,8 +108,8 @@ internal sealed class DialogFtpsCertificateVerifier(
             return FtpsCertificateDecision.Reject;
         }
 
-        var viewModel = new FtpsCertificatePromptDialogViewModel(_localizer, prompt);
-        var dialog = new FtpsCertificatePromptDialog(_localizer)
+        var viewModel = new FtpsCertificatePromptDialogViewModel(localizer, prompt, wording);
+        var dialog = new FtpsCertificatePromptDialog(localizer)
         {
             DataContext = viewModel
         };

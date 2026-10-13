@@ -948,7 +948,9 @@ public sealed partial class SessionCoordinator : ObservableObject, IDisposable
             tab.HostControl = hostControl;
             hostOwnsSession = true;
 
+            // RDP and a web console say Connected only once their surface has actually loaded.
             tab.Status = string.Equals(connectionType, "RDP", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(connectionType, "WEB", StringComparison.OrdinalIgnoreCase)
                 ? SessionStatusTokens.Connecting
                 : string.Equals(connectionType, "WINRM", StringComparison.OrdinalIgnoreCase)
                     ? SessionStatusTokens.RemoteSessionHandedOff
@@ -1663,6 +1665,7 @@ public sealed partial class SessionCoordinator : ObservableObject, IDisposable
             "RDP" => await _main.ServerList.ConnectionService.ConnectRdpAsync(runtimeProfile, settings),
             "SFTP" => await _main.ServerList.ConnectionService.ConnectSftpAsync(runtimeProfile, settings),
             "VNC" => await _main.ServerList.ConnectionService.ConnectVncAsync(runtimeProfile, settings),
+            "WEB" => await _main.ServerList.ConnectionService.ConnectWebAsync(runtimeProfile, settings),
             "TELNET" => await _main.ServerList.ConnectionService.ConnectTelnetAsync(runtimeProfile, settings),
             _ => await _main.ServerList.ConnectionService.ConnectSshAsync(runtimeProfile, settings),
         };

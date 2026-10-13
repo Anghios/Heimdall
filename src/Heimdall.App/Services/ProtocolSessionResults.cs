@@ -131,6 +131,32 @@ public sealed record VncSessionResult(
 }
 
 /// <summary>
+/// Holds what the embedded browser of a web profile needs. The view is
+/// <see cref="Views.EmbeddedWebView"/>.
+/// </summary>
+/// <param name="Address">The validated http(s) address, built by <see cref="Core.Configuration.WebAddress"/>.</param>
+/// <param name="Username">Answers an HTTP authentication challenge; null when the profile has none.</param>
+/// <param name="Password">Decrypted password for the same challenge.</param>
+public sealed record WebSessionResult(
+    string ServerId,
+    Uri Address,
+    string? Username = null,
+    string? Password = null,
+    bool? SessionLoggingOverride = null) : ISessionResult
+{
+    /// <summary>Lists every member but the password, which is only said to be present.</summary>
+    private bool PrintMembers(System.Text.StringBuilder builder)
+    {
+        builder.Append("ServerId = ").Append(ServerId)
+            .Append(", Address = ").Append(Address)
+            .Append(", Username = ").Append(Username)
+            .Append(", Password = ").Append(Password is null ? "null" : "***")
+            .Append(", SessionLoggingOverride = ").Append(SessionLoggingOverride);
+        return true;
+    }
+}
+
+/// <summary>
 /// Bundles an FTP browser session for use by the embedded SFTP/FTP view.
 /// </summary>
 public sealed record FtpSessionBundle(

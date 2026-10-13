@@ -58,6 +58,7 @@ public sealed class HardcodedColorGuardTests
             // System.Drawing.Color.FromArgb here converts an already-themed WPF
             // color for WebView2 interop — a type conversion, not a literal.
             [@"Views\EmbeddedVncView.xaml.cs"] = "theme color type conversion (WebView2 interop)",
+            [@"Views\EmbeddedWebView.xaml.cs"] = "theme color type conversion (WebView2 interop)",
         };
 
     private static readonly Regex ColorLiteralRegex = new(

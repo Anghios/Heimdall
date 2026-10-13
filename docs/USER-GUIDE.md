@@ -16,8 +16,8 @@ up in the first hour and the ones that come up when something goes wrong. For th
 features see the [README](../README.md); for developer topics see [DEVELOPMENT.md](DEVELOPMENT.md).
 
 Heimdall connects you to remote machines: Windows desktops over RDP, Linux and network gear
-over SSH, file transfers over SFTP and FTP, plus VNC, Telnet, Citrix, WinRM and a local shell.
-Everything opens in a tab inside one window.
+over SSH, file transfers over SFTP and FTP, plus VNC, Telnet, Citrix, WinRM, web consoles and a
+local shell. Everything opens in a tab inside one window.
 
 ---
 
@@ -86,6 +86,25 @@ If that same prompt appears again later for a machine you have already accepted,
 someone.** It can mean the machine was rebuilt, or that something is impersonating it. On that
 prompt the highlighted button is **Reject**: pressing Enter refuses the connection. Accepting the
 new key, or trusting it for this session only, takes a deliberate click.
+
+### Web consoles
+
+Choose **Web** when you add a session, for an iLO, an iDRAC, a switch or a NAS admin page. Type
+only the name or address in the host field: tick **Use plain HTTP** if the console has no HTTPS,
+and put a page such as `/login.html` in **Path**. The line under the path shows the address that
+will open.
+
+- The first time a console presents a certificate Windows does not trust, which is usual for a
+  self-signed one, Heimdall shows its fingerprint. **Trust certificate** remembers it,
+  **Trust this session** only until Heimdall closes. If the certificate changes later, you are
+  asked again with a warning.
+- A username and password in the profile answer the browser's own sign-in window (Basic or
+  NTLM). A sign-in form inside the page is not filled in.
+- For a console too old for today's browsers, open the **Options** tab and tick **Open with an
+  external program**. Name the program, for example an old portable browser, or leave it empty
+  for your default browser. `{Url}`, `{Host}` and `{Port}` in the arguments are replaced.
+- Web tabs share one browser profile: a console you signed in to stays signed in in the next tab
+  and after a restart.
 
 ### Quick connect
 

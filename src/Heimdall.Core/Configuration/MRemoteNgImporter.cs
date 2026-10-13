@@ -34,8 +34,8 @@ public static class MRemoteNgImporter
         ["VNC"] = "VNC",
         ["Telnet"] = "Telnet",
         ["Rlogin"] = "Telnet",
-        ["HTTP"] = "RDP",  // Fallback - no native HTTP in Heimdall
-        ["HTTPS"] = "RDP",
+        ["HTTP"] = "WEB",
+        ["HTTPS"] = "WEB",
         ["IntApp"] = "Local",
     };
 
@@ -128,6 +128,7 @@ public static class MRemoteNgImporter
             Origin = Models.ProfileOrigin.ImportMRemoteNg,
             RemoteServer = hostname ?? name!,
             ConnectionType = connectionType,
+            WebUseHttp = string.Equals(protocol, "HTTP", StringComparison.OrdinalIgnoreCase),
             UseDirectConnection = true,
             Group = string.IsNullOrWhiteSpace(groupPath) ? null : groupPath,
         };
@@ -166,6 +167,9 @@ public static class MRemoteNgImporter
                     break; // VNC doesn't use usernames
                 case "Telnet":
                     dto.TelnetUsername = fullUser;
+                    break;
+                case "WEB":
+                    dto.WebUsername = fullUser;
                     break;
             }
         }
@@ -247,6 +251,7 @@ public static class MRemoteNgImporter
             case "VNC": dto.VncPort = port; break;
             case "Telnet": dto.TelnetPort = port; break;
             case "FTP": dto.FtpPort = port; break;
+            case "WEB": dto.WebPort = port; break;
         }
     }
 
@@ -259,6 +264,7 @@ public static class MRemoteNgImporter
             case "VNC": dto.VncPort = Models.DefaultPorts.Vnc; dto.RemotePort = Models.DefaultPorts.Vnc; break;
             case "Telnet": dto.TelnetPort = Models.DefaultPorts.Telnet; dto.RemotePort = Models.DefaultPorts.Telnet; break;
             case "FTP": dto.FtpPort = Models.DefaultPorts.Ftp; dto.RemotePort = Models.DefaultPorts.Ftp; break;
+            case "WEB": dto.WebPort = WebAddress.DefaultPortFor(dto.WebUseHttp); break;
         }
     }
 

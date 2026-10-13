@@ -419,6 +419,28 @@
                             </StackPanel>
                         </Button>
 
+                        <!-- Web -->
+                        <Button x:Name="ProtocolCard_Web" Command="{Binding SelectProtocolCommand}" CommandParameter="WEB"
+                                AutomationProperties.Name="{loc:Translate ServerDialogProtocolWebName}"
+                                Style="{StaticResource ProtocolCardButtonStyle}">
+                            <StackPanel HorizontalAlignment="Center">
+                                <Path Data="{StaticResource Geo.Protocol.Web}"
+                                      Fill="{DynamicResource ProtocolWebBrush}"
+                                      Stretch="Uniform" Width="28" Height="28"
+                                      HorizontalAlignment="Center" Margin="0,0,0,8"/>
+                                <TextBlock x:Name="DlgSrv_ProtoWebName" HorizontalAlignment="Center"
+                                           Text="{loc:Translate ServerDialogProtocolWebName}"
+                                           FontWeight="SemiBold" FontSize="{StaticResource FontSizeBody}"
+                                           Foreground="{DynamicResource TextPrimaryBrush}"/>
+                                <TextBlock x:Name="DlgSrv_ProtoWebDesc" HorizontalAlignment="Center"
+                                           Text="{loc:Translate ServerDialogProtocolWebDesc}"
+                                           TextAlignment="Center" TextWrapping="Wrap"
+                                           FontSize="{StaticResource FontSizeCaption}"
+                                           Foreground="{DynamicResource TextSecondaryBrush}"
+                                           Margin="0,2,0,0"/>
+                            </StackPanel>
+                        </Button>
+
                         <!-- FTP -->
                         <Button x:Name="ProtocolCard_Ftp" Command="{Binding SelectProtocolCommand}" CommandParameter="FTP"
                                 AutomationProperties.Name="{loc:Translate ServerDialogProtocolFtpName}"
@@ -1116,6 +1138,75 @@
                                                        Style="{StaticResource DialogHintTextStyle}"
                                                        Margin="0,8,0,0"
                                                        TextWrapping="Wrap"/>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Web address and HTTP sign-in -->
+                                <Border>
+                                    <Border.Style>
+                                        <Style TargetType="Border" BasedOn="{StaticResource DialogSectionCardStyle}">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding ConnectionType}" Value="WEB">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <StackPanel>
+                                        <TextBlock Text="{loc:Translate ServerDialogWebAddressTitle}" Style="{StaticResource DialogSectionTitleStyle}"/>
+                                        <TextBlock Text="{loc:Translate ServerDialogWebAddressDesc}"
+                                                   Style="{StaticResource DialogSectionDescriptionStyle}"/>
+                                        <CheckBox x:Name="DlgSrv_WebUseHttpCb"
+                                                  TabIndex="10"
+                                                  Content="{loc:Translate ServerDialogWebUseHttp}"
+                                                  AutomationProperties.Name="{loc:Translate ServerDialogWebUseHttp}"
+                                                  IsChecked="{Binding WebUseHttp}"
+                                                  Foreground="{DynamicResource TextPrimaryBrush}"
+                                                  Margin="0,14,0,0"/>
+                                        <TextBlock Text="{loc:Translate ServerDialogWebPath}" Style="{StaticResource LabelStyle}" Margin="0,14,0,4"/>
+                                        <TextBox x:Name="DlgSrv_WebPathBox" TabIndex="10"
+                                                 AutomationProperties.Name="{loc:Translate ServerDialogWebPath}"
+                                                 Text="{Binding WebPath, UpdateSourceTrigger=PropertyChanged}"
+                                                 Style="{StaticResource DialogFormTextBoxStyle}"/>
+                                        <TextBlock x:Name="DlgSrv_WebAddressPreview"
+                                                   Text="{Binding WebAddressPreview}"
+                                                   Style="{StaticResource DialogHintTextStyle}"
+                                                   TextWrapping="Wrap"
+                                                   Margin="0,8,0,0"
+                                                   AutomationProperties.LiveSetting="Polite"/>
+                                        <TextBlock Text="{loc:Translate ServerDialogWebSignInTitle}" Style="{StaticResource DialogSectionTitleStyle}" Margin="0,18,0,0"/>
+                                        <TextBlock Text="{loc:Translate ServerDialogWebSignInDesc}"
+                                                   Style="{StaticResource DialogSectionDescriptionStyle}"/>
+                                        <TextBlock Text="{loc:Translate ServerDialogLabelUsername}" Style="{StaticResource LabelStyle}" Margin="0,14,0,4"/>
+                                        <TextBox x:Name="DlgSrv_WebUsernameBox" TabIndex="10"
+                                                 AutomationProperties.Name="{loc:Translate ServerDialogLabelUsername}"
+                                                 Text="{Binding WebUsername, UpdateSourceTrigger=PropertyChanged}"
+                                                 Style="{StaticResource DialogFormTextBoxStyle}"/>
+                                        <TextBlock Text="{loc:Translate ServerDialogLabelPassword}" Style="{StaticResource LabelStyle}" Margin="0,14,0,4"/>
+                                        <PasswordBox x:Name="WebPasswordBox" TabIndex="10"
+                                                     AutomationProperties.Name="{loc:Translate ServerDialogLabelPassword}"
+                                                     PasswordChanged="OnCredentialPasswordChanged"
+                                                     Style="{StaticResource DialogFormPasswordBoxStyle}"/>
+                                        <StackPanel Orientation="Horizontal"
+                                                    Margin="0,8,0,0"
+                                                    Visibility="{Binding HasStoredWebPassword, Converter={StaticResource BoolToVisibilityConverter}}">
+                                            <TextBlock Text="{loc:Translate GatewayPasswordSaved}"
+                                                       Style="{StaticResource DialogHintTextStyle}"
+                                                       VerticalAlignment="Center"/>
+                                            <Button Content="{loc:Translate GatewayPasswordClear}"
+                                                    Command="{Binding ClearStoredWebPasswordCommand}"
+                                                    x:Name="DlgSrv_ClearWebPasswordBtn"
+                                                    Click="OnClearStoredCredentialClick"
+                                                    Tag="WebPasswordBox"
+                                                    ToolTip="{loc:Translate ServerDialogClearStoredPassword}"
+                                                    AutomationProperties.Name="{loc:Translate ServerDialogClearStoredPassword}"
+                                                    Style="{StaticResource GhostButtonStyle}"
+                                                    FontSize="{StaticResource FontSizeCaption}"
+                                                    Padding="8,2"
+                                                    MinHeight="0"
+                                                    Margin="8,0,0,0"/>
                                         </StackPanel>
                                     </StackPanel>
                                 </Border>
@@ -2300,6 +2391,50 @@
                                                   IsChecked="{Binding VncViewOnly}"
                                                   Foreground="{DynamicResource TextPrimaryBrush}"
                                                   Margin="0,14,0,0"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Web options: open with an external program -->
+                                <Border>
+                                    <Border.Style>
+                                        <Style TargetType="Border" BasedOn="{StaticResource DialogSectionCardStyle}">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding ConnectionType}" Value="WEB">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <StackPanel>
+                                        <TextBlock Text="{loc:Translate ServerDialogWebOptions}" Style="{StaticResource DialogSectionTitleStyle}"/>
+                                        <TextBlock Text="{loc:Translate ServerDialogWebOptionsDesc}"
+                                                   Style="{StaticResource DialogSectionDescriptionStyle}"/>
+                                        <CheckBox x:Name="DlgSrv_WebOpenExternallyCb"
+                                                  TabIndex="95"
+                                                  Content="{loc:Translate ServerDialogWebOpenExternally}"
+                                                  AutomationProperties.Name="{loc:Translate ServerDialogWebOpenExternally}"
+                                                  IsChecked="{Binding WebOpenExternally}"
+                                                  Foreground="{DynamicResource TextPrimaryBrush}"
+                                                  Margin="0,14,0,0"/>
+                                        <StackPanel IsEnabled="{Binding WebOpenExternally}">
+                                            <TextBlock Text="{loc:Translate ServerDialogWebExternalProgram}" Style="{StaticResource LabelStyle}" Margin="0,14,0,4"/>
+                                            <TextBox x:Name="DlgSrv_WebExternalProgramBox" TabIndex="95"
+                                                     AutomationProperties.Name="{loc:Translate ServerDialogWebExternalProgram}"
+                                                     AutomationProperties.HelpText="{loc:Translate ServerDialogWebExternalProgramHint}"
+                                                     Text="{Binding WebExternalProgram, UpdateSourceTrigger=PropertyChanged}"
+                                                     Style="{StaticResource DialogFormTextBoxStyle}"/>
+                                            <TextBlock Text="{loc:Translate ServerDialogWebExternalProgramHint}"
+                                                       Style="{StaticResource DialogHintTextStyle}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                            <TextBlock Text="{loc:Translate ServerDialogWebExternalArguments}" Style="{StaticResource LabelStyle}" Margin="0,14,0,4"/>
+                                            <TextBox x:Name="DlgSrv_WebExternalArgumentsBox" TabIndex="95"
+                                                     AutomationProperties.Name="{loc:Translate ServerDialogWebExternalArguments}"
+                                                     AutomationProperties.HelpText="{loc:Translate ServerDialogWebExternalArgumentsHint}"
+                                                     Text="{Binding WebExternalArguments, UpdateSourceTrigger=PropertyChanged}"
+                                                     Style="{StaticResource DialogFormTextBoxStyle}"/>
+                                            <TextBlock Text="{loc:Translate ServerDialogWebExternalArgumentsHint}"
+                                                       Style="{StaticResource DialogHintTextStyle}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                        </StackPanel>
                                     </StackPanel>
                                 </Border>
 

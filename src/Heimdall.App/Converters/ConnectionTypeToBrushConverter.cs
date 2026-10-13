@@ -72,6 +72,7 @@ public sealed class ConnectionTypeToBrushConverter : IValueConverter, IMultiValu
                 "SFTP" => "SftpBadgeBrush",
                 "FTP" => "FtpBadgeBrush",
                 "VNC" => "VncBadgeBrush",
+                "WEB" => "WebBadgeBrush",
                 "TELNET" => "TelnetBadgeBrush",
                 "CITRIX" => "CitrixBadgeBrush",
                 "LOCAL" => "LocalBadgeBrush",

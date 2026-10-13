@@ -1035,6 +1035,70 @@ public partial class ServerDialogViewModel : ObservableValidator
         IsDirty = true;
     }
 
+    // --- Web settings (the port is the endpoint port, kept in RemotePort as Telnet does) ---
+
+    [ObservableProperty]
+    private bool _webUseHttp;
+
+    [ObservableProperty]
+    private string _webPath = "";
+
+    [ObservableProperty]
+    private string _webUsername = "";
+
+    [ObservableProperty]
+    private string _webPassword = "";
+
+    [ObservableProperty]
+    private bool _webOpenExternally;
+
+    [ObservableProperty]
+    private string _webExternalProgram = "";
+
+    [ObservableProperty]
+    private string _webExternalArguments = "";
+
+    public string? ExistingWebPasswordEncrypted { get; set; }
+
+    /// <summary>Whether a password for the HTTP challenge is stored for this profile.</summary>
+    public bool HasStoredWebPassword => !string.IsNullOrEmpty(ExistingWebPasswordEncrypted);
+
+    /// <summary>The address the profile will open, or a hint when the fields cannot form one.</summary>
+    public string WebAddressPreview =>
+        Heimdall.Core.Configuration.WebAddress.TryBuild(RemoteServer, RemotePort, WebUseHttp, WebPath, out Uri? address)
+            ? address!.AbsoluteUri
+            : L("ServerDialogWebAddressIncomplete");
+
+    /// <summary>Forgets the stored web password.</summary>
+    [RelayCommand]
+    private void ClearStoredWebPassword()
+    {
+        ExistingWebPasswordEncrypted = null;
+        WebPassword = "";
+        OnPropertyChanged(nameof(HasStoredWebPassword));
+        IsDirty = true;
+    }
+
+    partial void OnWebUseHttpChanged(bool value)
+    {
+        // Follow the scheme's standard port while the user has not chosen another one.
+        if (!_isInitializing && IsWebConnection)
+        {
+            if (value && RemotePort == DefaultPorts.HttpsStd)
+            {
+                RemotePort = DefaultPorts.HttpStd;
+            }
+            else if (!value && RemotePort == DefaultPorts.HttpStd)
+            {
+                RemotePort = DefaultPorts.HttpsStd;
+            }
+        }
+
+        OnPropertyChanged(nameof(WebAddressPreview));
+    }
+
+    partial void OnWebPathChanged(string value) => OnPropertyChanged(nameof(WebAddressPreview));
+
     // --- RDP settings ---
 
     [ObservableProperty]
@@ -1540,11 +1604,15 @@ public partial class ServerDialogViewModel : ObservableValidator
 
     public bool IsWinRmConnection => string.Equals(ConnectionType, "WINRM", StringComparison.OrdinalIgnoreCase);
 
+    public bool IsWebConnection => string.Equals(ConnectionType, "WEB", StringComparison.OrdinalIgnoreCase);
+
     public bool IsWinRmCredentialIdentity => WinRmIdentityMode == WinRmIdentityMode.Credential;
 
     public string ConnectionTypeDisplayName => IsWinRmConnection
         ? _localizer?["ServerDialogProtocolWinRmName"] ?? "WinRM"
-        : ConnectionType;
+        : IsWebConnection
+            ? _localizer?["ServerDialogProtocolWebName"] ?? "Web"
+            : ConnectionType;
 
     public bool CanUseWinRmSsl => IsWinRmConnection && !UsesGateway;
 
@@ -1627,11 +1695,11 @@ public partial class ServerDialogViewModel : ObservableValidator
             : IsWinRmConnection ? WinRmPort
             : IsVncConnection ? VncPort
             : IsFtpConnection ? FtpPort
-            : IsTelnetConnection ? RemotePort
+            : IsTelnetConnection || IsWebConnection ? RemotePort
             : SshPort;
         set
         {
-            if (IsRdpConnection || IsTelnetConnection)
+            if (IsRdpConnection || IsTelnetConnection || IsWebConnection)
             {
                 RemotePort = value;
             }
@@ -1659,6 +1727,7 @@ public partial class ServerDialogViewModel : ObservableValidator
         : IsVncConnection ? L("ServerDialogPortLabelVnc")
         : IsFtpConnection ? L("ServerDialogPortLabelFtp")
         : IsTelnetConnection ? L("ServerDialogPortLabelTelnet")
+        : IsWebConnection ? L("ServerDialogPortLabelWeb")
         : L("ServerDialogPortLabelSsh");
 
     public string EndpointPortHelpText => IsRdpConnection
@@ -1667,6 +1736,7 @@ public partial class ServerDialogViewModel : ObservableValidator
         : IsVncConnection ? L("ServerDialogPortHelpVnc")
         : IsFtpConnection ? L("ServerDialogPortHelpFtp")
         : IsTelnetConnection ? L("ServerDialogPortHelpTelnet")
+        : IsWebConnection ? L("ServerDialogPortHelpWeb")
         : L("ServerDialogPortHelpSsh");
 
     public string LocalTunnelPortDisplay => UseAutomaticTunnelPort
@@ -1693,6 +1763,7 @@ public partial class ServerDialogViewModel : ObservableValidator
         : IsWinRmConnection ? L("ServerDialogSessionWinRm")
         : IsVncConnection ? L("ServerDialogSessionVnc")
         : IsTelnetConnection ? L("ServerDialogSessionTelnet")
+        : IsWebConnection ? L("ServerDialogSessionWeb")
         : IsCitrixConnection ? L("ServerDialogSessionCitrix")
         : IsLocalConnection ? L("ServerDialogSessionLocal")
         : L("ServerDialogSessionSsh");
@@ -1702,6 +1773,7 @@ public partial class ServerDialogViewModel : ObservableValidator
         : IsSftpConnection ? L("ServerDialogModeSummarySftp")
         : IsVncConnection ? L("ServerDialogModeSummaryVnc")
         : IsTelnetConnection ? L("ServerDialogModeSummaryTelnet")
+        : IsWebConnection ? L("ServerDialogModeSummaryWeb")
         : IsCitrixConnection ? L("ServerDialogModeSummaryCitrix")
         : IsLocalConnection ? L("ServerDialogModeSummaryLocal")
         : L("ServerDialogModeSummarySsh");
@@ -1816,7 +1888,7 @@ public partial class ServerDialogViewModel : ObservableValidator
 
         // Per-field inline errors (localized, ConnectionType-aware)
         DisplayNameError = GetLocalizedFieldError(nameof(DisplayName));
-        RemoteServerError = RequiresNetworkEndpoint ? GetLocalizedFieldError(nameof(RemoteServer)) : null;
+        RemoteServerError = GetRemoteServerError();
         // The key was already translated in both locales and referenced nowhere in src/,
         // which is the marker of a half-shipped surface: the product knew what to say about
         // this field and never said it.
@@ -2287,6 +2359,16 @@ public partial class ServerDialogViewModel : ObservableValidator
             TelnetPasswordEncrypted = string.IsNullOrEmpty(TelnetPassword)
                 ? ExistingTelnetPasswordEncrypted
                 : Heimdall.Core.Security.CredentialProtector.Protect(TelnetPassword),
+            WebPort = IsWebConnection ? RemotePort : DefaultPorts.HttpsStd,
+            WebUseHttp = WebUseHttp,
+            WebPath = string.IsNullOrWhiteSpace(WebPath) ? null : WebPath.Trim(),
+            WebUsername = string.IsNullOrWhiteSpace(WebUsername) ? null : WebUsername,
+            WebPasswordEncrypted = string.IsNullOrEmpty(WebPassword)
+                ? ExistingWebPasswordEncrypted
+                : Heimdall.Core.Security.CredentialProtector.Protect(WebPassword),
+            WebOpenExternally = WebOpenExternally,
+            WebExternalProgram = string.IsNullOrWhiteSpace(WebExternalProgram) ? null : WebExternalProgram.Trim(),
+            WebExternalArguments = string.IsNullOrWhiteSpace(WebExternalArguments) ? null : WebExternalArguments,
             RdpUsername = string.IsNullOrWhiteSpace(RdpUsername) ? null : RdpUsername,
             // Trimmed, because the value is forwarded verbatim as a separate MSTSCAX property
             // and " CORP " is not CORP to the far end. Nothing else normalises it on the way out.
@@ -2442,7 +2524,9 @@ public partial class ServerDialogViewModel : ObservableValidator
         vm.RemoteServer = dto.RemoteServer;
         vm.RemotePort = string.Equals(connectionType, "Telnet", StringComparison.OrdinalIgnoreCase)
             ? (dto.TelnetPort > 0 ? dto.TelnetPort : DefaultPorts.Telnet)
-            : dto.RemotePort;
+            : string.Equals(connectionType, "WEB", StringComparison.OrdinalIgnoreCase)
+                ? (dto.WebPort > 0 ? dto.WebPort : Heimdall.Core.Configuration.WebAddress.DefaultPortFor(dto.WebUseHttp))
+                : dto.RemotePort;
         vm.LocalPort = storedLocalPort;
         vm.UseAutomaticTunnelPort = dto.LocalPort <= 0 || dto.LocalPort == suggestedTunnelPort;
         vm.Group = dto.Group ?? "";
@@ -2496,6 +2580,13 @@ public partial class ServerDialogViewModel : ObservableValidator
         vm.ExistingVncPasswordEncrypted = dto.VncPassword;
         vm.TelnetUsername = dto.TelnetUsername ?? "";
         vm.ExistingTelnetPasswordEncrypted = dto.TelnetPasswordEncrypted;
+        vm.WebUseHttp = dto.WebUseHttp;
+        vm.WebPath = dto.WebPath ?? "";
+        vm.WebUsername = dto.WebUsername ?? "";
+        vm.ExistingWebPasswordEncrypted = dto.WebPasswordEncrypted;
+        vm.WebOpenExternally = dto.WebOpenExternally;
+        vm.WebExternalProgram = dto.WebExternalProgram ?? "";
+        vm.WebExternalArguments = dto.WebExternalArguments ?? "";
         vm.RdpUsername = dto.RdpUsername ?? "";
         vm.RdpDomain = dto.RdpDomain ?? "";
         vm.ExistingRdpPasswordEncrypted = dto.RdpPasswordEncrypted;
@@ -2631,7 +2722,7 @@ public partial class ServerDialogViewModel : ObservableValidator
         if (RemoteServerError is not null)
         {
             ValidateProperty(value, nameof(RemoteServer));
-            RemoteServerError = RequiresNetworkEndpoint ? GetLocalizedFieldError(nameof(RemoteServer)) : null;
+            RemoteServerError = GetRemoteServerError();
             RefreshValidationSummary();
         }
         RaiseDerivedStateChanged();
@@ -2648,6 +2739,7 @@ public partial class ServerDialogViewModel : ObservableValidator
             RefreshValidationSummary();
         }
         RaisePortDerivedStateChanged();
+        OnPropertyChanged(nameof(WebAddressPreview));
         ResetTestChip();
         RaiseTestCommandCanExecuteChanged();
     }
@@ -2764,6 +2856,8 @@ public partial class ServerDialogViewModel : ObservableValidator
             return DefaultPorts.Ftp;
         if (string.Equals(connectionType, "Telnet", StringComparison.OrdinalIgnoreCase))
             return DefaultPorts.Telnet;
+        if (string.Equals(connectionType, "WEB", StringComparison.OrdinalIgnoreCase))
+            return Heimdall.Core.Configuration.WebAddress.DefaultPortFor(WebUseHttp);
         return DefaultPorts.Ssh;
     }
 
@@ -2802,6 +2896,8 @@ public partial class ServerDialogViewModel : ObservableValidator
         OnPropertyChanged(nameof(IsFtpConnection));
         OnPropertyChanged(nameof(IsCitrixConnection));
         OnPropertyChanged(nameof(IsTelnetConnection));
+        OnPropertyChanged(nameof(IsWebConnection));
+        OnPropertyChanged(nameof(WebAddressPreview));
         OnPropertyChanged(nameof(IsWinRmConnection));
         OnPropertyChanged(nameof(IsWinRmCredentialIdentity));
         OnPropertyChanged(nameof(ConnectionTypeDisplayName));
@@ -2863,9 +2959,32 @@ public partial class ServerDialogViewModel : ObservableValidator
         ["VNC port must be between 1 and 65535."] = "ValidationVncPortRange",
     };
 
+    /// <summary>
+    /// The host field's error. A web host must also form an address with its port and path: a URL
+    /// pasted into the host field is the usual way it does not, and is said so here rather than at
+    /// connect time.
+    /// </summary>
+    private string? GetRemoteServerError()
+    {
+        if (!RequiresNetworkEndpoint)
+        {
+            return null;
+        }
+
+        string? error = GetLocalizedFieldError(nameof(RemoteServer));
+        if (error is null
+            && IsWebConnection
+            && !Heimdall.Core.Configuration.WebAddress.TryBuild(RemoteServer, RemotePort, WebUseHttp, WebPath, out _))
+        {
+            return L("ValidationWebAddressInvalid");
+        }
+
+        return error;
+    }
+
     private string? GetEndpointPortError()
     {
-        if (IsRdpConnection || IsTelnetConnection) return GetLocalizedFieldError(nameof(RemotePort));
+        if (IsRdpConnection || IsTelnetConnection || IsWebConnection) return GetLocalizedFieldError(nameof(RemotePort));
         if (IsWinRmConnection) return GetLocalizedFieldError(nameof(WinRmPort));
         if (IsFtpConnection) return GetLocalizedFieldError(nameof(FtpPort));
         if (IsVncConnection) return GetLocalizedFieldError(nameof(VncPort));

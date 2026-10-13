@@ -1184,6 +1184,11 @@ public partial class ServerListViewModel : ObservableObject, IDisposable, ISessi
                         serverDto, settings, cancellationToken);
                     break;
 
+                case "WEB":
+                    result = await _connectionService.ConnectWebAsync(
+                        serverDto, settings, cancellationToken);
+                    break;
+
                 case "TELNET":
                     result = await _connectionService.ConnectTelnetAsync(
                         serverDto, settings, cancellationToken);

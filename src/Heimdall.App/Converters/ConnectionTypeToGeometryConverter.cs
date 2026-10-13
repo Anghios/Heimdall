@@ -49,6 +49,7 @@ public sealed class ConnectionTypeToGeometryConverter : IValueConverter
                 "WINRM" => "Geo.Protocol.WinRm",
                 "SFTP" => "Geo.Protocol.Sftp",
                 "VNC" => "Geo.Protocol.Vnc",
+                "WEB" => "Geo.Protocol.Web",
                 "TELNET" => "Geo.Protocol.Telnet",
                 "FTP" => "Geo.Protocol.Ftp",
                 "CITRIX" => "Geo.Protocol.Citrix",

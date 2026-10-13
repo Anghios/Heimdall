@@ -438,6 +438,7 @@ public sealed class SessionHealthMonitor : IDisposable
             "RDP" => dto.RemotePort,
             "SSH" or "SFTP" => dto.SshPort,
             "VNC" => dto.VncPort,
+            "WEB" => dto.WebPort,
             "FTP" => dto.FtpPort,
             "TELNET" => dto.TelnetPort,
             _ => null

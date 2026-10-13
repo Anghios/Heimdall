@@ -17,8 +17,8 @@ pas. Pour la liste complète des fonctionnalités, voir la [référence](FEATURE
 sujets de développement, [DEVELOPMENT.md](DEVELOPMENT.md).
 
 Heimdall vous connecte à des machines distantes : bureaux Windows en RDP, Linux et équipements
-réseau en SSH, transferts de fichiers en SFTP et FTP, plus VNC, Telnet, Citrix, WinRM et un shell
-local. Tout s'ouvre dans un onglet, au sein d'une seule fenêtre.
+réseau en SSH, transferts de fichiers en SFTP et FTP, plus VNC, Telnet, Citrix, WinRM, des consoles
+web et un shell local. Tout s'ouvre dans un onglet, au sein d'une seule fenêtre.
 
 ---
 
@@ -91,6 +91,26 @@ demandez conseil.** Cela peut signifier que la machine a été réinstallée, ou
 fait passer pour elle. Sur cette demande, le bouton mis en avant est **Rejeter** : appuyer sur
 Entrée refuse la connexion. Accepter la nouvelle clé, ou ne lui faire confiance que pour cette
 session, demande un clic délibéré.
+
+### Consoles web
+
+Choisissez **Web** en ajoutant une session, pour un iLO, un iDRAC, un commutateur ou la page
+d'administration d'un NAS. Saisissez seulement le nom ou l'adresse dans le champ hôte : cochez
+**Utiliser HTTP simple** si la console n'a pas de HTTPS, et mettez une page comme `/login.html`
+dans **Chemin**. La ligne sous le chemin montre l'adresse qui sera ouverte.
+
+- La première fois qu'une console présente un certificat que Windows ne reconnaît pas, ce qui
+  est habituel pour un certificat auto-signé, Heimdall affiche son empreinte. **Approuver le
+  certificat** le mémorise, **Approuver pour cette session** seulement jusqu'à la fermeture
+  de Heimdall. Si le certificat change ensuite, la question revient avec un avertissement.
+- Un nom d'utilisateur et un mot de passe dans le profil répondent à la fenêtre de connexion du
+  navigateur lui-même (Basic ou NTLM). Un formulaire de connexion dans la page n'est pas rempli.
+- Pour une console trop ancienne pour les navigateurs actuels, ouvrez l'onglet **Options** et
+  cochez **Ouvrir avec un programme externe**. Indiquez le programme, par exemple un ancien
+  navigateur portable, ou laissez vide pour votre navigateur par défaut. `{Url}`, `{Host}` et
+  `{Port}` sont remplacés dans les arguments.
+- Les onglets web partagent un même profil de navigateur : une console où vous êtes connecté le
+  reste dans l'onglet suivant et après un redémarrage.
 
 ### Connexion rapide
 

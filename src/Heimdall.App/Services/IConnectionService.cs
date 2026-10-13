@@ -43,6 +43,7 @@ public interface IConnectionService : IDisposable
         RdpModeOverride rdpModeOverride = RdpModeOverride.UseProfile);
     Task<ConnectionResult> ConnectSftpAsync(ServerProfileDto server, AppSettings settings, CancellationToken ct = default);
     Task<ConnectionResult> ConnectVncAsync(ServerProfileDto server, AppSettings settings, CancellationToken ct = default);
+    Task<ConnectionResult> ConnectWebAsync(ServerProfileDto server, AppSettings settings, CancellationToken ct = default);
     Task<ConnectionResult> ConnectTelnetAsync(ServerProfileDto server, AppSettings settings, CancellationToken ct = default);
     Task<ConnectionResult> ConnectFtpAsync(ServerProfileDto server, AppSettings settings, CancellationToken ct = default);
     Task<ConnectionResult> ConnectCitrixAsync(ServerProfileDto server, AppSettings settings, CancellationToken ct = default);

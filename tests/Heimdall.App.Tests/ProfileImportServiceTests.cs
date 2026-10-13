@@ -604,7 +604,8 @@ public sealed class ProfileImportServiceTests
             "FTP",
             "CITRIX",
             "LOCAL",
-            "WINRM"
+            "WINRM",
+            "WEB"
         ];
 
         Assert.Same(ConnectionTypeCatalog.CanonicalTypes, ProfileImportService.SupportedConnectionTypes);

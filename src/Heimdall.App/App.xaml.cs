@@ -385,6 +385,13 @@ public partial class App : System.Windows.Application
                 _ = PersistTrustedFtpsCertificateEntryAsync(configManager, key, entry);
             };
 
+            var webCertificateTrust = _serviceProvider.GetRequiredService<WebCertificateTrust>();
+            webCertificateTrust.LoadEntriesFromConfig(settings.TrustedWebCertificates);
+            webCertificateTrust.CertificateTrusted += (key, entry) =>
+            {
+                _ = PersistTrustedWebCertificateEntryAsync(configManager, key, entry);
+            };
+
             var rdpCertificateStore = _serviceProvider.GetRequiredService<RdpCertificateTrustStore>();
             LoadTrustedRdpCertificates(rdpCertificateStore, settings);
             _serviceProvider.GetRequiredService<RdpCertificatePersistence>();
@@ -705,6 +712,7 @@ public partial class App : System.Windows.Application
         services.AddSingleton<TrustPromptCoordinator>();
         services.AddSingleton<IHostKeyVerifier, DialogHostKeyVerifier>();
         services.AddSingleton<FtpsCertificateStore>();
+        services.AddSingleton<WebCertificateTrust>();
         services.AddSingleton<RdpCertificateTrustStore>();
         services.AddSingleton<RdpCertificatePersistence>();
         services.AddSingleton<IRdpCertificateProbe>(_ => new RdpCertificateProbe());
@@ -779,6 +787,7 @@ public partial class App : System.Windows.Application
         services.AddSingleton<IProtocolHandler, SshHandler>();
         services.AddSingleton<IProtocolHandler, SftpHandler>();
         services.AddSingleton<IProtocolHandler, VncHandler>();
+        services.AddSingleton<IProtocolHandler, WebHandler>();
         services.AddSingleton<IProtocolHandler, TelnetHandler>();
         services.AddSingleton<IProtocolHandler, FtpHandler>();
         services.AddSingleton<IProtocolHandler, CitrixHandler>();
@@ -1134,6 +1143,25 @@ public partial class App : System.Windows.Application
         {
             Heimdall.Core.Logging.FileLogger.Warn(
                 $"Failed to persist FTPS certificate metadata for {key}: {ex.Message}");
+        }
+    }
+
+    internal static async Task PersistTrustedWebCertificateEntryAsync(
+        IConfigManager configManager,
+        string key,
+        FtpsCertificateEntry entry)
+    {
+        try
+        {
+            await configManager.MergeSettingAsync(settings =>
+            {
+                settings.TrustedWebCertificates[key] = entry;
+            });
+        }
+        catch (Exception ex)
+        {
+            Heimdall.Core.Logging.FileLogger.Warn(
+                $"Failed to persist web certificate metadata for {key}: {ex.Message}");
         }
     }
 

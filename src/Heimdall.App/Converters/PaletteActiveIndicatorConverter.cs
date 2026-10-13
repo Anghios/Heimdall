@@ -63,6 +63,7 @@ public sealed class PaletteActiveIndicatorConverter : IMultiValueConverter
                 "SFTP" => "SftpBadgeBrush",
                 "FTP" => "FtpBadgeBrush",
                 "VNC" => "VncBadgeBrush",
+                "WEB" => "WebBadgeBrush",
                 "TELNET" => "TelnetBadgeBrush",
                 "CITRIX" => "CitrixBadgeBrush",
                 "LOCAL" => "LocalBadgeBrush",

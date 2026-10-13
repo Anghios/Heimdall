@@ -78,6 +78,7 @@ public sealed class ConnectionTypeToColorConverter : IValueConverter, IMultiValu
                 "WINRM" => "ProtocolWinRmBrush",
                 "SFTP" => "ProtocolSftpBrush",
                 "VNC" => "ProtocolVncBrush",
+                "WEB" => "ProtocolWebBrush",
                 "TELNET" => "ProtocolTelnetBrush",
                 "FTP" => "ProtocolFtpBrush",
                 "CITRIX" => "ProtocolCitrixBrush",
