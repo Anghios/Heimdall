@@ -856,6 +856,7 @@ public sealed partial class SessionCoordinator : ObservableObject, IDisposable
         }
 
         ConnectionHistory.RecordConnect(originalServerId, displayName, connectionType);
+        _main.ServerList.NoteOpened(originalServerId, DateTime.UtcNow);
 
         if (session is null)
         {

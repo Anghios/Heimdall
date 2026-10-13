@@ -228,6 +228,102 @@ public class ConnectionHistoryTests : IDisposable
 
     // ── Concurrent writes ─────────────────────────────────────────────
 
+    // ── Last opened ───────────────────────────────────────────────────
+
+    /// <summary>Clocks move backwards and files are read in some order; the latest time wins.</summary>
+    [Fact]
+    public void FoldLastOpened_KeepsTheLatestTime_NotTheLastLine()
+    {
+        Dictionary<string, DateTime> lastOpened = new();
+
+        ConnectionHistory.FoldLastOpened(lastOpened,
+        [
+            Line("2026-10-05T10:00:00.0000000Z", "Connected", "srv-1"),
+            Line("2026-10-01T10:00:00.0000000Z", "Connected", "srv-1"),
+        ]);
+
+        Assert.Equal(new DateTime(2026, 10, 5, 10, 0, 0, DateTimeKind.Utc), lastOpened["srv-1"]);
+        Assert.Equal(DateTimeKind.Utc, lastOpened["srv-1"].Kind);
+    }
+
+    [Fact]
+    public void FoldLastOpened_CountsOnlyConnections()
+    {
+        Dictionary<string, DateTime> lastOpened = new();
+
+        ConnectionHistory.FoldLastOpened(lastOpened,
+        [
+            Line("2026-10-01T10:00:00.0000000Z", "Connected", "srv-1"),
+            Line("2026-10-02T10:00:00.0000000Z", "Disconnected", "srv-1"),
+            Line("2026-10-03T10:00:00.0000000Z", "Disconnected", "srv-2"),
+        ]);
+
+        Assert.Equal(new DateTime(2026, 10, 1, 10, 0, 0, DateTimeKind.Utc), lastOpened["srv-1"]);
+        Assert.False(lastOpened.ContainsKey("srv-2"));
+    }
+
+    /// <summary>A crash can tear the last line, and the file can be edited by hand.</summary>
+    [Fact]
+    public void FoldLastOpened_SkipsLinesItCannotRead()
+    {
+        Dictionary<string, DateTime> lastOpened = new();
+
+        ConnectionHistory.FoldLastOpened(lastOpened,
+        [
+            "{\"timestamp\":\"2026-10-0",
+            "",
+            "not json",
+            "null",
+            Line("yesterday", "Connected", "srv-2"),
+            Line("2026-10-04T10:00:00.0000000Z", "Connected", ""),
+            Line("2026-10-04T10:00:00.0000000Z", "Connected", "srv-1"),
+        ]);
+
+        Assert.Equal(["srv-1"], lastOpened.Keys);
+    }
+
+    /// <summary>
+    /// A busy history rotates its older half away; a profile last opened before the rotation
+    /// is found in the rotated file.
+    /// </summary>
+    [Fact]
+    public void ReadLastOpened_ReadsTheRotatedFileToo()
+    {
+        File.WriteAllLines(Path.Combine(_tempDir, "connection-history.1.jsonl"),
+        [
+            Line("2026-09-01T10:00:00.0000000Z", "Connected", "old"),
+            Line("2026-09-02T10:00:00.0000000Z", "Connected", "both"),
+        ]);
+        File.WriteAllLines(Path.Combine(_tempDir, "connection-history.jsonl"),
+        [
+            Line("2026-10-01T10:00:00.0000000Z", "Connected", "both"),
+        ]);
+
+        IReadOnlyDictionary<string, DateTime> lastOpened = ConnectionHistory.ReadLastOpened();
+
+        Assert.Equal(new DateTime(2026, 9, 1, 10, 0, 0, DateTimeKind.Utc), lastOpened["old"]);
+        Assert.Equal(new DateTime(2026, 10, 1, 10, 0, 0, DateTimeKind.Utc), lastOpened["both"]);
+    }
+
+    [Fact]
+    public void ReadLastOpened_FindsWhatRecordConnectWrote()
+    {
+        DateTime before = DateTime.UtcNow;
+
+        ConnectionHistory.RecordConnect("srv-1", "Production", "RDP");
+
+        Assert.InRange(ConnectionHistory.ReadLastOpened()["srv-1"], before.AddSeconds(-1), DateTime.UtcNow.AddSeconds(1));
+    }
+
+    [Fact]
+    public void ReadLastOpened_WithoutAHistory_IsEmpty()
+    {
+        Assert.Empty(ConnectionHistory.ReadLastOpened());
+    }
+
+    private static string Line(string timestamp, string action, string serverId) =>
+        JsonSerializer.Serialize(new { timestamp, action, serverId, displayName = "name", connectionType = "SSH" });
+
     [Fact]
     public async Task ConcurrentWrites_DoNotCorruptFile()
     {

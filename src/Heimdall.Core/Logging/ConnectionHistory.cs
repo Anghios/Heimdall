@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -31,6 +32,7 @@ public static class ConnectionHistory
     private const string FileName = "connection-history.jsonl";
     private const string RotatedFileName = "connection-history.1.jsonl";
     private const long MaxFileSizeBytes = 1_048_576; // 1 MB
+    private const string ConnectedAction = "Connected";
 
     private static readonly JsonSerializerOptions SerializerOptions = new()
     {
@@ -53,7 +55,7 @@ public static class ConnectionHistory
     /// </summary>
     public static void RecordConnect(string serverId, string displayName, string connectionType)
     {
-        WriteEntry("Connected", serverId, displayName, connectionType);
+        WriteEntry(ConnectedAction, serverId, displayName, connectionType);
     }
 
     /// <summary>
@@ -62,6 +64,92 @@ public static class ConnectionHistory
     public static void RecordDisconnect(string serverId, string displayName, string connectionType)
     {
         WriteEntry("Disconnected", serverId, displayName, connectionType);
+    }
+
+    /// <summary>
+    /// Reads when each profile was last opened, from the current file and the rotated one.
+    /// </summary>
+    /// <returns>The latest <c>Connected</c> time in UTC, keyed by server id; empty when the
+    /// history is not initialized or cannot be read.</returns>
+    /// <remarks>
+    /// Both files together stay under twice <see cref="MaxFileSizeBytes"/>, so one read at
+    /// startup is affordable. Taken under the write lock so a rotation cannot move a file
+    /// between the two reads.
+    /// </remarks>
+    public static IReadOnlyDictionary<string, DateTime> ReadLastOpened()
+    {
+        Dictionary<string, DateTime> lastOpened = new(StringComparer.Ordinal);
+        if (string.IsNullOrEmpty(_logDirectory))
+        {
+            return lastOpened;
+        }
+
+        lock (WriteLock)
+        {
+            foreach (string name in new[] { RotatedFileName, FileName })
+            {
+                try
+                {
+                    string path = Path.Combine(_logDirectory, name);
+                    if (File.Exists(path))
+                    {
+                        FoldLastOpened(lastOpened, File.ReadLines(path));
+                    }
+                }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+                {
+                    // A history that cannot be read only leaves the field empty.
+                }
+            }
+        }
+
+        return lastOpened;
+    }
+
+    /// <summary>
+    /// Folds history lines into the latest <c>Connected</c> time per server id.
+    /// </summary>
+    /// <remarks>
+    /// Keeps the latest time rather than the last line, so the order the files are read in
+    /// does not matter. A line that is not a well-formed entry is skipped: the file is
+    /// appended to by hand-editable JSONL and a torn last line is possible after a crash.
+    /// </remarks>
+    public static void FoldLastOpened(IDictionary<string, DateTime> lastOpened, IEnumerable<string> lines)
+    {
+        ArgumentNullException.ThrowIfNull(lastOpened);
+        ArgumentNullException.ThrowIfNull(lines);
+
+        foreach (string line in lines)
+        {
+            if (string.IsNullOrWhiteSpace(line))
+            {
+                continue;
+            }
+
+            ConnectionHistoryEntry? entry;
+            try
+            {
+                entry = JsonSerializer.Deserialize<ConnectionHistoryEntry>(line, SerializerOptions);
+            }
+            catch (JsonException)
+            {
+                continue;
+            }
+
+            if (entry is null
+                || !string.Equals(entry.Action, ConnectedAction, StringComparison.Ordinal)
+                || string.IsNullOrEmpty(entry.ServerId)
+                || !DateTime.TryParse(entry.Timestamp, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out DateTime timestamp))
+            {
+                continue;
+            }
+
+            DateTime utc = timestamp.ToUniversalTime();
+            if (!lastOpened.TryGetValue(entry.ServerId, out DateTime known) || utc > known)
+            {
+                lastOpened[entry.ServerId] = utc;
+            }
+        }
     }
 
     private static void WriteEntry(string action, string serverId, string displayName, string connectionType)

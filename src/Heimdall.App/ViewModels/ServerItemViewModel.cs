@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Heimdall.App.Services;
 using Heimdall.Core.Configuration;
@@ -175,8 +176,40 @@ public partial class ServerItemViewModel : ObservableObject, IInlineRenameNode, 
     public string StatusTooltipText =>
         StatusShowsConnectionState ? ConnectionStateTooltip : HealthTooltipText;
 
+    /// <summary>
+    /// When the profile was last opened, in UTC, from the connection history; null when it
+    /// never was, or when the history no longer holds it.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(LastOpenedText))]
+    private DateTime? _lastOpenedUtc;
+
+    /// <summary>
+    /// <see cref="LastOpenedUtc"/> in local time, or empty: the properties panel hides an empty
+    /// value with its label.
+    /// </summary>
+    public string LastOpenedText => LastOpenedUtc is { } utc
+        ? utc.ToLocalTime().ToString("g", CultureInfo.CurrentCulture)
+        : "";
+
+    /// <summary>
+    /// The latency of the last successful probe, or empty when the last probe did not succeed:
+    /// a figure from before a failure would read as current.
+    /// </summary>
+    public string LatencyText => HealthState is { Status: HealthStatus.Up, LatencyMs: int latency }
+        ? Format("PropertiesLatencyValue", latency)
+        : "";
+
+    /// <summary>
+    /// The private key an SSH or SFTP profile signs in with, or empty. Other types are left
+    /// out: a key kept from before the profile changed type is not used.
+    /// </summary>
+    public string SshKeyText =>
+        ConnectionType?.ToUpperInvariant() is "SSH" or "SFTP" ? SshKeyPath : "";
+
     partial void OnHealthStateChanged(HealthState value)
     {
+        OnPropertyChanged(nameof(LatencyText));
         OnPropertyChanged(nameof(HealthTooltipText));
         OnPropertyChanged(nameof(StatusTooltipText));
         OnPropertyChanged(nameof(AccessibleName));
@@ -492,6 +525,7 @@ public partial class ServerItemViewModel : ObservableObject, IInlineRenameNode, 
 
     partial void OnConnectionTypeChanged(string value)
     {
+        OnPropertyChanged(nameof(SshKeyText));
         OnPropertyChanged(nameof(ConnectionTypeBadge));
         OnPropertyChanged(nameof(ProtocolDisplayName));
         OnPropertyChanged(nameof(AccessibleName));
@@ -589,6 +623,10 @@ public partial class ServerItemViewModel : ObservableObject, IInlineRenameNode, 
             ApplyGatewayState(_sourceDto.SshGatewayId, _gatewayMap);
         }
 
+        // The key comes from the DTO and the other two are formatted for the current language.
+        OnPropertyChanged(nameof(SshKeyText));
+        OnPropertyChanged(nameof(LatencyText));
+        OnPropertyChanged(nameof(LastOpenedText));
         OnPropertyChanged(nameof(OriginDisplayName));
         OnPropertyChanged(nameof(AccessibleHelpText));
         OnPropertyChanged(nameof(HealthTooltipText));
@@ -780,6 +818,7 @@ public partial class ServerItemViewModel : ObservableObject, IInlineRenameNode, 
         "SessionAuthCurrentUser" => "Current user",
         "SessionAuthSshAgent" => "SSH agent",
         "SessionAuthCredentialProvider" => "Credential provider",
+        "PropertiesLatencyValue" => "{0} ms",
         "SessionTreeServerAccessibleName" => "{0}, protocol {1}, state {2}",
         "SessionTreeServerAccessibleNameFavorite" => "{0}, favorite, protocol {1}, state {2}",
         "SessionTreeServerAccessibleHelp" =>

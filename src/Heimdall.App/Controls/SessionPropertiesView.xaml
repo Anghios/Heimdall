@@ -121,6 +121,9 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
                 <!-- Authentication -->
@@ -155,13 +158,32 @@
                                TextTrimming="CharacterEllipsis"/>
                 </Button>
 
+                <!-- SSH key: SSH and SFTP only -->
+                <TextBlock x:Name="Spv_SshKeyLabel" Grid.Row="2" Grid.Column="0"
+                           Text="{loc:Translate DetailLabelSshKey}" FontSize="{StaticResource FontSizeCaption}"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
+                           Margin="0,2,12,2" VerticalAlignment="Top"
+                           Visibility="{Binding SshKeyText, Converter={StaticResource NullToVisibilityConverter}}"/>
+                <Button x:Name="Spv_SshKeyCopy" Grid.Row="2" Grid.Column="1"
+                        Style="{StaticResource SpvCopyValueStyle}"
+                        Tag="{Binding SshKeyText}"
+                        Click="OnCopyValueClick"
+                        Margin="0,2,0,2"
+                        AutomationProperties.Name="{Binding SshKeyText}"
+                        Visibility="{Binding SshKeyText, Converter={StaticResource NullToVisibilityConverter}}">
+                    <TextBlock Text="{Binding SshKeyText}"
+                               FontSize="{StaticResource FontSizeCaption}"
+                               Foreground="{DynamicResource TextPrimaryBrush}"
+                               TextWrapping="Wrap"/>
+                </Button>
+
                 <!-- Gateway -->
-                <TextBlock x:Name="Spv_GatewayLabel" Grid.Row="2" Grid.Column="0"
+                <TextBlock x:Name="Spv_GatewayLabel" Grid.Row="3" Grid.Column="0"
                            Text="{loc:Translate DetailLabelGateway}" FontSize="{StaticResource FontSizeCaption}"
                            Foreground="{DynamicResource TextSecondaryBrush}"
                            Margin="0,2,12,2" VerticalAlignment="Top"
                            Visibility="{Binding IsGatewayBadgeVisible, Converter={StaticResource BoolToVisibilityConverter}}"/>
-                <Button x:Name="Spv_GatewayCopy" Grid.Row="2" Grid.Column="1"
+                <Button x:Name="Spv_GatewayCopy" Grid.Row="3" Grid.Column="1"
                         Style="{StaticResource SpvCopyValueStyle}"
                         Tag="{Binding GatewayDetailText}"
                         Click="OnCopyValueClick"
@@ -185,12 +207,12 @@
                 </Button>
 
                 <!-- Folder -->
-                <TextBlock x:Name="Spv_GroupLabel" Grid.Row="3" Grid.Column="0"
+                <TextBlock x:Name="Spv_GroupLabel" Grid.Row="4" Grid.Column="0"
                            Text="{loc:Translate DetailLabelGroup}" FontSize="{StaticResource FontSizeCaption}"
                            Foreground="{DynamicResource TextSecondaryBrush}"
                            Margin="0,2,12,2" VerticalAlignment="Top"
                            Visibility="{Binding Group, Converter={StaticResource NullToVisibilityConverter}}"/>
-                <Button x:Name="Spv_GroupCopy" Grid.Row="3" Grid.Column="1"
+                <Button x:Name="Spv_GroupCopy" Grid.Row="4" Grid.Column="1"
                         Style="{StaticResource SpvCopyValueStyle}"
                         Tag="{Binding Group}"
                         Click="OnCopyValueClick"
@@ -204,12 +226,12 @@
                 </Button>
 
                 <!-- Environment -->
-                <TextBlock x:Name="Spv_EnvLabel" Grid.Row="4" Grid.Column="0"
+                <TextBlock x:Name="Spv_EnvLabel" Grid.Row="5" Grid.Column="0"
                            Text="{loc:Translate DetailLabelEnvironment}" FontSize="{StaticResource FontSizeCaption}"
                            Foreground="{DynamicResource TextSecondaryBrush}"
                            Margin="0,2,12,2" VerticalAlignment="Top"
                            Visibility="{Binding Environment, Converter={StaticResource NullToVisibilityConverter}}"/>
-                <Button x:Name="Spv_EnvCopy" Grid.Row="4" Grid.Column="1"
+                <Button x:Name="Spv_EnvCopy" Grid.Row="5" Grid.Column="1"
                         Style="{StaticResource SpvCopyValueStyle}"
                         Tag="{Binding Environment}"
                         Click="OnCopyValueClick"
@@ -223,12 +245,12 @@
                 </Button>
 
                 <!-- Tags -->
-                <TextBlock x:Name="Spv_TagsLabel" Grid.Row="5" Grid.Column="0"
+                <TextBlock x:Name="Spv_TagsLabel" Grid.Row="6" Grid.Column="0"
                            Text="{loc:Translate DetailLabelTags}" FontSize="{StaticResource FontSizeCaption}"
                            Foreground="{DynamicResource TextSecondaryBrush}"
                            Margin="0,2,12,2" VerticalAlignment="Top"
                            Visibility="{Binding Tags, Converter={StaticResource NullToVisibilityConverter}}"/>
-                <Button x:Name="Spv_TagsCopy" Grid.Row="5" Grid.Column="1"
+                <Button x:Name="Spv_TagsCopy" Grid.Row="6" Grid.Column="1"
                         Style="{StaticResource SpvCopyValueStyle}"
                         Tag="{Binding Tags}"
                         Click="OnCopyValueClick"
@@ -242,18 +264,56 @@
                 </Button>
 
                 <!-- Favorite -->
-                <TextBlock x:Name="Spv_FavoriteLabel" Grid.Row="6" Grid.Column="0"
+                <TextBlock x:Name="Spv_FavoriteLabel" Grid.Row="7" Grid.Column="0"
                            Text="{loc:Translate DetailLabelFavorite}" FontSize="{StaticResource FontSizeCaption}"
                            Foreground="{DynamicResource TextSecondaryBrush}"
                            Margin="0,2,12,2" VerticalAlignment="Center"
                            Visibility="{Binding IsFavorite, Converter={StaticResource BoolToVisibilityConverter}}"/>
-                <TextBlock Grid.Row="6" Grid.Column="1"
+                <TextBlock Grid.Row="7" Grid.Column="1"
                            Text="&#xE735;" FontFamily="Segoe MDL2 Assets"
                            FontSize="{StaticResource FontSizeBody}"
                            Foreground="{DynamicResource WarningTextBrush}"
                            Margin="0,2,0,2"
                            Visibility="{Binding IsFavorite, Converter={StaticResource BoolToVisibilityConverter}}"
                            AutomationProperties.Name="{loc:Translate A11yFavoriteIndicator}"/>
+
+                <!-- Latency of the last successful probe -->
+                <TextBlock x:Name="Spv_LatencyLabel" Grid.Row="8" Grid.Column="0"
+                           Text="{loc:Translate DetailLabelLatency}" FontSize="{StaticResource FontSizeCaption}"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
+                           Margin="0,2,12,2" VerticalAlignment="Top"
+                           Visibility="{Binding LatencyText, Converter={StaticResource NullToVisibilityConverter}}"/>
+                <Button x:Name="Spv_LatencyCopy" Grid.Row="8" Grid.Column="1"
+                        Style="{StaticResource SpvCopyValueStyle}"
+                        Tag="{Binding LatencyText}"
+                        Click="OnCopyValueClick"
+                        Margin="0,2,0,2"
+                        AutomationProperties.Name="{Binding LatencyText}"
+                        Visibility="{Binding LatencyText, Converter={StaticResource NullToVisibilityConverter}}">
+                    <TextBlock Text="{Binding LatencyText}"
+                               FontSize="{StaticResource FontSizeCaption}"
+                               Foreground="{DynamicResource TextPrimaryBrush}"
+                               TextTrimming="CharacterEllipsis"/>
+                </Button>
+
+                <!-- Last opened, from the connection history -->
+                <TextBlock x:Name="Spv_LastOpenedLabel" Grid.Row="9" Grid.Column="0"
+                           Text="{loc:Translate DetailLabelLastOpened}" FontSize="{StaticResource FontSizeCaption}"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
+                           Margin="0,2,12,2" VerticalAlignment="Top"
+                           Visibility="{Binding LastOpenedText, Converter={StaticResource NullToVisibilityConverter}}"/>
+                <Button x:Name="Spv_LastOpenedCopy" Grid.Row="9" Grid.Column="1"
+                        Style="{StaticResource SpvCopyValueStyle}"
+                        Tag="{Binding LastOpenedText}"
+                        Click="OnCopyValueClick"
+                        Margin="0,2,0,2"
+                        AutomationProperties.Name="{Binding LastOpenedText}"
+                        Visibility="{Binding LastOpenedText, Converter={StaticResource NullToVisibilityConverter}}">
+                    <TextBlock Text="{Binding LastOpenedText}"
+                               FontSize="{StaticResource FontSizeCaption}"
+                               Foreground="{DynamicResource TextPrimaryBrush}"
+                               TextTrimming="CharacterEllipsis"/>
+                </Button>
             </Grid>
         </Border>
 

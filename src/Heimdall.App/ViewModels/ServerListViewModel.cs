@@ -29,6 +29,7 @@ using Heimdall.App.ViewModels.Shell;
 using Heimdall.Core.Codecs;
 using Heimdall.Core.Configuration;
 using Heimdall.Core.Localization;
+using Heimdall.Core.Logging;
 using Heimdall.Core.Models;
 using Heimdall.Core.Network;
 using Heimdall.Core.Security;
@@ -326,16 +327,58 @@ public partial class ServerListViewModel : ObservableObject, IDisposable, ISessi
     private void RebuildHealthServerIndex()
     {
         _healthServerById.Clear();
+        Dictionary<string, DateTime> lastOpened = GetLastOpenedById();
         foreach (ServerItemViewModel server in _allServers)
         {
             if (!string.IsNullOrEmpty(server.Id))
             {
                 _healthServerById[server.Id] = server;
+
+                // Every path that builds or restores a row passes here, an undone delete
+                // included, so the row shows the history its id already has.
+                server.LastOpenedUtc = lastOpened.TryGetValue(server.Id, out DateTime openedUtc)
+                    ? openedUtc
+                    : null;
             }
         }
 
         // Generation entries deliberately outlive an index entry so a health
         // event queued before removal cannot regress a later VM with the same ID.
+    }
+
+    /// <summary>
+    /// Reads when each profile was last opened. The connection history by default; a test
+    /// replaces it before the first rebuild.
+    /// </summary>
+    internal Func<IReadOnlyDictionary<string, DateTime>> LastOpenedSource { get; set; } =
+        ConnectionHistory.ReadLastOpened;
+
+    private Dictionary<string, DateTime>? _lastOpenedById;
+
+    /// <summary>
+    /// The history is read once, on the first rebuild; <see cref="NoteOpened"/> keeps it
+    /// current from then on.
+    /// </summary>
+    private Dictionary<string, DateTime> GetLastOpenedById() =>
+        _lastOpenedById ??= new Dictionary<string, DateTime>(LastOpenedSource(), StringComparer.Ordinal);
+
+    /// <summary>
+    /// Records that a profile was just opened, for the properties panel.
+    /// </summary>
+    /// <param name="serverId">The profile id the connection history was given.</param>
+    /// <param name="openedUtc">When it was opened, in UTC.</param>
+    internal void NoteOpened(string serverId, DateTime openedUtc)
+    {
+        if (string.IsNullOrEmpty(serverId))
+        {
+            return;
+        }
+
+        GetLastOpenedById()[serverId] = openedUtc;
+        if (_healthServerById.TryGetValue(serverId, out ServerItemViewModel? server))
+        {
+            server.LastOpenedUtc = openedUtc;
+        }
     }
 
     private readonly IRecentConnectionTracker _recentConnections;
