@@ -1884,6 +1884,17 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
             ToggleSidebar,
             canExecute: () => !IsTerminalFocusedContext());
 
+        RegisterPropertiesPanelShortcut(
+            _keyboardShortcutService,
+            () =>
+            {
+                if (GetMainVm() is { } vm)
+                {
+                    vm.ServerList.ShowPropertiesPanel = !vm.ServerList.ShowPropertiesPanel;
+                }
+            },
+            () => !IsTerminalFocusedContext());
+
         // Ctrl+K: open command palette (never terminal-gated; quick access must work
         // from inside a session too, so the palette intentionally wins over the
         // terminal's own Ctrl+K binding).
@@ -2081,6 +2092,25 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
     /// The exact Control mask keeps a bare comma typed into a field, and Ctrl+Shift+comma, with
     /// whatever has focus. Parameters, not window state, so the gesture can be exercised without one.
     /// </remarks>
+    /// <summary>
+    /// Registers Ctrl+Shift+B, which shows or hides the properties panel under the tree.
+    /// </summary>
+    /// <remarks>
+    /// Gated like Ctrl+B, its neighbour that shows or hides the sidebar, so a focused terminal
+    /// keeps the chord. Parameters, not window state, so the gesture can be exercised without one.
+    /// </remarks>
+    internal static void RegisterPropertiesPanelShortcut(
+        KeyboardShortcutService service,
+        Action togglePropertiesPanel,
+        Func<bool> canExecute)
+    {
+        ArgumentNullException.ThrowIfNull(service);
+        ArgumentNullException.ThrowIfNull(togglePropertiesPanel);
+        ArgumentNullException.ThrowIfNull(canExecute);
+
+        service.Register(Key.B, ModifierKeys.Control | ModifierKeys.Shift, togglePropertiesPanel, canExecute);
+    }
+
     internal static void RegisterOpenSettingsShortcut(
         KeyboardShortcutService service,
         Action openSettingsTab)

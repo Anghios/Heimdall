@@ -132,7 +132,7 @@ directly such as `admin@192.168.1.10`. It is the fastest way to reach something 
 - While dragging, a hint names the destination and the number of sessions, or the folder being moved. Hold over a closed folder to expand it; approach the top or bottom of the tree to scroll. To take a session or a folder out of its folder, drop it on **Drop here to take it out of its folder**, which appears below the tree while you drag.
 - After a move, inline rename, or session reorder, the bar below the tree names the change and offers **Undo** for 30 seconds. One step is kept during the current application session. Undo does not cover deletion, and refuses an incompatible later edit. Deleting a folder withdraws the offer. For folders, a later organization or folder-defaults change prevents undo.
 - The **Delete** key acts on sessions, never on a folder: to delete a folder, use **Delete folder** in its menu.
-- **Show properties panel**, in the filter menu, docks the properties of the selected session under the tree: protocol, address with its port, authentication, user, gateway, folder, environment and tags. It follows the selection even while a session tab covers the detail pane, and it is read-only. Drag the bar above it to resize it; the height and the choice are remembered. Click a value, or reach it with Tab and press Enter, to copy it: the address with its port, the user, the gateway, the folder, the environment or the tags. The authentication line says how the session will sign in: SSH key, stored password, SSH agent when the profile stores neither, or the credential provider when it is turned on and the profile stores no password.
+- **Show properties panel**, in the filter menu, in `Settings > General > Session tree`, or with **Ctrl+Shift+B**, docks the properties of the selected session under the tree: protocol, address with its port, authentication, user, gateway, folder, environment and tags. It follows the selection even while a session tab covers the detail pane, and it is read-only. Drag the bar above it to resize it; the height and the choice are remembered. Click a value, or reach it with Tab and press Enter, to copy it: the address with its port, the user, the gateway, the folder, the environment or the tags. The authentication line says how the session will sign in: SSH key, stored password, SSH agent when the profile stores neither, or the credential provider when it is turned on and the profile stores no password.
 
 ### When the tabs no longer fit
 
@@ -336,6 +336,7 @@ Press **F1** at any time for the full list. The ones that pay for themselves imm
 | `Ctrl+N` | Add a session |
 | `Ctrl+E` | Edit the selected session |
 | `Ctrl+B` | Show or hide the left panel |
+| `Ctrl+Shift+B` | Show or hide the properties panel under the tree |
 | `Ctrl+F` | Jump to the sessions filter box; on the Settings tab, to the settings search |
 | `Ctrl+,` | Open the Settings tab |
 | `Ctrl+S` | On the Settings tab, save the settings when there are changes to save |

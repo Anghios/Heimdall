@@ -527,6 +527,7 @@
                                                               AutomationProperties.Name="{loc:Translate FilterShowGatewayBadgeAutomationName}"/>
                                                     <MenuItem x:Name="Mw_ShowPropertiesPanelMenu"
                                                               Header="{loc:Translate FilterShowPropertiesPanel}"
+                                                              InputGestureText="Ctrl+Shift+B"
                                                               IsCheckable="True"
                                                               IsChecked="{Binding ServerList.ShowPropertiesPanel, Mode=TwoWay}"
                                                               StaysOpenOnClick="True"
@@ -2629,6 +2630,30 @@
                                                 <controls:SettingDefaultMarker DataContext="{Binding Settings.Defaults[AccentTint]}"/>
                                             </StackPanel>
                                         </Grid>
+                                    </StackPanel>
+                                </Border>
+                                <!-- Session tree: view preferences the tree's filter menu also toggles. Bound to the
+                                     live preferences and saved at once, like the menu, rather than copied into the panel
+                                     and written on Save: a copy would undo a toggle made from the menu in the meantime. -->
+                                <Border Padding="{StaticResource SpacingLg}" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource CornerRadiusLg}" Margin="0,0,0,16">
+                                    <StackPanel>
+                                        <TextBlock x:Name="Mw_SettingsSessionTreeTitle" Text="{loc:Translate SettingsSectionSessionTree}" FontSize="{StaticResource FontSizeSubtitle}" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,12"/>
+                                        <Border Style="{StaticResource SettingsApplyBadgeStyle}" x:Name="Mw_SettingsSessionTreeTitleApplies">
+                                            <TextBlock Text="{loc:Translate SettingsSavedImmediately}" Style="{StaticResource SettingsApplyBadgeTextStyle}"/>
+                                        </Border>
+                                        <CheckBox x:Name="Mw_SettingsShowPropertiesPanel"
+                                                  Content="{loc:Translate SettingsShowPropertiesPanel}"
+                                                  IsChecked="{Binding ServerList.ShowPropertiesPanel, Mode=TwoWay}"
+                                                  Foreground="{DynamicResource TextPrimaryBrush}"
+                                                  ToolTip="{loc:Translate SettingsShowPropertiesPanelHint}"
+                                                  AutomationProperties.HelpText="{loc:Translate SettingsShowPropertiesPanelHint}"/>
+                                        <CheckBox x:Name="Mw_SettingsShowGatewayBadge"
+                                                  Content="{loc:Translate FilterShowGatewayBadge}"
+                                                  IsChecked="{Binding ServerList.ShowGatewayBadge, Mode=TwoWay}"
+                                                  Foreground="{DynamicResource TextPrimaryBrush}"
+                                                  Margin="0,6,0,0"
+                                                  ToolTip="{loc:Translate FilterShowGatewayBadgeAutomationName}"
+                                                  AutomationProperties.HelpText="{loc:Translate FilterShowGatewayBadgeAutomationName}"/>
                                     </StackPanel>
                                 </Border>
                                 <Border Padding="{StaticResource SpacingLg}" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource CornerRadiusLg}" Margin="0,0,0,16">
