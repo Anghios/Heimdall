@@ -248,7 +248,7 @@ Tous les outils s'ouvrent comme des onglets de session (split avec n'importe que
 - Sessions à onglets avec réorganisation par glisser-déposer
 - Détachement d'un onglet vers une fenêtre flottante (glisser-sortir façon Chrome ou menu contextuel) ; un onglet scindé reste dans la barre d'onglets, et la barre d'état indique d'annuler d'abord la division
 - Fermer l'onglet sélectionné sélectionne l'onglet qui prend sa place, ou celui qui le précède s'il était le dernier
-- **Sessions intégrées max** compte chaque volet embarqué, volets scindés et fenêtres flottantes compris ; un split qui dépasserait la limite est refusé avec le même message qu'un nouvel onglet
+- **Avertir au-delà de ce nombre de sessions ouvertes** compte les connexions intégrées, volets scindés et fenêtres flottantes compris, mais pas le volet SFTP ouvert à côté d'une session SSH ni le volet de fichiers d'un shell local ; au-delà, un bandeau dit ce que coûtent les sessions, et aucun onglet ni split n'est refusé
 - **Split récursif à N volets** : jusqu'à 8 volets par onglet, dans n'importe quelle disposition (2x2, en L, 3 côte à côte, etc.)
 - Split supplémentaire de n'importe quel volet : clic droit → "Split..." → Horizontal | Vertical, ou palette de commandes
 - **Fusionner un onglet existant** : clic droit → "Merge with..." → session ou outil → Horizontal | Vertical (rattache la connexion vivante sans reconnexion)
@@ -310,7 +310,7 @@ Tous les outils s'ouvrent comme des onglets de session (split avec n'importe que
 - **Ergonomie des sessions dans la barre latérale** : barre d'outils sur deux lignes avec recherche pleine largeur au-dessus d'actions purement iconographiques, largeur par défaut de 320 px, et troncature intelligente des noms longs qui préserve l'identifiant de session tout en abrégeant les suffixes entre parenthèses en fin de nom
 - Mode plein écran (F11), bascule de la barre latérale (Ctrl+B), filtre (Ctrl+F)
 - **Accueil au premier lancement** : une visite guidée en 6 étapes qui met en surbrillance le contrôle réel dont elle parle - le voile est découpé autour de la cible et cerclé - et qui navigue vers le bon onglet avant chaque étape plutôt qu'après. Rejouable à tout moment depuis `Paramètres > Général`, si bien qu'une touche Échap réflexe ne la termine plus définitivement. Une étape dont la cible est introuvable retombe sur une carte centrée plutôt que de cercler du vide
-- Interface trilingue : anglais, français et espagnol (6 915 clés i18n par langue, parité exacte entre les trois catalogues)
+- Interface trilingue : anglais, français et espagnol (6 916 clés i18n par langue, parité exacte entre les trois catalogues)
 - i18n déclarative : extension de balisage WPF `{loc:Translate Key}` avec changement de langue à chaud
 - Accessibilité WCAG 2.1 AA : AutomationProperties.Name sur tous les contrôles interactifs via `{loc:Translate}`, LiveSetting="Polite" sur les sorties dynamiques, indicateurs de focus clavier, infobulles sur les états désactivés, décompte des résultats de filtre annoncé en région live à chaque changement, et lignes de dossier prenant le focus clavier comme cibles fiables du menu contextuel Maj+F10 / touche Applications, avec un nom d'automatisation localisé
 

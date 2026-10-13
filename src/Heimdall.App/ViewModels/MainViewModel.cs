@@ -993,11 +993,6 @@ public partial class MainViewModel : ObservableObject, IDisposable, ITunnelsHost
                 dto.DisplayName,
                 connType,
                 settings.MaxEmbeddedSessions);
-            if (tab is null)
-            {
-                SessionCoordinator.SafeDisposeSessionResult(result.Session);
-                return;
-            }
 
             tab.MarkAsAdHoc(dto);
 

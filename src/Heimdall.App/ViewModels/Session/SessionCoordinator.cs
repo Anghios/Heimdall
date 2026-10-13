@@ -164,7 +164,7 @@ public sealed partial class SessionCoordinator : ObservableObject, IDisposable
         // Wire SplitService callbacks for access to session tab state
         _main.Split.ActiveSessionsProvider = () => _main.Connection.ActiveSessions;
         _main.Split.ActiveSessionProvider = () => _main.Connection.ActiveSession;
-        _main.Split.OpenSessionsProvider = () => _main.Connection.AllOpenSessions;
+        _main.Split.NoteNewConnection = threshold => _main.Connection.NoteNewConnection(threshold);
         _main.Split.SetActiveSession = s => _main.Connection.ActiveSession = s;
         _main.Split.SetHasActiveSessions = v => _main.Connection.HasActiveSessions = v;
         _main.Split.SetStatusText = s => _main.StatusText = s;
@@ -730,16 +730,11 @@ public sealed partial class SessionCoordinator : ObservableObject, IDisposable
             return;
         }
 
-        SessionTabViewModel? tab = _main.Connection.AddSession(
+        SessionTabViewModel tab = _main.Connection.AddSession(
             sessionId,
             displayName,
             connectionType,
             settings.MaxEmbeddedSessions);
-        if (tab is null)
-        {
-            cancellationSource.Cancel();
-            return;
-        }
 
         tab.OriginalServerId = originalServerId;
         tab.FailureDetails = null;
@@ -937,11 +932,6 @@ public sealed partial class SessionCoordinator : ObservableObject, IDisposable
             displayName,
             connectionType,
             maxEmbeddedSessions);
-        if (tab is null)
-        {
-            SafeDisposeSessionResult(session);
-            return;
-        }
 
         tab.OriginalServerId = originalServerId;
         tab.FailureDetails = null;
@@ -1654,16 +1644,11 @@ public sealed partial class SessionCoordinator : ObservableObject, IDisposable
 
         if (result.Success && result.Session is not null)
         {
-            SessionTabViewModel? tab = _main.Connection.AddSession(
+            SessionTabViewModel tab = _main.Connection.AddSession(
                 runtimeProfile.Id,
                 runtimeProfile.DisplayName,
                 connectionType,
                 settings.MaxEmbeddedSessions);
-            if (tab is null)
-            {
-                SafeDisposeSessionResult(result.Session);
-                return;
-            }
 
             tab.MarkAsAdHoc(snapshot);
             try

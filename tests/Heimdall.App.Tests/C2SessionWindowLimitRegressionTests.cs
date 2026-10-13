@@ -23,7 +23,7 @@ namespace Heimdall.App.Tests;
 public sealed partial class SessionCoordinatorPreMountTests
 {
     [Fact]
-    public void UnsplitSession_AtEmbeddedLimit_ReintroducesSecondaryAsIndependentTab()
+    public void UnsplitSession_AtSessionThreshold_ReintroducesSecondaryAsIndependentTab()
     {
         using TestHarness harness = TestHarness.Create();
         var service = new SessionWindowService();
@@ -52,11 +52,9 @@ public sealed partial class SessionCoordinatorPreMountTests
             },
         };
 
-        Assert.Null(harness.Main.Connection.AddSession(
-            "blocked",
-            "Blocked",
-            "SSH",
-            maxEmbeddedSessions: 1));
+        Assert.True(ConnectionViewModel.IsAtSessionThreshold(
+            harness.Main.Connection.AllOpenSessions,
+            threshold: 1));
 
         service.UnsplitSession(session, harness.Main);
 

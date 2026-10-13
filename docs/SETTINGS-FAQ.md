@@ -240,8 +240,9 @@ refused until it is corrected; nothing is dropped behind your back.
 
 Full measurements are in [RDP memory and session tuning](RDP-PERFORMANCE.md).
 
-**Max embedded sessions** - a ceiling on simultaneously embedded sessions. Raise it if you work
-with many at once and have the memory; each one costs roughly 194 MB.
+**Warn above this many open sessions** - past this number of embedded sessions, a banner says
+what they cost; nothing is refused. Each one costs roughly 194 MB, RDP the most. The SFTP pane
+that opens beside an SSH session and the file pane of a local shell are not counted.
 
 **Dynamic resolution** - lets the session resize with the window instead of reconnecting.
 Leave it on unless a server misbehaves when the resolution changes mid-session.

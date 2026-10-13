@@ -248,7 +248,7 @@ All tools open as session tabs (split with any session or tool, detach, reorder)
 - Tabbed sessions with drag-to-reorder
 - Tab detach to floating window (Chrome-style drag-out or context menu); a split tab stays in the strip, and the status bar says to unsplit it first
 - Closing the selected tab selects the tab that takes its place, or the one before it when it was the last
-- **Max embedded sessions** counts every embedded pane, split panes and floating windows included; a split that would exceed it is refused with the same message as a new tab
+- **Warn above this many open sessions** counts the embedded connections, split panes and floating windows included, but not the SFTP pane opened beside an SSH session nor the file pane of a local shell; past it a banner says what the sessions cost, and no tab or split is refused
 - **Recursive N-pane split**: up to 8 panes per tab in any layout (2x2, L-shape, 3 side-by-side, etc.)
 - Split any pane further: right-click → "Split..." → Horizontal | Vertical, or Command Palette
 - **Merge existing tab**: right-click → "Merge with..." → session or tool → Horizontal | Vertical (reparents live connection without reconnecting)
@@ -310,7 +310,7 @@ All tools open as session tabs (split with any session or tool, detach, reorder)
 - **Sidebar sessions UX**: two-row toolbar with full-width search above icon-only actions, 320px default width, and smart long-name truncation that preserves the session identifier while ellipsizing trailing parenthesized suffixes
 - Fullscreen mode (F11), toggle sidebar (Ctrl+B), filter (Ctrl+F)
 - **First-launch onboarding**: a 6-step guided tour that spotlights the real control it is describing - the scrim is cut around the target and ringed - and navigates to the right tab before each step rather than after it. Replayable at any time from `Settings > General`, so one reflex Escape no longer ends it for good. A step whose target cannot be resolved degrades to a centred card rather than ringing empty space
-- Trilingual interface: English, French and Spanish (6,915 i18n keys per language, exact parity across the three catalogues)
+- Trilingual interface: English, French and Spanish (6,916 i18n keys per language, exact parity across the three catalogues)
 - Declarative i18n: `{loc:Translate Key}` WPF markup extension with runtime language switching
 - WCAG 2.1 AA accessibility: AutomationProperties.Name on all interactive controls via `{loc:Translate}`, LiveSetting="Polite" on dynamic outputs, keyboard focus indicators, disabled state tooltips, a live-region filter result count announced on change, and keyboard-focused folder rows as reliable Shift+F10 / Apps context-menu targets with a localized automation name
 
