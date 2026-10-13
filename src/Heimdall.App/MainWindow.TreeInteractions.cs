@@ -139,8 +139,15 @@ public partial class MainWindow
     /// </summary>
     private void OnSessionTreeViewGotKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
     {
-        _treeState.MoveFolderCursor(
-            FindAncestor<TreeViewItem>(e.NewFocus as DependencyObject)?.DataContext);
+        object? focusedNode = FindAncestor<TreeViewItem>(e.NewFocus as DependencyObject)?.DataContext;
+        _treeState.MoveFolderCursor(focusedNode);
+
+        // The properties panel summarizes the folder under the cursor. Focus outside any row
+        // leaves both the mark and the panel where they were.
+        if (focusedNode is not null && DataContext is MainViewModel vm)
+        {
+            vm.ServerList.PropertiesFolder = _treeState.CursorFolder;
+        }
     }
 
     /// <summary>

@@ -2571,6 +2571,10 @@ public partial class ServerListViewModel : ObservableObject, IDisposable, ISessi
             bool wasConnected = ConnectionStateSets.IsConnected(server.ConnectionState);
             server.ConnectionState = aggregation.AggregateState.ToString();
             bool isConnected = ConnectionStateSets.IsConnected(aggregation.AggregateState);
+            if (wasConnected != isConnected)
+            {
+                RefreshPropertiesSummary();
+            }
 
             // Refresh the stable projection exactly once when this server
             // crosses the connected-filter boundary. Other state changes only

@@ -1202,8 +1202,9 @@
                                     <ScrollViewer VerticalScrollBarVisibility="Auto"
                                                   HorizontalScrollBarVisibility="Disabled"
                                                   Padding="8,4,8,8">
-                                        <Grid>
-                                            <StackPanel Visibility="{Binding ServerList.ShowSessionDetail, Converter={StaticResource BoolToVisibilityConverter}}">
+                                        <Grid Grid.IsSharedSizeScope="True">
+                                            <StackPanel x:Name="Mw_PropertiesPanelSession"
+                                                        Visibility="{Binding ServerList.PropertiesPanelShowsSession, Converter={StaticResource BoolToVisibilityConverter}}">
                                                 <TextBlock x:Name="Mw_PropertiesPanelName"
                                                            Text="{Binding ServerList.SelectedServer.DisplayName}"
                                                            FontSize="{StaticResource FontSizeBodyLarge}"
@@ -1219,7 +1220,87 @@
                                                        FontSize="{StaticResource FontSizeCaption}"
                                                        Foreground="{DynamicResource TextSecondaryBrush}"
                                                        TextWrapping="Wrap"
-                                                       Visibility="{Binding ServerList.ShowSessionDetail, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=Invert}"/>
+                                                       Visibility="{Binding ServerList.PropertiesPanelShowsEmpty, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                            <!-- A folder under the tree cursor, or several selected sessions. -->
+                                            <StackPanel x:Name="Mw_PropertiesPanelSummary"
+                                                        DataContext="{Binding ServerList.PropertiesSummary}"
+                                                        Visibility="{Binding DataContext.ServerList.PropertiesPanelShowsSummary, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolToVisibilityConverter}}">
+                                                <TextBlock x:Name="Mw_PropertiesSummaryTitle"
+                                                           Text="{Binding Title}"
+                                                           FontSize="{StaticResource FontSizeBodyLarge}"
+                                                           FontWeight="SemiBold"
+                                                           Foreground="{DynamicResource TextPrimaryBrush}"
+                                                           TextTrimming="CharacterEllipsis"
+                                                           Margin="0,0,0,2"/>
+                                                <TextBlock x:Name="Mw_PropertiesSummaryPath"
+                                                           Text="{Binding Path}"
+                                                           FontSize="{StaticResource FontSizeCaption}"
+                                                           Foreground="{DynamicResource TextSecondaryBrush}"
+                                                           TextWrapping="Wrap"
+                                                           Visibility="{Binding Path, Converter={StaticResource NullToVisibilityConverter}}"/>
+                                                <Border Margin="0,8,0,0" Padding="12,8"
+                                                        Background="{DynamicResource CardBrush}"
+                                                        CornerRadius="{StaticResource CornerRadiusSm}"
+                                                        BorderBrush="{DynamicResource BorderBrush}"
+                                                        BorderThickness="1">
+                                                    <StackPanel>
+                                                        <Grid>
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="Auto" SharedSizeGroup="SummaryLabel"/>
+                                                                <ColumnDefinition Width="*"/>
+                                                            </Grid.ColumnDefinitions>
+                                                            <Grid.RowDefinitions>
+                                                                <RowDefinition Height="Auto"/>
+                                                                <RowDefinition Height="Auto"/>
+                                                            </Grid.RowDefinitions>
+                                                            <TextBlock x:Name="Mw_PropertiesSummaryCountLabel" Grid.Row="0" Grid.Column="0"
+                                                                       Text="{loc:Translate PropertiesSummarySessions}" FontSize="{StaticResource FontSizeCaption}"
+                                                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                                                       Margin="0,2,12,2"/>
+                                                            <TextBlock x:Name="Mw_PropertiesSummaryCount" Grid.Row="0" Grid.Column="1"
+                                                                       Text="{Binding SessionCountText}"
+                                                                       FontSize="{StaticResource FontSizeCaption}"
+                                                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                                                       Margin="0,2,0,2"/>
+                                                            <TextBlock x:Name="Mw_PropertiesSummaryConnectedLabel" Grid.Row="1" Grid.Column="0"
+                                                                       Text="{loc:Translate PropertiesSummaryConnected}" FontSize="{StaticResource FontSizeCaption}"
+                                                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                                                       Margin="0,2,12,2"/>
+                                                            <TextBlock x:Name="Mw_PropertiesSummaryConnected" Grid.Row="1" Grid.Column="1"
+                                                                       Text="{Binding ConnectedCountText}"
+                                                                       FontSize="{StaticResource FontSizeCaption}"
+                                                                       Foreground="{DynamicResource TextPrimaryBrush}"
+                                                                       Margin="0,2,0,2"/>
+                                                        </Grid>
+                                                        <!-- One line per protocol, the most used first. -->
+                                                        <ItemsControl x:Name="Mw_PropertiesSummaryProtocols"
+                                                                      ItemsSource="{Binding Protocols}"
+                                                                      Focusable="False"
+                                                                      Margin="0,4,0,0">
+                                                            <ItemsControl.ItemTemplate>
+                                                                <DataTemplate>
+                                                                    <Grid>
+                                                                        <Grid.ColumnDefinitions>
+                                                                            <ColumnDefinition Width="Auto" SharedSizeGroup="SummaryLabel"/>
+                                                                            <ColumnDefinition Width="*"/>
+                                                                        </Grid.ColumnDefinitions>
+                                                                        <TextBlock Grid.Column="0"
+                                                                                   Text="{Binding Protocol}"
+                                                                                   FontSize="{StaticResource FontSizeCaption}"
+                                                                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                                                                   Margin="0,2,12,2"/>
+                                                                        <TextBlock Grid.Column="1"
+                                                                                   Text="{Binding CountText}"
+                                                                                   FontSize="{StaticResource FontSizeCaption}"
+                                                                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                                                                   Margin="0,2,0,2"/>
+                                                                    </Grid>
+                                                                </DataTemplate>
+                                                            </ItemsControl.ItemTemplate>
+                                                        </ItemsControl>
+                                                    </StackPanel>
+                                                </Border>
+                                            </StackPanel>
                                         </Grid>
                                     </ScrollViewer>
                                 </DockPanel>

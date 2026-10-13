@@ -133,6 +133,7 @@ public partial class ServerListViewModel : ISessionTreeSelectionHost
         MoveSelectedToProjectCommand.NotifyCanExecuteChanged();
         MoveSelectedToGroupCommand.NotifyCanExecuteChanged();
         BulkEditGatewayCommand.NotifyCanExecuteChanged();
+        OnPropertiesPanelSelectionChanged();
     }
 
     // --- ISessionTreeSelectionHost -------------------------------------------------------------
@@ -265,6 +266,7 @@ public partial class ServerListViewModel : ISessionTreeSelectionHost
     {
         OnPropertyChanged(nameof(ShowSessionDetail));
         OnPropertyChanged(nameof(ShowToolDetail));
+        NotifyPropertiesPanelMode();
         NotifyToolDetailChanged();
 
         if (_suppressSelectedServerSync)
