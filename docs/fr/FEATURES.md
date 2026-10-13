@@ -76,6 +76,17 @@ Le catalogue complet de ce que fait Heimdall, protocole par protocole. Si vous c
 - Une session VNC ouverte empêche la mise en veille de la machine, comme les autres sessions embarquées
 - Déploiement portable de WebView2 (Fixed Version Runtime embarqué pour les serveurs isolés)
 
+### Web
+- Consoles web (iLO, iDRAC, commutateurs, pages d'administration de NAS) comme entrées de l'arbre, dans les mêmes dossiers et la même barre d'onglets que les autres sessions
+- L'adresse est construite à partir de l'hôte et du port du profil, plus HTTPS ou HTTP et un chemin facultatif : l'arbre, la recherche, le contrôle de disponibilité et les outils externes lisent le même hôte que pour les autres types
+- Rendu par WebView2 dans un seul profil de navigateur partagé par tous les onglets web et conservé dans le dossier de données : une connexion faite dans un onglet vaut pour les autres et survit à un redémarrage
+- Un certificat que le système ne reconnaît pas (console auto-signée) est présenté avec son empreinte, puis accepté une fois ou durablement, par hôte et port, comme pour FTPS ; un certificat qui change est redemandé avec un avertissement, et Entrée ne l'accepte pas
+- Un compte enregistré répond à la demande de connexion du navigateur (Basic, NTLM) sur l'hôte du profil seulement, une fois par onglet ; les formulaires de connexion dans la page ne sont pas remplis
+- La navigation est limitée aux adresses web, dans la page comme dans ses cadres : les liens file:, de script et de protocole personnalisé sont refusés, et une fenêtre surgissante s'ouvre dans le même onglet sous les mêmes règles
+- Une console qui répond par une erreur HTTP, ou un lien qui échoue après le chargement de la console, laisse la session ouverte : seul l'échec à joindre la console y met fin
+- **Ouvrir avec un programme externe**, par profil, pour une console qu'aucun moteur actuel n'accepte (un ancien iLO) : le programme, ou le navigateur par défaut si aucun n'est indiqué, reçoit l'adresse avec {Url}, {Host} et {Port} ; les interpréteurs de commandes sont refusés, et un profil importé qui indique un programme demande confirmation avant de le lancer, comme un profil de shell local
+- Les connexions HTTP et HTTPS de mRemoteNG s'importent comme profils web, avec leur schéma, leur port et leur nom d'utilisateur
+
 ### Telnet
 - Telnet TCP brut avec négociation IAC
 - Prise en charge de la sous-négociation NAWS (taille de fenêtre)
@@ -310,7 +321,7 @@ Tous les outils s'ouvrent comme des onglets de session (split avec n'importe que
 - **Ergonomie des sessions dans la barre latérale** : barre d'outils sur deux lignes avec recherche pleine largeur au-dessus d'actions purement iconographiques, largeur par défaut de 320 px, et troncature intelligente des noms longs qui préserve l'identifiant de session tout en abrégeant les suffixes entre parenthèses en fin de nom
 - Mode plein écran (F11), bascule de la barre latérale (Ctrl+B), filtre (Ctrl+F)
 - **Accueil au premier lancement** : une visite guidée en 6 étapes qui met en surbrillance le contrôle réel dont elle parle - le voile est découpé autour de la cible et cerclé - et qui navigue vers le bon onglet avant chaque étape plutôt qu'après. Rejouable à tout moment depuis `Paramètres > Général`, si bien qu'une touche Échap réflexe ne la termine plus définitivement. Une étape dont la cible est introuvable retombe sur une carte centrée plutôt que de cercler du vide
-- Interface trilingue : anglais, français et espagnol (6 927 clés i18n par langue, parité exacte entre les trois catalogues)
+- Interface trilingue : anglais, français et espagnol (6 965 clés i18n par langue, parité exacte entre les trois catalogues)
 - i18n déclarative : extension de balisage WPF `{loc:Translate Key}` avec changement de langue à chaud
 - Accessibilité WCAG 2.1 AA : AutomationProperties.Name sur tous les contrôles interactifs via `{loc:Translate}`, LiveSetting="Polite" sur les sorties dynamiques, indicateurs de focus clavier, infobulles sur les états désactivés, décompte des résultats de filtre annoncé en région live à chaque changement, et lignes de dossier prenant le focus clavier comme cibles fiables du menu contextuel Maj+F10 / touche Applications, avec un nom d'automatisation localisé
 

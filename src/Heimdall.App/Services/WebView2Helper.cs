@@ -73,6 +73,42 @@ public static class WebView2Helper
             .ConfigureAwait(false);
     }
 
+    /// <summary>Sub-folder of the data directory holding the web consoles' browser profile.</summary>
+    internal const string WebConsoleProfileFolder = "WebView2-Web";
+
+    private static readonly object WebConsoleEnvironmentLock = new();
+    private static Task<CoreWebView2Environment>? _webConsoleEnvironment;
+
+    /// <summary>
+    /// The one browser environment every web console tab shares, so a login made in one tab
+    /// holds in the others and survives a restart.
+    /// </summary>
+    /// <remarks>
+    /// Kept under the data directory rather than <c>%TEMP%</c>, where the other embedded views
+    /// keep theirs: those hold no state worth keeping, while this one holds the cookies of every
+    /// console, and a disk cleanup emptying the temporary folder would sign the user out of all
+    /// of them. A failed creation is not cached, so the next tab tries again.
+    /// </remarks>
+    public static Task<CoreWebView2Environment> GetWebConsoleEnvironmentAsync()
+    {
+        lock (WebConsoleEnvironmentLock)
+        {
+            if (_webConsoleEnvironment is { IsFaulted: false, IsCanceled: false } existing)
+            {
+                return existing;
+            }
+
+            string userDataFolder = Path.Combine(
+                Core.Configuration.ApplicationDataPathResolver.Resolve(),
+                WebConsoleProfileFolder);
+            string? browserExecutableFolder = IsBundled ? BundledRuntimePath : null;
+            _webConsoleEnvironment = CoreWebView2Environment.CreateAsync(
+                browserExecutableFolder: browserExecutableFolder,
+                userDataFolder: userDataFolder);
+            return _webConsoleEnvironment;
+        }
+    }
+
     private static bool CheckAvailability()
     {
         // Check bundled Fixed Version Runtime first

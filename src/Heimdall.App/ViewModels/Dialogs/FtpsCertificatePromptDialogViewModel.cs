@@ -23,11 +23,35 @@ using Heimdall.Core.Logging;
 
 namespace Heimdall.App.ViewModels.Dialogs;
 
+/// <summary>
+/// The words a certificate prompt uses, so one dialog serves FTPS and web consoles alike.
+/// </summary>
+/// <param name="HeaderKey">Localization key of the title.</param>
+/// <param name="WarningKey">Localization key of the warning; formatted with the host and the port.</param>
+/// <param name="AcceptIsDefault">
+/// Whether Enter trusts the certificate. False when the certificate replaces a trusted one: a
+/// reflex keystroke must not accept what may be an interception.
+/// </param>
+public sealed record CertificatePromptWording(string HeaderKey, string WarningKey, bool AcceptIsDefault)
+{
+    public static CertificatePromptWording Ftps { get; } =
+        new("FtpsCertificateFirstUseTitle", "FtpsCertificateFirstUseWarning", AcceptIsDefault: true);
+
+    public static CertificatePromptWording WebFirstUse { get; } =
+        new("WebCertificateFirstUseTitle", "WebCertificateFirstUseWarning", AcceptIsDefault: true);
+
+    public static CertificatePromptWording WebChanged { get; } =
+        new("WebCertificateChangedTitle", "WebCertificateChangedWarning", AcceptIsDefault: false);
+}
+
 public partial class FtpsCertificatePromptDialogViewModel(
     LocalizationManager localizer,
-    FtpsCertificatePrompt prompt) : ObservableObject
+    FtpsCertificatePrompt prompt,
+    CertificatePromptWording? wording = null) : ObservableObject
 {
     private readonly LocalizationManager _localizer = localizer;
+
+    private readonly CertificatePromptWording _wording = wording ?? CertificatePromptWording.Ftps;
 
     public string Host { get; } = prompt.Host;
 
@@ -46,14 +70,14 @@ public partial class FtpsCertificatePromptDialogViewModel(
     public DateTimeOffset NotAfter { get; } = prompt.NotAfter;
 
     /// <remarks>
-    /// This prompt is a first-use prompt only. A changed certificate is refused by the browser
-    /// before any prompt can be asked, so the "certificate changed" wording this view model once
-    /// carried described a screen that could not be shown.
+    /// For FTPS this is a first-use prompt only: a changed certificate is refused by the FTP
+    /// browser before any prompt can be asked. A web console asks again with the changed wording,
+    /// because appliances regenerate their self-signed certificate on firmware updates.
     /// </remarks>
-    public string HeaderText => _localizer["FtpsCertificateFirstUseTitle"];
+    public string HeaderText => _localizer[_wording.HeaderKey];
 
     public string WarningText => _localizer.Format(
-        "FtpsCertificateFirstUseWarning",
+        _wording.WarningKey,
         Host,
         Port);
 
@@ -74,7 +98,7 @@ public partial class FtpsCertificatePromptDialogViewModel(
     /// <summary>"Trust this session" never answers Enter; on a first-use prompt Accept does.</summary>
     public bool TrustOnceIsDefault => false;
 
-    public bool AcceptIsDefault => true;
+    public bool AcceptIsDefault => _wording.AcceptIsDefault;
 
     public FtpsCertificateDecision? Decision { get; private set; }
 

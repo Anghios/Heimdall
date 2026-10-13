@@ -71,6 +71,8 @@
     <!-- SFTP: folder with up-arrow -->
     <Geometry x:Key="Geo.Protocol.Sftp">M1,3 L6,3 L7,5 L15,5 L15,14 L1,14 Z M8,7 L8,12 M5.5,9.5 L8,7 L10.5,9.5</Geometry>
 
+    <!-- Web: globe, a ring crossed by a meridian and the equator -->
+    <Geometry x:Key="Geo.Protocol.Web">F1 M8,1 A7,7 0 1 1 7.99,1 Z M8,2.5 A5.5,5.5 0 1 0 8.01,2.5 Z M7.4,2.5 L8.6,2.5 L8.6,13.5 L7.4,13.5 Z M2.5,7.4 L13.5,7.4 L13.5,8.6 L2.5,8.6 Z M5.2,3.6 C4.2,5.4 4.2,10.6 5.2,12.4 L6.2,12 C5.4,10.4 5.4,5.6 6.2,4 Z M10.8,3.6 C11.8,5.4 11.8,10.6 10.8,12.4 L9.8,12 C10.6,10.4 10.6,5.6 9.8,4 Z</Geometry>
     <!-- VNC: monitor with remote cursor / eye -->
     <Geometry x:Key="Geo.Protocol.Vnc">M1,1 L15,1 L15,11 L1,11 Z M6,11 L10,11 L10,13 L6,13 Z M4,13 L12,13 L12,15 L4,15 Z M4,6 C4,3 12,3 12,6 C12,9 4,9 4,6 Z M8,4.5 A1.5,1.5 0 1 1 8,7.5 A1.5,1.5 0 1 1 8,4.5 Z</Geometry>
 

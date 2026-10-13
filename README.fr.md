@@ -41,6 +41,7 @@ C'est gratuit, open source, et cela tourne sur Windows 10 et 11.
 | **SFTP** et **FTP** | Déplacer des fichiers, avec un navigateur à deux panneaux et le glisser-déposer |
 | **VNC** | Écrans sous Linux, macOS, équipements divers |
 | **Telnet** | Matériel réseau plus ancien |
+| **Web** | Consoles web (iLO, iDRAC, commutateurs, NAS) dans un onglet, ou dans un autre navigateur pour une console trop ancienne pour les moteurs actuels |
 | **Citrix** | Applications et bureaux publiés |
 | **WinRM** | PowerShell sur des machines Windows distantes |
 | **Shell local** | Un terminal sur votre propre machine, dans la même fenêtre |

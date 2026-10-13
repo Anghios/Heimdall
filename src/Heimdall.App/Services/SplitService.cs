@@ -1128,6 +1128,7 @@ public sealed class SplitService : ISplitService
             "LOCAL" => await _connectionService.ConnectLocalShellAsync(serverDto, settings, ct),
             "TELNET" => await _connectionService.ConnectTelnetAsync(serverDto, settings, ct),
             "VNC" => await _connectionService.ConnectVncAsync(serverDto, settings, ct),
+            "WEB" => await _connectionService.ConnectWebAsync(serverDto, settings, ct),
             "FTP" => await _connectionService.ConnectFtpAsync(serverDto, settings, ct),
             "CITRIX" => await _connectionService.ConnectCitrixAsync(serverDto, settings, ct),
             "WINRM" => await _connectionService.ConnectWinRmAsync(serverDto, settings, ct),

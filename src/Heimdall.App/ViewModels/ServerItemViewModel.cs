@@ -230,6 +230,7 @@ public partial class ServerItemViewModel : ObservableObject, IInlineRenameNode, 
             "WINRM" => _sourceDto.WinRmPort,
             "FTP" => _sourceDto.FtpPort,
             "VNC" => _sourceDto.VncPort,
+            "WEB" => _sourceDto.WebPort,
             "TELNET" => _sourceDto.TelnetPort,
             _ => RemotePort
         };
@@ -412,6 +413,7 @@ public partial class ServerItemViewModel : ObservableObject, IInlineRenameNode, 
         "SFTP" => "SFTP",
         "FTP" => "FTP",
         "VNC" => "VNC",
+        "WEB" => "WEB",
         "TELNET" => "TEL",
         "CITRIX" => "CTX",
         "LOCAL" => "SH",
@@ -635,6 +637,7 @@ public partial class ServerItemViewModel : ObservableObject, IInlineRenameNode, 
             "WINRM" => dto.WinRmPort,
             "FTP" => dto.FtpPort,
             "VNC" => dto.VncPort,
+            "WEB" => dto.WebPort,
             "TELNET" => dto.TelnetPort,
             _ => dto.RemotePort
         };
@@ -686,6 +689,7 @@ public partial class ServerItemViewModel : ObservableObject, IInlineRenameNode, 
             "RDP" => dto.RdpUsername ?? "",
             "WINRM" => dto.WinRmUsername ?? "",
             "FTP" => dto.FtpUsername ?? "",
+            "WEB" => dto.WebUsername ?? "",
             _ => ""
         };
     }
@@ -842,6 +846,11 @@ public partial class ServerItemViewModel : ObservableObject, IInlineRenameNode, 
 
             case "VNC":
                 AddIfConfigured(parts, dto.VncPassword, "SessionAuthPassword");
+                break;
+
+            case "WEB":
+                AddIfConfigured(parts, dto.WebUsername, "SessionAuthUsername");
+                AddIfConfigured(parts, dto.WebPasswordEncrypted, "SessionAuthPassword");
                 break;
 
             default:

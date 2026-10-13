@@ -1812,7 +1812,8 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
         // Direct WebView2 focus detection (works when WPF properly tracks HWND focus)
         if (focused is Microsoft.Web.WebView2.Wpf.WebView2
             || FindAncestor<Views.EmbeddedSshView>(focused) is not null
-            || FindAncestor<Views.EmbeddedVncView>(focused) is not null)
+            || FindAncestor<Views.EmbeddedVncView>(focused) is not null
+            || FindAncestor<Views.EmbeddedWebView>(focused) is not null)
         {
             return true;
         }

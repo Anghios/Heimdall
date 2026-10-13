@@ -66,6 +66,12 @@ public sealed class EmbeddedSessionManager : IEmbeddedSessionManager, IDisposabl
     private bool _disposed;
     private readonly ISessionOperationLog _sessionOperationLog;
     private readonly ConfigManager _configManager;
+
+    /// <summary>
+    /// The pins of web console certificates. The app's singleton, so a trust given in one tab
+    /// holds in the next and is persisted; a fresh in-memory one when none is supplied.
+    /// </summary>
+    private readonly WebCertificateTrust _webCertificateTrust;
     private ConfigGatewayInventory? _gatewayInventory;
 
     /// <summary>
@@ -164,8 +170,10 @@ public sealed class EmbeddedSessionManager : IEmbeddedSessionManager, IDisposabl
         ISessionLogService sessionLogService,
         ISessionEventLog sessionEventLog,
         ISessionOperationLog sessionOperationLog,
-        ConfigManager configManager)
+        ConfigManager configManager,
+        WebCertificateTrust? webCertificateTrust = null)
     {
+        _webCertificateTrust = webCertificateTrust ?? new WebCertificateTrust();
         _localizer = localizer;
         _dialogService = dialogService;
         _hostKeyStore = hostKeyStore;
@@ -574,6 +582,44 @@ public sealed class EmbeddedSessionManager : IEmbeddedSessionManager, IDisposabl
                     {
                         Core.Logging.FileLogger.Error(
                             $"VNC init failed for {sessionTab.ServerId}: {t.Exception.GetBaseException()}");
+                    }
+                },
+                    TaskContinuationOptions.OnlyOnFaulted);
+            return view;
+        }
+
+        if (string.Equals(connectionType, "WEB", StringComparison.OrdinalIgnoreCase)
+            && session is WebSessionResult web)
+        {
+            var view = new EmbeddedWebView { CertificateTrust = _webCertificateTrust };
+            view.SessionConnected += (serverId) =>
+            {
+                _connectionSm.TryTransition(serverId, ConnectionState.Connected);
+                WriteHostStatus(sessionTab, view.OwningPane, SessionStatusTokens.Connected);
+                Core.Logging.FileLogger.Info($"Web console loaded: {serverId}");
+            };
+            view.SessionError += (serverId, errorMsg) =>
+            {
+                _connectionSm.SetError(serverId, errorMsg);
+                WriteHostStatus(sessionTab, view.OwningPane, errorMsg);
+                Core.Logging.FileLogger.Warn($"Web console error for {serverId}: {errorMsg}");
+            };
+            view.SessionRetrying += (serverId) =>
+            {
+                // Error only leads back through Initializing; walk the path a fresh connect takes.
+                _connectionSm.TryTransition(serverId, ConnectionState.Initializing);
+                _connectionSm.TryTransition(serverId, ConnectionState.ValidatingConfig);
+                _connectionSm.TryTransition(serverId, ConnectionState.LaunchingWeb);
+                WriteHostStatus(sessionTab, view.OwningPane, SessionStatusTokens.Connecting);
+            };
+            view.RequestSplit += (_) => SplitRequestedCallback?.Invoke(sessionTab);
+            _ = view.InitializeSessionAsync(web, sessionTab, displayName, _localizer)
+                .ContinueWith(t =>
+                {
+                    if (t.Exception is not null)
+                    {
+                        Core.Logging.FileLogger.Error(
+                            $"Web console init failed for {sessionTab.ServerId}: {t.Exception.GetBaseException()}");
                     }
                 },
                     TaskContinuationOptions.OnlyOnFaulted);

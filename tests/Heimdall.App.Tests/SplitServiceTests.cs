@@ -2191,6 +2191,12 @@ public sealed class SplitServiceTests : IDisposable
             CancellationToken ct = default)
             => Record(server, ct);
 
+        public Task<ConnectionResult> ConnectWebAsync(
+            ServerProfileDto server,
+            AppSettings settings,
+            CancellationToken ct = default)
+            => Record(server, ct);
+
         public Task<ConnectionResult> ConnectTelnetAsync(
             ServerProfileDto server,
             AppSettings settings,
@@ -2302,6 +2308,12 @@ public sealed class SplitServiceTests : IDisposable
             AppSettings settings,
             CancellationToken ct = default)
             => RecordConnectAsync("VNC", server, ct);
+
+        public Task<ConnectionResult> ConnectWebAsync(
+            ServerProfileDto server,
+            AppSettings settings,
+            CancellationToken ct = default)
+            => RecordConnectAsync("WEB", server, ct);
 
         public Task<ConnectionResult> ConnectTelnetAsync(
             ServerProfileDto server,
@@ -2425,6 +2437,12 @@ public sealed class SplitServiceTests : IDisposable
             => NotScriptedAsync();
 
         public Task<ConnectionResult> ConnectVncAsync(
+            ServerProfileDto server,
+            AppSettings settings,
+            CancellationToken ct = default)
+            => NotScriptedAsync();
+
+        public Task<ConnectionResult> ConnectWebAsync(
             ServerProfileDto server,
             AppSettings settings,
             CancellationToken ct = default)
@@ -2590,6 +2608,12 @@ public sealed class SplitServiceTests : IDisposable
             CancellationToken ct = default)
             => NotScriptedAsync();
 
+        public Task<ConnectionResult> ConnectWebAsync(
+            ServerProfileDto server,
+            AppSettings settings,
+            CancellationToken ct = default)
+            => NotScriptedAsync();
+
         public Task<ConnectionResult> ConnectTelnetAsync(
             ServerProfileDto server,
             AppSettings settings,
@@ -2660,6 +2684,12 @@ public sealed class SplitServiceTests : IDisposable
             => NotScriptedAsync();
 
         public Task<ConnectionResult> ConnectVncAsync(
+            ServerProfileDto server,
+            AppSettings settings,
+            CancellationToken ct = default)
+            => NotScriptedAsync();
+
+        public Task<ConnectionResult> ConnectWebAsync(
             ServerProfileDto server,
             AppSettings settings,
             CancellationToken ct = default)

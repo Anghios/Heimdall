@@ -58,6 +58,7 @@ public sealed class HeimdallThemeBridgeTests
         "ProtocolWinRmBrush",
         "ProtocolSftpBrush",
         "ProtocolVncBrush",
+        "ProtocolWebBrush",
         "ProtocolTelnetBrush",
         "ProtocolFtpBrush",
         "ProtocolCitrixBrush",
@@ -67,6 +68,7 @@ public sealed class HeimdallThemeBridgeTests
         "WinRmBadgeBrush",
         "SftpBadgeBrush",
         "VncBadgeBrush",
+        "WebBadgeBrush",
         "FtpBadgeBrush",
         "CitrixBadgeBrush",
         "TelnetBadgeBrush",
@@ -116,7 +118,7 @@ public sealed class HeimdallThemeBridgeTests
             .ToList();
 
         Assert.Empty(duplicateKeys);
-        Assert.Equal(64, brushKeys.Count);
+        Assert.Equal(66, brushKeys.Count);
         Assert.Equal(
             ExpectedBrushKeys.OrderBy(key => key, StringComparer.Ordinal),
             brushKeys.OrderBy(key => key, StringComparer.Ordinal));

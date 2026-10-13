@@ -33,7 +33,7 @@ namespace Heimdall.Core.Security.Vault;
 /// <list type="bullet">
 /// <item>servers.json per profile: RdpPasswordEncrypted, SshPasswordEncrypted,
 /// SshKeyPassphraseEncrypted, WinRmPasswordEncrypted, FtpPasswordEncrypted,
-/// TelnetPasswordEncrypted, VncPassword (all read via CredentialProtector), and
+/// TelnetPasswordEncrypted, WebPasswordEncrypted, VncPassword (all read via CredentialProtector), and
 /// CitrixLaunchCommandLine (PLAINTEXT at rest -> brought under v2).</item>
 /// <item>settings.json: CredentialProviderUnlockSecretEncrypted and
 /// CmdLibGitSyncToken (both read + written through CredentialProtector, so their
@@ -127,6 +127,7 @@ internal static class VaultMigrationEngine
         Apply(profile.WinRmPasswordEncrypted, v => profile.WinRmPasswordEncrypted = v, ForwardEncrypted);
         Apply(profile.FtpPasswordEncrypted, v => profile.FtpPasswordEncrypted = v, ForwardEncrypted);
         Apply(profile.TelnetPasswordEncrypted, v => profile.TelnetPasswordEncrypted = v, ForwardEncrypted);
+        Apply(profile.WebPasswordEncrypted, v => profile.WebPasswordEncrypted = v, ForwardEncrypted);
         Apply(profile.VncPassword, v => profile.VncPassword = v, ForwardEncrypted);
         Apply(profile.CitrixLaunchCommandLine, v => profile.CitrixLaunchCommandLine = v, ForwardPlaintext);
     }
@@ -139,6 +140,7 @@ internal static class VaultMigrationEngine
         Apply(profile.WinRmPasswordEncrypted, v => profile.WinRmPasswordEncrypted = v, ReverseToCredentialProtectorLegacy);
         Apply(profile.FtpPasswordEncrypted, v => profile.FtpPasswordEncrypted = v, ReverseToCredentialProtectorLegacy);
         Apply(profile.TelnetPasswordEncrypted, v => profile.TelnetPasswordEncrypted = v, ReverseToCredentialProtectorLegacy);
+        Apply(profile.WebPasswordEncrypted, v => profile.WebPasswordEncrypted = v, ReverseToCredentialProtectorLegacy);
         Apply(profile.VncPassword, v => profile.VncPassword = v, ReverseToCredentialProtectorLegacy);
         Apply(profile.CitrixLaunchCommandLine, v => profile.CitrixLaunchCommandLine = v, ReverseToPlaintext);
     }

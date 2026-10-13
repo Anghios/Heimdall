@@ -416,6 +416,10 @@ public sealed class AppSettings
     // Key: "host:port" or "[ipv6]:port"; Value: certificate fingerprint + provenance.
     public Dictionary<string, FtpsCertificateEntry> TrustedFtpsCertificates { get; set; } = new();
 
+    // Web console certificates the browser refused and the user trusted, same shape as FTPS.
+    // Key: "host:port" or "[ipv6]:port"; Value: certificate fingerprint + provenance.
+    public Dictionary<string, FtpsCertificateEntry> TrustedWebCertificates { get; set; } = new();
+
     /// <summary>RDP certificates trusted per profile - a SET each, never one.</summary>
     /// <remarks>
     /// Keyed by profile identifier, and holding a LIST rather than a single value, because

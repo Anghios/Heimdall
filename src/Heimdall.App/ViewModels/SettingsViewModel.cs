@@ -70,6 +70,7 @@ public partial class SettingsViewModel : ObservableValidator, IDisposable
                                 JsonNamingPolicy.CamelCase.ConvertName(nameof(ServerProfileDto.WinRmPasswordEncrypted)),
                                 JsonNamingPolicy.CamelCase.ConvertName(nameof(ServerProfileDto.FtpPasswordEncrypted)),
                                 JsonNamingPolicy.CamelCase.ConvertName(nameof(ServerProfileDto.TelnetPasswordEncrypted)),
+                                JsonNamingPolicy.CamelCase.ConvertName(nameof(ServerProfileDto.WebPasswordEncrypted)),
                                 JsonNamingPolicy.CamelCase.ConvertName(nameof(ServerProfileDto.SshKeyPassphraseEncrypted)),
                                 JsonNamingPolicy.CamelCase.ConvertName(nameof(ServerProfileDto.VncPassword)),
                                 JsonNamingPolicy.CamelCase.ConvertName(nameof(ServerProfileDto.CitrixLaunchCommandLine))

@@ -16,7 +16,7 @@
 
 namespace Heimdall.Core.Models;
 
-public enum ConnectionType { Rdp, Ssh, Sftp, Ftp, Local, Citrix, Vnc, Telnet }
+public enum ConnectionType { Rdp, Ssh, Sftp, Ftp, Local, Citrix, Vnc, Telnet, Web }
 
 public enum ConnectionState
 {
@@ -38,7 +38,8 @@ public enum ConnectionState
     Connected,
     Disconnecting,
     Error,
-    RemoteSessionHandedOff
+    RemoteSessionHandedOff,
+    LaunchingWeb
 }
 
 public enum ApplicationStatus

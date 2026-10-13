@@ -199,6 +199,7 @@ public static class GatewayOverviewBuilder
             "WINRM" => server.WinRmPort,
             "FTP" => server.FtpPort,
             "VNC" => server.VncPort,
+            "WEB" => server.WebPort,
             "TELNET" => server.TelnetPort,
             _ => server.RemotePort
         };

@@ -493,7 +493,7 @@ public class MRemoteNgImporterTests
     }
 
     [Fact]
-    public void Parse_HttpProtocol_FallsBackToRdp()
+    public void Parse_HttpProtocol_ImportsAsAWebProfile()
     {
         var xml = """
             <?xml version="1.0" encoding="utf-8"?>
@@ -508,8 +508,11 @@ public class MRemoteNgImporterTests
 
         var result = MRemoteNgImporter.Parse(xml);
 
+        // Before issue #558 these became RDP profiles, which could only fail to connect.
         var server = result.Servers.Single();
-        Assert.Equal("RDP", server.ConnectionType);
+        Assert.Equal("WEB", server.ConnectionType);
+        Assert.True(server.WebUseHttp);
+        Assert.Equal(8080, server.WebPort);
     }
 
     [Fact]

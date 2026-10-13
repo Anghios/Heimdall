@@ -43,6 +43,7 @@ public static class ImportedProfileValidator
         ValidateRequiredPort(errors, profile.FtpPort, nameof(profile.FtpPort));
         ValidateRequiredPort(errors, profile.VncPort, nameof(profile.VncPort));
         ValidateRequiredPort(errors, profile.TelnetPort, nameof(profile.TelnetPort));
+        ValidateRequiredPort(errors, profile.WebPort, nameof(profile.WebPort));
 
         ValidateOptionalPort(errors, profile.SocksProxyPort, nameof(profile.SocksProxyPort));
         ValidateOptionalPort(errors, profile.RemoteBindPort, nameof(profile.RemoteBindPort));

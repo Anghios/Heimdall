@@ -35,7 +35,8 @@ public static class ConnectionTypeCatalog
             ["FTP"] = "FTP",
             ["CITRIX"] = "Citrix",
             ["LOCAL"] = "Local",
-            ["WINRM"] = "WINRM"
+            ["WINRM"] = "WINRM",
+            ["WEB"] = "WEB"
         };
 
     /// <summary>
@@ -64,6 +65,7 @@ public static class ConnectionTypeCatalog
             ["SSH"] = "ConnectionTypeSsh",
             ["TELNET"] = "ConnectionTypeTelnet",
             ["VNC"] = "ConnectionTypeVnc",
+            ["WEB"] = "ConnectionTypeWeb",
             ["WINRM"] = "ConnectionTypeWinRm",
         };
 

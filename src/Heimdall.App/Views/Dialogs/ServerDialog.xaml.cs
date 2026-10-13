@@ -162,6 +162,7 @@ public partial class ServerDialog : Window
             (FindName("SshKeyPassphraseBox") as System.Windows.Controls.PasswordBox)?.Clear();
             (FindName("RdpPasswordBox") as System.Windows.Controls.PasswordBox)?.Clear();
             (FindName("VncPasswordBox") as System.Windows.Controls.PasswordBox)?.Clear();
+            (FindName("WebPasswordBox") as System.Windows.Controls.PasswordBox)?.Clear();
             (FindName("FtpPasswordBox") as System.Windows.Controls.PasswordBox)?.Clear();
             (FindName("WinRmPasswordBox") as System.Windows.Controls.PasswordBox)?.Clear();
         });
@@ -223,6 +224,7 @@ public partial class ServerDialog : Window
         var sshKeyPassphraseBox = FindName("SshKeyPassphraseBox") as System.Windows.Controls.PasswordBox;
         var rdpPwBox = FindName("RdpPasswordBox") as System.Windows.Controls.PasswordBox;
         var vncPwBox = FindName("VncPasswordBox") as System.Windows.Controls.PasswordBox;
+        var webPwBox = FindName("WebPasswordBox") as System.Windows.Controls.PasswordBox;
         var ftpPwBox = FindName("FtpPasswordBox") as System.Windows.Controls.PasswordBox;
         System.Windows.Controls.PasswordBox? winRmPwBox =
             FindName("WinRmPasswordBox") as System.Windows.Controls.PasswordBox;
@@ -235,6 +237,7 @@ public partial class ServerDialog : Window
 
         if (rdpPwBox is not null) vm.RdpPassword = rdpPwBox.Password;
         if (vncPwBox is not null) vm.VncPassword = vncPwBox.Password;
+        if (webPwBox is not null) vm.WebPassword = webPwBox.Password;
         if (ftpPwBox is not null) vm.FtpPassword = ftpPwBox.Password;
         if (winRmPwBox is not null) vm.WinRmPassword = winRmPwBox.Password;
 

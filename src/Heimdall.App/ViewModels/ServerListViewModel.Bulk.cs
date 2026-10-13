@@ -1797,6 +1797,11 @@ public partial class ServerListViewModel
                 dto.RemotePort = port;
                 break;
 
+            case "WEB":
+                dto.WebPort = port;
+                dto.RemotePort = port;
+                break;
+
             default:
                 dto.RemotePort = port;
                 break;

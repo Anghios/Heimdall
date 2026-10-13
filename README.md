@@ -40,6 +40,7 @@ It is free, open source, and runs on Windows 10 and 11.
 | **SFTP** and **FTP** | Moving files, with a two-panel browser and drag and drop |
 | **VNC** | Screens on Linux, macOS, appliances |
 | **Telnet** | Older network gear |
+| **Web** | Web consoles (iLO, iDRAC, switches, NAS) in a tab, or in another browser for a console too old for today's engines |
 | **Citrix** | Published applications and desktops |
 | **WinRM** | PowerShell on remote Windows machines |
 | **Local shell** | A terminal on your own machine, in the same window |
