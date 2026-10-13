@@ -426,6 +426,7 @@ public partial class ServerListViewModel
         OnPropertyChanged(nameof(ShowNoGroupDropZone));
         OnPropertyChanged(nameof(HasNoTreeResults));
         OnPropertyChanged(nameof(HasNoInventory));
+        RefreshPropertiesSummary();
         return true;
     }
 

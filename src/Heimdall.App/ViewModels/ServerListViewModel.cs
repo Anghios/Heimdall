@@ -615,6 +615,7 @@ public partial class ServerListViewModel : ObservableObject, IDisposable, ISessi
         OnPropertyChanged(nameof(FilterResultCountText));
         OnPropertyChanged(nameof(UndoTreeOrganizationText));
         NotifyToolDetailChanged();
+        RefreshPropertiesSummary();
     }
 
     /// <summary>
@@ -1157,6 +1158,7 @@ public partial class ServerListViewModel : ObservableObject, IDisposable, ISessi
         if (!preflight.Success)
         {
             server.ConnectionState = "Error";
+            RefreshPropertiesSummary();
             string preflightMessage = TunnelFailureMessageResolver.ResolvePreflightMessage(preflight, _localizer);
             return new BulkConnectOutcome(
                 BulkConnectOutcomeStatus.PreflightFailed,
@@ -1246,6 +1248,7 @@ public partial class ServerListViewModel : ObservableObject, IDisposable, ISessi
                         serverDto.ConnectionType ?? "");
                     _connectionSm.SetError(sessionId, unsupportedMessage);
                     server.ConnectionState = "Error";
+                    RefreshPropertiesSummary();
                     return new BulkConnectOutcome(
                         BulkConnectOutcomeStatus.UnsupportedType,
                         unsupportedMessage);
@@ -1277,6 +1280,7 @@ public partial class ServerListViewModel : ObservableObject, IDisposable, ISessi
             }
 
             server.ConnectionState = "Error";
+            RefreshPropertiesSummary();
             if (sessionStartFired)
             {
                 SessionStartFailed?.Invoke(sessionId);
@@ -1306,6 +1310,7 @@ public partial class ServerListViewModel : ObservableObject, IDisposable, ISessi
 
             _connectionSm.SetError(sessionId, failure.Message);
             server.ConnectionState = "Error";
+            RefreshPropertiesSummary();
             return new BulkConnectOutcome(
                 BulkConnectOutcomeStatus.ConnectionFailed,
                 failure.Message,
@@ -2571,6 +2576,10 @@ public partial class ServerListViewModel : ObservableObject, IDisposable, ISessi
             bool wasConnected = ConnectionStateSets.IsConnected(server.ConnectionState);
             server.ConnectionState = aggregation.AggregateState.ToString();
             bool isConnected = ConnectionStateSets.IsConnected(aggregation.AggregateState);
+            if (wasConnected != isConnected)
+            {
+                RefreshPropertiesSummary();
+            }
 
             // Refresh the stable projection exactly once when this server
             // crosses the connected-filter boundary. Other state changes only
