@@ -1687,7 +1687,14 @@ public partial class ServerDialogViewModel : ObservableValidator
             ? L("ServerDialogGatewayDisabledDirectHint")
             : L("ServerDialogGatewayDisabledProtocolHint");
 
-    public bool CanEditTunnelPort => UsesGateway && !UseAutomaticTunnelPort;
+    /// <summary>
+    /// Whether the route forwards a local port. A web console behind a gateway goes through the
+    /// gateway's SOCKS proxy instead, whose port Heimdall picks, so its local port section, its
+    /// validation and its captions would describe a forward that does not exist.
+    /// </summary>
+    public bool UsesLocalTunnelPort => UsesGateway && !IsWebConnection;
+
+    public bool CanEditTunnelPort => UsesLocalTunnelPort && !UseAutomaticTunnelPort;
 
     public int EndpointPort
     {
@@ -1778,7 +1785,13 @@ public partial class ServerDialogViewModel : ObservableValidator
         : IsLocalConnection ? L("ServerDialogModeSummaryLocal")
         : L("ServerDialogModeSummarySsh");
 
-    public string TunnelSummary => UsesGateway
+    public string TunnelSummary => UsesGateway && IsWebConnection
+        ? string.Format(
+            CultureInfo.InvariantCulture,
+            L("ServerDialogTunnelSummarySocks"),
+            GetDestinationHost(),
+            SelectedGateway?.EffectiveName ?? L("ServerDialogTunnelSummaryFallbackGw"))
+        : UsesGateway
         ? string.Format(
             CultureInfo.InvariantCulture,
             L("ServerDialogTunnelSummaryFormat"),
@@ -1788,7 +1801,9 @@ public partial class ServerDialogViewModel : ObservableValidator
             SelectedGateway?.EffectiveName ?? L("ServerDialogTunnelSummaryFallbackGw"))
         : L("ServerDialogTunnelSummaryNone");
 
-    public string ClientNodeCaption => UsesGateway
+    public string ClientNodeCaption => UsesGateway && IsWebConnection
+        ? L("ServerDialogClientNodeSocks")
+        : UsesGateway
         ? string.Format(CultureInfo.InvariantCulture, L("ServerDialogClientNodeTunnel"), LocalTunnelPortDisplay)
         : L("ServerDialogClientNodeDirect");
 
@@ -1884,7 +1899,7 @@ public partial class ServerDialogViewModel : ObservableValidator
         {
             ClearErrors(nameof(RdpResizeEnableDelayMs));
         }
-        if (!UsesGateway) ClearErrors(nameof(LocalPort));
+        if (!UsesLocalTunnelPort) ClearErrors(nameof(LocalPort));
 
         // Per-field inline errors (localized, ConnectionType-aware)
         DisplayNameError = GetLocalizedFieldError(nameof(DisplayName));
@@ -1898,10 +1913,10 @@ public partial class ServerDialogViewModel : ObservableValidator
         WinRmUsernameError = GetWinRmUsernameError(WinRmUsername);
         WinRmPasswordError = GetWinRmPasswordError();
         EndpointPortError = RequiresNetworkEndpoint ? GetEndpointPortError() : null;
-        LocalPortError = UsesGateway ? GetLocalizedFieldError(nameof(LocalPort)) : null;
+        LocalPortError = UsesLocalTunnelPort ? GetLocalizedFieldError(nameof(LocalPort)) : null;
 
         // Custom tunnel port check
-        if (LocalPortError is null && UsesGateway && !UseAutomaticTunnelPort && LocalPort <= 0)
+        if (LocalPortError is null && UsesLocalTunnelPort && !UseAutomaticTunnelPort && LocalPort <= 0)
         {
             LocalPortError = L("ValidationTunnelPortRequired");
         }
@@ -2795,7 +2810,7 @@ public partial class ServerDialogViewModel : ObservableValidator
         if (LocalPortError is not null)
         {
             ValidateProperty(value, nameof(LocalPort));
-            LocalPortError = UsesGateway ? GetLocalizedFieldError(nameof(LocalPort)) : null;
+            LocalPortError = UsesLocalTunnelPort ? GetLocalizedFieldError(nameof(LocalPort)) : null;
             RefreshValidationSummary();
         }
         RaiseDerivedStateChanged();
@@ -2913,6 +2928,7 @@ public partial class ServerDialogViewModel : ObservableValidator
         TestReachabilityCommand.NotifyCanExecuteChanged();
         OnPropertyChanged(nameof(SupportsGateway));
         OnPropertyChanged(nameof(UsesGateway));
+        OnPropertyChanged(nameof(UsesLocalTunnelPort));
         OnPropertyChanged(nameof(CanSelectGateway));
         OnPropertyChanged(nameof(HasNoGateway));
         OnPropertyChanged(nameof(CanCreateGateway));

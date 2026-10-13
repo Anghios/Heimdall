@@ -77,6 +77,38 @@ internal static class WebConsolePolicy
     public static bool IsSessionFailure(bool isSuccess, int httpStatusCode, bool canceled, bool loadedBefore)
         => !isSuccess && httpStatusCode == 0 && !canceled && !loadedBefore;
 
+    /// <summary>
+    /// The localization key of the reason a console could not be loaded, from the name of the
+    /// browser's status. The names themselves, "Unknown" first among them for a refused
+    /// connection, told the user nothing.
+    /// </summary>
+    /// <remarks>
+    /// Keyed by name rather than by the WebView2 enumeration so the decision is testable from a
+    /// project that does not load the browser.
+    /// </remarks>
+    public static string ErrorReasonKey(string? statusName) => statusName switch
+    {
+        "HostNameNotResolved" => "WebErrorNameNotResolved",
+        "Timeout" => "WebErrorTimeout",
+        "ServerUnreachable" or "CannotConnect" or "ConnectionAborted" or "ConnectionReset"
+            or "Disconnected" or "Unknown" => "WebErrorNoAnswer",
+        "CertificateCommonNameIsIncorrect" or "CertificateExpired" or "ClientCertificateContainsErrors"
+            or "CertificateRevoked" or "CertificateIsInvalid" => "WebErrorCertificate",
+        "ValidProxyAuthenticationRequired" => "WebErrorProxy",
+        _ => "WebErrorOther",
+    };
+
+    /// <summary>Every key <see cref="ErrorReasonKey"/> can answer, for the catalogue guard.</summary>
+    public static IReadOnlyList<string> ErrorReasonKeys { get; } =
+    [
+        "WebErrorNameNotResolved",
+        "WebErrorTimeout",
+        "WebErrorNoAnswer",
+        "WebErrorCertificate",
+        "WebErrorProxy",
+        "WebErrorOther",
+    ];
+
     /// <summary>The key a challenge is remembered by: scheme, host and port, case-folded.</summary>
     public static string ChallengeKey(Uri uri)
     {

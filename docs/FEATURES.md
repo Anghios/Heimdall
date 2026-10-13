@@ -86,6 +86,7 @@ The complete catalogue of what Heimdall does, protocol by protocol. If you are l
 - A console that answers with an HTTP error, or a link that fails after the console has loaded, leaves the session up: only failing to reach the console at all ends it
 - **Open with an external program**, per profile, for a console no current engine accepts (an old iLO): the program, or the default browser when none is named, gets the address with {Url}, {Host} and {Port}; command interpreters are refused, and an imported profile that names a program asks for confirmation before running it, like a local shell profile
 - **Through an SSH gateway**: the gateway's tunnel opens a SOCKS proxy and the console's tab goes through it with the console's real name, so its certificate, its pin, its redirects and a name only the admin network resolves all work. Every console behind one gateway shares one tunnel, released when the last tab closes; each gateway has a browser profile of its own, so a sign-in made directly is not shared with the same console reached through a gateway. Opening externally through a gateway is refused, since the external program would not use the tunnel
+- A button in the tab header, and another on the panel shown when a console cannot be loaded, opens the current page externally with the profile's program or the default browser: the way out for a console the embedded engine renders badly or refuses, such as an old iLO speaking TLS 1.0. Not offered behind a gateway, where it could not reach the console
 - mRemoteNG HTTP and HTTPS connections import as web profiles, with their scheme, port and username
 
 ### Telnet
@@ -322,7 +323,7 @@ All tools open as session tabs (split with any session or tool, detach, reorder)
 - **Sidebar sessions UX**: two-row toolbar with full-width search above icon-only actions, 320px default width, and smart long-name truncation that preserves the session identifier while ellipsizing trailing parenthesized suffixes
 - Fullscreen mode (F11), toggle sidebar (Ctrl+B), filter (Ctrl+F)
 - **First-launch onboarding**: a 6-step guided tour that spotlights the real control it is describing - the scrim is cut around the target and ringed - and navigates to the right tab before each step rather than after it. Replayable at any time from `Settings > General`, so one reflex Escape no longer ends it for good. A step whose target cannot be resolved degrades to a centred card rather than ringing empty space
-- Trilingual interface: English, French and Spanish (6,991 i18n keys per language, exact parity across the three catalogues)
+- Trilingual interface: English, French and Spanish (7,002 i18n keys per language, exact parity across the three catalogues)
 - Declarative i18n: `{loc:Translate Key}` WPF markup extension with runtime language switching
 - WCAG 2.1 AA accessibility: AutomationProperties.Name on all interactive controls via `{loc:Translate}`, LiveSetting="Polite" on dynamic outputs, keyboard focus indicators, disabled state tooltips, a live-region filter result count announced on change, and keyboard-focused folder rows as reliable Shift+F10 / Apps context-menu targets with a localized automation name
 

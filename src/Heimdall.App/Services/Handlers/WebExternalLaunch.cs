@@ -41,6 +41,38 @@ internal static class WebExternalLaunch
     /// read their metacharacters. The address itself is a <see cref="Uri"/> built by
     /// <see cref="WebAddress"/>, whose escaped form carries no quote or space to split on.
     /// </remarks>
+    /// <summary>
+    /// The start information for a console already open in a tab: the program its profile names,
+    /// or the default browser, on the page the tab shows when it is one of the console's own.
+    /// </summary>
+    /// <remarks>
+    /// The current page only replaces the profile's address when it is on the same scheme, host
+    /// and port: a page the console redirected elsewhere is not handed to a program that the
+    /// profile's arguments may have been written for.
+    /// </remarks>
+    public static ProcessStartInfo? TryCreateForSession(WebSessionResult session, string? currentPage, out string? errorKey)
+    {
+        ArgumentNullException.ThrowIfNull(session);
+        Uri address = session.Address;
+        if (Uri.TryCreate(currentPage, UriKind.Absolute, out Uri? current)
+            && string.Equals(current.Scheme, address.Scheme, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(current.Host, address.Host, StringComparison.OrdinalIgnoreCase)
+            && current.Port == address.Port)
+        {
+            address = current;
+        }
+
+        var profile = new ServerProfileDto
+        {
+            DisplayName = session.DisplayName ?? address.Host,
+            RemoteServer = address.Host,
+            WebUsername = session.Username,
+            WebExternalProgram = session.ExternalProgram,
+            WebExternalArguments = session.ExternalArguments,
+        };
+        return TryCreate(profile, address, out errorKey);
+    }
+
     public static ProcessStartInfo? TryCreate(ServerProfileDto profile, Uri address, out string? errorKey)
     {
         ArgumentNullException.ThrowIfNull(profile);
