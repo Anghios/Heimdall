@@ -91,8 +91,19 @@ public partial class ConnectionViewModel
     /// Takes the notice down once the sessions are back under the threshold, and forgets that it
     /// was hidden, so going past again shows it again.
     /// </summary>
+    /// <remarks>
+    /// Runs on every change of the strip, from whatever thread made it, so it does nothing unless
+    /// there is a notice to take down or a dismissal to forget. The census it would otherwise run
+    /// reads the floating windows, which belongs on the UI thread: its other caller, opening a
+    /// session, runs there, and an idle strip change has no reason to touch it.
+    /// </remarks>
     private void RefreshSessionLoadNotice()
     {
+        if (!IsSessionLoadNoticeShown && !_sessionLoadNoticeDismissed)
+        {
+            return;
+        }
+
         if (_sessionLoadThreshold <= 0
             || CountEmbeddedConnections(AllOpenSessions) >= _sessionLoadThreshold)
         {

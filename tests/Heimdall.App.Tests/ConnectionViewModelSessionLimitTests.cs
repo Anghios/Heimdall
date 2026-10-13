@@ -111,6 +111,36 @@ public sealed class ConnectionViewModelSessionLimitTests
     }
 
     [Fact]
+    public void AStripChangeWithNoNotice_NeverReadsTheFloatingWindows()
+    {
+        int reads = 0;
+        SessionWindowService windows = new(
+            static (_, _) => { },
+            () =>
+            {
+                reads++;
+                return [];
+            });
+        ConnectionViewModel viewModel = new(
+            new LocalizationManager(),
+            DispatchProxy.Create<IDialogService, TrackingDialogProxy>(),
+            DispatchProxy.Create<ISplitService, TrackingSplitProxy>(),
+            new PaneCloseArbiter(),
+            windows);
+
+        // Opening against a threshold reads them once, on the thread that opens the session.
+        SessionTabViewModel opened = InvokeGuardedAddSession(viewModel, "one", "SSH", limit: 5);
+        int readsAfterOpening = reads;
+        Assert.False(viewModel.IsSessionLoadNoticeShown);
+
+        // Strip changes with no notice up must not read them again: they run on any thread.
+        viewModel.AddSession("tool", "Tool", "TOOL:HASH");
+        viewModel.RemoveFromStrip(opened);
+
+        Assert.Equal(readsAfterOpening, reads);
+    }
+
+    [Fact]
     public void ADetachedToolPaneDoesNotCount()
     {
         SessionTabViewModel detachedTool = HostedSession("hash", "TOOL:HASH");
