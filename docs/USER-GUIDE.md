@@ -97,7 +97,8 @@ will open.
 - The first time a console presents a certificate Windows does not trust, which is usual for a
   self-signed one, Heimdall shows its fingerprint. **Trust certificate** remembers it,
   **Trust this session** only until Heimdall closes. If the certificate changes later, you are
-  asked again with a warning.
+  asked again with a warning. To take back a certificate trusted for good, open
+  **Settings > Security**, find it under **Trusted web console certificates** and forget it.
 - A username and password in the profile answer the browser's own sign-in window (Basic or
   NTLM). A sign-in form inside the page is not filled in.
 - For a console too old for today's browsers, open the **Options** tab and tick **Open with an

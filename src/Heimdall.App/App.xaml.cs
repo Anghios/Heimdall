@@ -943,6 +943,7 @@ public partial class App : System.Windows.Application
         services.AddTransient<SettingsViewModel>();
         services.AddTransient<TrustedHostKeysSettingsViewModel>();
         services.AddTransient<TrustedRdpCertificatesSettingsViewModel>();
+        services.AddTransient<TrustedWebCertificatesSettingsViewModel>();
         services.AddTransient<CommandLibraryViewModel>();
         services.AddTransient<ImportOpenSshConfigDialogViewModel>();
         services.AddTransient<ImportPuttySessionsDialogViewModel>();

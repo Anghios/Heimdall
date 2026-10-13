@@ -102,7 +102,9 @@ dans **Chemin**. La ligne sous le chemin montre l'adresse qui sera ouverte.
 - La première fois qu'une console présente un certificat que Windows ne reconnaît pas, ce qui
   est habituel pour un certificat auto-signé, Heimdall affiche son empreinte. **Approuver le
   certificat** le mémorise, **Approuver pour cette session** seulement jusqu'à la fermeture
-  de Heimdall. Si le certificat change ensuite, la question revient avec un avertissement.
+  de Heimdall. Si le certificat change ensuite, la question revient avec un avertissement. Pour
+  revenir sur un certificat approuvé durablement, ouvrez **Paramètres > Sécurité**, retrouvez-le
+  sous **Certificats de consoles web approuvés** et oubliez-le.
 - Un nom d'utilisateur et un mot de passe dans le profil répondent à la fenêtre de connexion du
   navigateur lui-même (Basic ou NTLM). Un formulaire de connexion dans la page n'est pas rempli.
 - Pour une console trop ancienne pour les navigateurs actuels, ouvrez l'onglet **Options** et

@@ -4249,6 +4249,145 @@
                                     </StackPanel>
                                 </Border>
 
+                                <!-- Web console certificates: the pins "Trust certificate" leaves behind, and the
+                                     only way to take one back short of editing settings.json. -->
+                                <Border Padding="{StaticResource SpacingLg}" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource CornerRadiusLg}" Margin="0,0,0,12">
+                                    <StackPanel>
+                                        <DockPanel Margin="0,0,0,12">
+                                            <StackPanel>
+                                                <TextBlock x:Name="Mw_SettingsTrustedWebCertificatesTitle"
+                                                           Text="{loc:Translate SettingsTrustedWebCertificatesSectionTitle}"
+                                                           FontSize="{StaticResource FontSizeSubtitle}"
+                                                           FontWeight="SemiBold"
+                                                           Foreground="{DynamicResource TextPrimaryBrush}"/>
+                                                <Border Style="{StaticResource SettingsApplyBadgeStyle}" x:Name="Mw_SettingsTrustedWebCertificatesTitleApplies">
+                                                    <TextBlock Text="{loc:Translate SettingsSavedImmediately}" Style="{StaticResource SettingsApplyBadgeTextStyle}"/>
+                                                </Border>
+                                                <TextBlock Text="{loc:Translate SettingsTrustedWebCertificatesSectionHint}"
+                                                           Foreground="{DynamicResource TextTertiaryBrush}"
+                                                           FontSize="{StaticResource FontSizeCaption}"
+                                                           Margin="0,4,0,0"
+                                                           TextWrapping="Wrap"/>
+                                            </StackPanel>
+                                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
+                                                <Button Command="{Binding Settings.TrustedWebCertificates.RefreshCommand}"
+                                                        Style="{DynamicResource SecondaryButtonStyle}"
+                                                        Padding="8,3"
+                                                        FontSize="{StaticResource FontSizeCaption}"
+                                                        AutomationProperties.Name="{loc:Translate BtnRefreshTrustedWebCertificates}">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock FontFamily="{StaticResource FontFamilyIcons}" Text="&#xE72C;" FontSize="{StaticResource IconSizeSmall}" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="{loc:Translate BtnRefreshTrustedWebCertificates}" Margin="4,0,0,0" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
+                                            </StackPanel>
+                                        </DockPanel>
+
+                                        <TextBox Text="{Binding Settings.TrustedWebCertificates.SearchText, UpdateSourceTrigger=PropertyChanged}"
+                                                 ToolTip="{loc:Translate HintTrustedWebCertificatesSearch}"
+                                                 AutomationProperties.Name="{loc:Translate HintTrustedWebCertificatesSearch}"
+                                                 Margin="0,0,0,8"/>
+
+                                        <Grid>
+                                            <DataGrid ItemsSource="{Binding Settings.TrustedWebCertificates.Rows}"
+                                                      SelectedItem="{Binding Settings.TrustedWebCertificates.SelectedRow, Mode=TwoWay}"
+                                                      AutoGenerateColumns="False"
+                                                      CanUserAddRows="False"
+                                                      CanUserDeleteRows="False"
+                                                      CanUserReorderColumns="False"
+                                                      CanUserResizeRows="False"
+                                                      HeadersVisibility="Column"
+                                                      IsReadOnly="True"
+                                                      SelectionMode="Single"
+                                                      SelectionUnit="FullRow"
+                                                      RowHeaderWidth="0"
+                                                      MaxHeight="260"
+                                                      Visibility="{Binding Settings.TrustedWebCertificates.HasRows, Converter={StaticResource BoolToVisibilityConverter}}"
+                                                      AutomationProperties.Name="{loc:Translate A11yTrustedWebCertificatesGrid}">
+                                                <DataGrid.RowStyle>
+                                                    <!-- On the container: inside a cell template it would land on an element
+                                                         with no automation peer. The elided fingerprint, not the full one. -->
+                                                    <Style TargetType="{x:Type DataGridRow}"
+                                                           BasedOn="{StaticResource ThemedDataGridRowStyle}">
+                                                        <Setter Property="AutomationProperties.Name">
+                                                            <Setter.Value>
+                                                                <MultiBinding Converter="{StaticResource AccessibleRowNameConverter}">
+                                                                    <Binding Source="{x:Static loc:LocalizationSource.Instance}" Path="[A11yTrustedWebCertificateRow]"/>
+                                                                    <Binding Path="Endpoint"/>
+                                                                    <Binding Path="FingerprintDisplay"/>
+                                                                    <Binding Path="FirstSeenDisplay"/>
+                                                                </MultiBinding>
+                                                            </Setter.Value>
+                                                        </Setter>
+                                                    </Style>
+                                                </DataGrid.RowStyle>
+                                                <DataGrid.InputBindings>
+                                                    <KeyBinding Key="Delete" Command="{Binding Settings.TrustedWebCertificates.ForgetSelectedCommand}"/>
+                                                </DataGrid.InputBindings>
+                                                <DataGrid.Columns>
+                                                    <DataGridTextColumn Header="{loc:Translate ColTrustedWebCertificateAddress}" Binding="{Binding Endpoint}" SortMemberPath="Endpoint" Width="170"/>
+                                                    <DataGridTextColumn Header="{loc:Translate ColTrustedRdpCertificateThumbprint}" Binding="{Binding FingerprintDisplay}" SortMemberPath="Fingerprint" Width="190">
+                                                        <DataGridTextColumn.ElementStyle>
+                                                            <Style TargetType="TextBlock">
+                                                                <Setter Property="ToolTip" Value="{Binding Fingerprint}"/>
+                                                            </Style>
+                                                        </DataGridTextColumn.ElementStyle>
+                                                    </DataGridTextColumn>
+                                                    <DataGridTextColumn Header="{loc:Translate ColTrustedRdpCertificateSubject}" Binding="{Binding SubjectDisplay}" SortMemberPath="SubjectDisplay" Width="*"/>
+                                                    <DataGridTextColumn Header="{loc:Translate ColTrustedRdpCertificateIssuer}" Binding="{Binding IssuerDisplay}" SortMemberPath="IssuerDisplay" Width="*"/>
+                                                    <DataGridTextColumn Header="{loc:Translate ColTrustedRdpCertificateFirstTrusted}" Binding="{Binding FirstSeenDisplay}" SortMemberPath="FirstSeen" Width="120"/>
+                                                    <DataGridTextColumn Header="{loc:Translate ColTrustedWebCertificateLastSeen}" Binding="{Binding LastSeenDisplay}" SortMemberPath="LastSeen" Width="120"/>
+                                                    <DataGridTemplateColumn Header="{loc:Translate ColTrustedRdpCertificateActions}" Width="70">
+                                                        <DataGridTemplateColumn.CellTemplate>
+                                                            <DataTemplate>
+                                                                <!-- A flat Button, never an InputBinding inside a DataTemplate. -->
+                                                                <Button Command="{Binding DataContext.Settings.TrustedWebCertificates.ForgetCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                                        CommandParameter="{Binding}"
+                                                                        Style="{DynamicResource SecondaryButtonStyle}"
+                                                                        Padding="5,2"
+                                                                        HorizontalAlignment="Right"
+                                                                        ToolTip="{loc:Translate BtnTrustedWebCertificateForget}"
+                                                                        AutomationProperties.Name="{loc:Translate BtnTrustedWebCertificateForget}">
+                                                                    <TextBlock FontFamily="{StaticResource FontFamilyIcons}" Text="&#xE74D;" FontSize="{StaticResource IconSizeSmall}"/>
+                                                                </Button>
+                                                            </DataTemplate>
+                                                        </DataGridTemplateColumn.CellTemplate>
+                                                    </DataGridTemplateColumn>
+                                                </DataGrid.Columns>
+                                            </DataGrid>
+
+                                            <Border Padding="{StaticResource SpacingLg}"
+                                                    Background="{DynamicResource BackgroundBrush}"
+                                                    BorderBrush="{DynamicResource BorderBrush}"
+                                                    BorderThickness="1"
+                                                    CornerRadius="{StaticResource CornerRadiusMd}"
+                                                    Visibility="{Binding Settings.TrustedWebCertificates.IsEmptyStateVisible, Converter={StaticResource BoolToVisibilityConverter}}">
+                                                <StackPanel HorizontalAlignment="Center">
+                                                    <TextBlock Text="{loc:Translate EmptyStateNoTrustedWebCertificates}"
+                                                               Foreground="{DynamicResource TextSecondaryBrush}"
+                                                               FontWeight="SemiBold"
+                                                               HorizontalAlignment="Center"/>
+                                                    <TextBlock Text="{loc:Translate EmptyStateNoTrustedWebCertificatesHint}"
+                                                               Foreground="{DynamicResource TextTertiaryBrush}"
+                                                               FontSize="{StaticResource FontSizeCaption}"
+                                                               TextWrapping="Wrap"
+                                                               TextAlignment="Center"
+                                                               Margin="0,4,0,0"/>
+                                                </StackPanel>
+                                            </Border>
+                                        </Grid>
+
+                                        <TextBlock Text="{Binding Settings.TrustedWebCertificates.StatusMessage, NotifyOnTargetUpdated=True}"
+                                                   AutomationProperties.LiveSetting="Polite"
+                                                   behaviors:LiveRegionBehavior.AnnounceOnTargetUpdated="True"
+                                                   Foreground="{DynamicResource TextTertiaryBrush}"
+                                                   FontSize="{StaticResource FontSizeCaption}"
+                                                   Margin="0,8,0,0"
+                                                   TextWrapping="Wrap"
+                                                   Visibility="{Binding Settings.TrustedWebCertificates.HasStatusMessage, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                    </StackPanel>
+                                </Border>
+
                                 <!-- File Sharing -->
                                 <Border Padding="{StaticResource SpacingLg}" Background="{DynamicResource CardBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="{StaticResource CornerRadiusLg}">
                                     <StackPanel>
