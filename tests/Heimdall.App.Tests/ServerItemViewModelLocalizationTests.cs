@@ -75,8 +75,8 @@ public sealed class ServerItemViewModelLocalizationTests
     }
 
     [Theory]
-    [InlineData(false, false, false, "No saved credentials")]
-    [InlineData(true, false, false, "Username")]
+    [InlineData(false, false, false, "SSH agent")]
+    [InlineData(true, false, false, "Username + SSH agent")]
     [InlineData(false, true, false, "SSH key")]
     [InlineData(false, false, true, "Password")]
     [InlineData(true, true, false, "Username + SSH key")]
@@ -99,8 +99,8 @@ public sealed class ServerItemViewModelLocalizationTests
     }
 
     [Theory]
-    [InlineData(false, false, false, "No saved credentials")]
-    [InlineData(true, false, false, "Username")]
+    [InlineData(false, false, false, "SSH agent")]
+    [InlineData(true, false, false, "Username + SSH agent")]
     [InlineData(false, true, false, "SSH key")]
     [InlineData(false, false, true, "Password")]
     [InlineData(true, true, false, "Username + SSH key")]

@@ -412,10 +412,18 @@
 
                         <!-- Sidebar tab content: Sessions (TreeView) and Tools are mutually exclusive.
                              Placed in a Grid so they both consume the remaining vertical space; only
-                             one is visible at a time via the RadioButton IsChecked state. -->
-                        <Grid>
+                             one is visible at a time via the RadioButton IsChecked state.
+                             Rows 1 and 2 hold the optional properties panel; MainWindow.PropertiesPanel.cs
+                             sizes them, since a splitter drag overwrites any binding on a row height. -->
+                        <Grid x:Name="SidebarContentGrid">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*" MinHeight="120"/>
+                                <RowDefinition x:Name="PropertiesSplitterRow" Height="0"/>
+                                <RowDefinition x:Name="PropertiesPanelRow" Height="0"/>
+                            </Grid.RowDefinitions>
                             <!-- ============ SESSIONS TAB CONTENT ============ -->
                             <DockPanel x:Name="SidebarSessionsContent"
+                                       Grid.Row="0"
                                        Visibility="{Binding IsChecked, ElementName=SidebarTabSessions, Converter={StaticResource BoolToVisibilityConverter}}">
                                 <!-- Filter + add/overflow toolbar (single row to free vertical space) -->
                                 <StackPanel DockPanel.Dock="Top" Margin="8,8,8,6">
@@ -517,6 +525,12 @@
                                                               IsChecked="{Binding ServerList.ShowGatewayBadge, Mode=TwoWay}"
                                                               StaysOpenOnClick="True"
                                                               AutomationProperties.Name="{loc:Translate FilterShowGatewayBadgeAutomationName}"/>
+                                                    <MenuItem x:Name="Mw_ShowPropertiesPanelMenu"
+                                                              Header="{loc:Translate FilterShowPropertiesPanel}"
+                                                              IsCheckable="True"
+                                                              IsChecked="{Binding ServerList.ShowPropertiesPanel, Mode=TwoWay}"
+                                                              StaysOpenOnClick="True"
+                                                              AutomationProperties.Name="{loc:Translate FilterShowPropertiesPanelAutomationName}"/>
                                                 </ContextMenu>
                                             </Button.ContextMenu>
                                         </Button>
@@ -1143,8 +1157,76 @@
                                 </controls:SessionTreeView>
                             </DockPanel>
 
+                            <!-- ============ PROPERTIES PANEL (opt-in) ============ -->
+                            <!-- Follows the tree selection whatever the session area shows: the detail
+                                 pane is hidden as soon as a session tab is open. Read-only, and the same
+                                 control as the detail pane so the two list the same fields. -->
+                            <GridSplitter x:Name="PropertiesPanelSplitter"
+                                          Grid.Row="1"
+                                          Height="4"
+                                          HorizontalAlignment="Stretch"
+                                          VerticalAlignment="Stretch"
+                                          ResizeBehavior="PreviousAndNext"
+                                          ResizeDirection="Rows"
+                                          Background="{DynamicResource CardBrush}"
+                                          ShowsPreview="True"
+                                          Visibility="Collapsed"
+                                          DragCompleted="OnPropertiesPanelSplitterDragCompleted"
+                                          AutomationProperties.Name="{loc:Translate A11yPropertiesPanelSplitter}"/>
+                            <Border x:Name="PropertiesPanel"
+                                    Grid.Row="2"
+                                    Background="{DynamicResource SurfaceBrush}"
+                                    BorderBrush="{DynamicResource BorderBrush}"
+                                    BorderThickness="0,1,0,0"
+                                    Visibility="Collapsed"
+                                    AutomationProperties.Name="{loc:Translate PropertiesPanelTitle}">
+                                <DockPanel>
+                                    <DockPanel DockPanel.Dock="Top" Margin="8,4,4,0">
+                                        <Button x:Name="Mw_PropertiesPanelCloseBtn"
+                                                DockPanel.Dock="Right"
+                                                Content="&#xE711;"
+                                                FontFamily="Segoe MDL2 Assets"
+                                                FontSize="{StaticResource FontSizeCaption}"
+                                                Click="OnPropertiesPanelCloseClick"
+                                                Style="{DynamicResource GhostButtonStyle}"
+                                                Padding="6,2"
+                                                ToolTip="{loc:Translate PropertiesPanelHide}"
+                                                AutomationProperties.Name="{loc:Translate PropertiesPanelHide}"/>
+                                        <TextBlock Text="{loc:Translate PropertiesPanelTitle}"
+                                                   FontSize="{StaticResource FontSizeCaption}"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                                   VerticalAlignment="Center"/>
+                                    </DockPanel>
+                                    <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                                  HorizontalScrollBarVisibility="Disabled"
+                                                  Padding="8,4,8,8">
+                                        <Grid>
+                                            <StackPanel Visibility="{Binding ServerList.ShowSessionDetail, Converter={StaticResource BoolToVisibilityConverter}}">
+                                                <TextBlock x:Name="Mw_PropertiesPanelName"
+                                                           Text="{Binding ServerList.SelectedServer.DisplayName}"
+                                                           FontSize="{StaticResource FontSizeBodyLarge}"
+                                                           FontWeight="SemiBold"
+                                                           Foreground="{DynamicResource TextPrimaryBrush}"
+                                                           TextTrimming="CharacterEllipsis"
+                                                           Margin="0,0,0,6"/>
+                                                <controls:SessionPropertiesView x:Name="Mw_PropertiesPanelView"
+                                                                                DataContext="{Binding ServerList.SelectedServer}"/>
+                                            </StackPanel>
+                                            <TextBlock x:Name="Mw_PropertiesPanelEmpty"
+                                                       Text="{loc:Translate PropertiesPanelEmpty}"
+                                                       FontSize="{StaticResource FontSizeCaption}"
+                                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                                       TextWrapping="Wrap"
+                                                       Visibility="{Binding ServerList.ShowSessionDetail, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=Invert}"/>
+                                        </Grid>
+                                    </ScrollViewer>
+                                </DockPanel>
+                            </Border>
+
                             <!-- ============ TOOLS TAB CONTENT ============ -->
                             <DockPanel x:Name="SidebarToolsContent"
+                                       Grid.RowSpan="3"
                                        Visibility="{Binding IsChecked, ElementName=SidebarTabTools, Converter={StaticResource BoolToVisibilityConverter}}">
                                 <Grid DockPanel.Dock="Top" Margin="8,8,8,4">
                                     <TextBox x:Name="Mw_SidebarToolsFilter"
@@ -1686,155 +1768,11 @@
                                            Foreground="{DynamicResource TextPrimaryBrush}"
                                            TextTrimming="CharacterEllipsis"/>
 
-                                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                                    <Border CornerRadius="{StaticResource CornerRadiusSm}" Padding="6,2" Margin="0,0,8,0">
-                                        <Border.Background>
-                                            <MultiBinding Converter="{StaticResource ConnectionTypeToBrushConverter}">
-                                                <Binding Path="ServerList.SelectedServer.ConnectionType"/>
-                                                <Binding Path="DataContext.ThemeRevision" ElementName="MainWindowRoot"/>
-                                            </MultiBinding>
-                                        </Border.Background>
-                                        <TextBlock Text="{Binding ServerList.SelectedServer.ConnectionType}"
-                                                   FontSize="{StaticResource FontSizeCaption}" FontWeight="SemiBold"
-                                                   Foreground="{DynamicResource BadgeTextBrush}"
-                                                   TextTrimming="CharacterEllipsis"/>
-                                    </Border>
-                                    <Ellipse Width="8" Height="8" Margin="0,0,6,0"
-                                             VerticalAlignment="Center">
-                                        <Ellipse.Fill>
-                                            <MultiBinding Converter="{StaticResource ConnectionStateToBrushConverter}">
-                                                <Binding Path="ServerList.SelectedServer.ConnectionState"/>
-                                                <Binding Path="DataContext.ThemeRevision" ElementName="MainWindowRoot"/>
-                                            </MultiBinding>
-                                        </Ellipse.Fill>
-                                    </Ellipse>
-                                    <TextBlock Text="{Binding ServerList.SelectedServer.ConnectionStateDisplayName}"
-                                               ToolTip="{Binding ServerList.SelectedServer.ConnectionStateTooltip}"
-                                               FontSize="{StaticResource FontSizeCaption}"
-                                               Foreground="{DynamicResource TextSecondaryBrush}"
-                                               VerticalAlignment="Center"
-                                               TextTrimming="CharacterEllipsis"/>
-                                </StackPanel>
-
-                                <TextBlock x:Name="Mw_DetailHostPort"
-                                           Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,12,0,0"
-                                           FontSize="{StaticResource FontSizeBodyLarge}">
-                                    <Run Text="{Binding ServerList.SelectedServer.RemoteServer, Mode=OneWay}"/>
-                                    <Run Text=" : "/>
-                                    <Run Text="{Binding ServerList.SelectedServer.RemotePort, Mode=OneWay}"/>
-                                </TextBlock>
-
-                                <TextBlock Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,4,0,0"
-                                           FontSize="{StaticResource FontSizeBody}"
-                                           Visibility="{Binding ServerList.SelectedServer.Group, Converter={StaticResource NullToVisibilityConverter}}">
-                                    <Run x:Name="Mw_DetailGroupLabel" Text="{loc:Translate DetailLabelGroup}"/>
-                                    <Run Text="{Binding ServerList.SelectedServer.Group, Mode=OneWay}"/>
-                                </TextBlock>
-
-                                <TextBlock Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,4,0,0"
-                                           FontSize="{StaticResource FontSizeBody}"
-                                           Visibility="{Binding ServerList.SelectedServer.Environment, Converter={StaticResource NullToVisibilityConverter}}">
-                                    <Run x:Name="Mw_DetailEnvLabel" Text="{loc:Translate DetailLabelEnvironment}"/>
-                                    <Run Text="{Binding ServerList.SelectedServer.Environment, Mode=OneWay}"/>
-                                </TextBlock>
-
-                                <!-- Enriched metadata section -->
-                                <Border Margin="0,12,0,0" Padding="12,8"
-                                        Background="{DynamicResource CardBrush}"
-                                        CornerRadius="{StaticResource CornerRadiusSm}"
-                                        BorderBrush="{DynamicResource BorderBrush}"
-                                        BorderThickness="1">
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto"/>
-                                            <ColumnDefinition Width="*"/>
-                                        </Grid.ColumnDefinitions>
-                                        <Grid.RowDefinitions>
-                                            <RowDefinition Height="Auto"/>
-                                            <RowDefinition Height="Auto"/>
-                                            <RowDefinition Height="Auto"/>
-                                            <RowDefinition Height="Auto"/>
-                                            <RowDefinition Height="Auto"/>
-                                            <RowDefinition Height="Auto"/>
-                                        </Grid.RowDefinitions>
-
-                                        <!-- Username -->
-                                        <TextBlock x:Name="Mw_DetailUsernameLabel" Grid.Row="1" Grid.Column="0"
-                                                   Text="{loc:Translate DetailLabelUsername}" FontSize="{StaticResource FontSizeCaption}"
-                                                   Foreground="{DynamicResource TextSecondaryBrush}"
-                                                   Margin="0,2,12,2" VerticalAlignment="Center"
-                                                   Visibility="{Binding ServerList.SelectedServer.Username, Converter={StaticResource NullToVisibilityConverter}}"/>
-                                        <TextBlock Grid.Row="1" Grid.Column="1"
-                                                   Text="{Binding ServerList.SelectedServer.Username}"
-                                                   FontSize="{StaticResource FontSizeCaption}"
-                                                   Foreground="{DynamicResource TextPrimaryBrush}"
-                                                   Margin="0,2,0,2"
-                                                   Visibility="{Binding ServerList.SelectedServer.Username, Converter={StaticResource NullToVisibilityConverter}}"/>
-
-                                        <!-- Gateway -->
-                                        <TextBlock x:Name="Mw_DetailGatewayLabel" Grid.Row="2" Grid.Column="0"
-                                                   Text="{loc:Translate DetailLabelGateway}" FontSize="{StaticResource FontSizeCaption}"
-                                                   Foreground="{DynamicResource TextSecondaryBrush}"
-                                                   Margin="0,2,12,2" VerticalAlignment="Center"
-                                                   Visibility="{Binding ServerList.SelectedServer.IsGatewayBadgeVisible, Converter={StaticResource BoolToVisibilityConverter}}"/>
-                                        <TextBlock Grid.Row="2" Grid.Column="1"
-                                                   FontSize="{StaticResource FontSizeCaption}"
-                                                   Margin="0,2,0,2"
-                                                   Visibility="{Binding ServerList.SelectedServer.IsGatewayBadgeVisible, Converter={StaticResource BoolToVisibilityConverter}}">
-                                            <TextBlock.Style>
-                                                <Style TargetType="TextBlock">
-                                                    <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding ServerList.SelectedServer.IsGatewayMissing}" Value="True">
-                                                            <Setter Property="Foreground" Value="{DynamicResource WarningTextBrush}"/>
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </TextBlock.Style>
-                                            <Run Text="{Binding ServerList.SelectedServer.GatewayDetailText, Mode=OneWay}"/>
-                                        </TextBlock>
-
-                                        <!-- Authentication -->
-                                        <TextBlock x:Name="Mw_DetailAuthLabel" Grid.Row="3" Grid.Column="0"
-                                                   Text="{loc:Translate DetailLabelAuth}" FontSize="{StaticResource FontSizeCaption}"
-                                                   Foreground="{DynamicResource TextSecondaryBrush}"
-                                                   Margin="0,2,12,2" VerticalAlignment="Center"
-                                                   Visibility="{Binding ServerList.SelectedServer.AuthSummary, Converter={StaticResource NullToVisibilityConverter}}"/>
-                                        <TextBlock Grid.Row="3" Grid.Column="1"
-                                                   Text="{Binding ServerList.SelectedServer.AuthSummary}"
-                                                   FontSize="{StaticResource FontSizeCaption}"
-                                                   Foreground="{DynamicResource TextPrimaryBrush}"
-                                                   Margin="0,2,0,2"
-                                                   Visibility="{Binding ServerList.SelectedServer.AuthSummary, Converter={StaticResource NullToVisibilityConverter}}"/>
-
-                                        <!-- Tags -->
-                                        <TextBlock x:Name="Mw_DetailTagsLabel" Grid.Row="4" Grid.Column="0"
-                                                   Text="{loc:Translate DetailLabelTags}" FontSize="{StaticResource FontSizeCaption}"
-                                                   Foreground="{DynamicResource TextSecondaryBrush}"
-                                                   Margin="0,2,12,2" VerticalAlignment="Center"
-                                                   Visibility="{Binding ServerList.SelectedServer.Tags, Converter={StaticResource NullToVisibilityConverter}}"/>
-                                        <TextBlock Grid.Row="4" Grid.Column="1"
-                                                   Text="{Binding ServerList.SelectedServer.Tags}"
-                                                   FontSize="{StaticResource FontSizeCaption}"
-                                                   Foreground="{DynamicResource TextPrimaryBrush}"
-                                                   Margin="0,2,0,2" TextWrapping="Wrap"
-                                                   Visibility="{Binding ServerList.SelectedServer.Tags, Converter={StaticResource NullToVisibilityConverter}}"/>
-
-                                        <!-- Favorite -->
-                                        <TextBlock x:Name="Mw_DetailFavoriteLabel" Grid.Row="5" Grid.Column="0"
-                                                   Text="{loc:Translate DetailLabelFavorite}" FontSize="{StaticResource FontSizeCaption}"
-                                                   Foreground="{DynamicResource TextSecondaryBrush}"
-                                                   Margin="0,2,12,2" VerticalAlignment="Center"
-                                                   Visibility="{Binding ServerList.SelectedServer.IsFavorite, Converter={StaticResource BoolToVisibilityConverter}}"/>
-                                        <TextBlock Grid.Row="5" Grid.Column="1"
-                                                   Text="&#xE735;" FontFamily="Segoe MDL2 Assets"
-                                                   FontSize="{StaticResource FontSizeBody}"
-                                                   Foreground="{DynamicResource WarningTextBrush}"
-                                                   Margin="0,2,0,2"
-                                                   Visibility="{Binding ServerList.SelectedServer.IsFavorite, Converter={StaticResource BoolToVisibilityConverter}}"
-                                                   AutomationProperties.Name="{loc:Translate A11yFavoriteIndicator}"/>
-                                    </Grid>
-                                </Border>
+                                <!-- The same control as the properties panel under the tree, so the
+                                     two can never list different fields. -->
+                                <controls:SessionPropertiesView x:Name="Mw_DetailProperties"
+                                                                DataContext="{Binding ServerList.SelectedServer}"
+                                                                Margin="0,8,0,0"/>
 
                                 <Button x:Name="Mw_DetailConnectBtn" Content="{loc:Translate DetailBtnConnect}"
                                         Command="{Binding ServerList.ConnectCommand}"
