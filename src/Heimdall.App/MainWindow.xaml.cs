@@ -3905,14 +3905,9 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
 
         SidebarTabSessions.IsChecked = true;
 
-        // Relax an active search filter so a filtered-out node becomes visible.
-        if (!string.IsNullOrWhiteSpace(vm.ServerList.SearchText))
-        {
-            vm.ServerList.SearchText = string.Empty;
-        }
-
-        var server = vm.ServerList.Servers.FirstOrDefault(
-            candidate => string.Equals(candidate.Id, serverId, StringComparison.Ordinal));
+        // Found in the whole inventory; the tree's search and filters are reset only when they
+        // hide the row, so the node exists to expand to and select.
+        var server = vm.ServerList.PrepareReveal(serverId);
         if (server is null)
         {
             return;

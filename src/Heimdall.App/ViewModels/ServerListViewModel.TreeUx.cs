@@ -128,6 +128,27 @@ public partial class ServerListViewModel
         }
     }
 
+    /// <summary>
+    /// Finds a profile in the whole inventory and makes its row visible in the tree, resetting
+    /// the tree's search and filters only when they hide it. Null when no profile has that id.
+    /// </summary>
+    /// <remarks>
+    /// Reveal used to clear the search text and then look the profile up in the filtered view, so a
+    /// Favorites, Connected, Gateway, protocol or project filter hiding it made Reveal do nothing.
+    /// A reset applies at once (no search debounce), so the row is in <see cref="Servers"/> on return.
+    /// </remarks>
+    internal ServerItemViewModel? PrepareReveal(string serverId)
+    {
+        ServerItemViewModel? server = _allServers.FirstOrDefault(
+            candidate => string.Equals(candidate.Id, serverId, StringComparison.Ordinal));
+        if (server is not null && !Servers.Contains(server))
+        {
+            ResetTreeFilters();
+        }
+
+        return server;
+    }
+
     [RelayCommand]
     private void ResetTreeFilters()
     {

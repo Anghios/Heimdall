@@ -87,6 +87,12 @@ public partial class ServerListViewModel : ObservableObject, IDisposable, ISessi
     /// No deletion and no stale reference required; a filter was enough.</para>
     /// </remarks>
     internal IReadOnlyList<ServerItemViewModel> AllServers => _allServers;
+
+    /// <summary>
+    /// Every saved profile in the tree's display order (sort order, then name), whatever the tree
+    /// is filtered to. For lists outside the tree that want the tree's order without its filter.
+    /// </summary>
+    internal IReadOnlyList<ServerItemViewModel> InventoryInTreeOrder => _stableServerOrder;
     private readonly Dictionary<string, ServerItemViewModel> _healthServerById =
         new(StringComparer.Ordinal);
     private readonly Dictionary<string, long> _lastHealthGenerationByServerId =

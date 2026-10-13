@@ -74,7 +74,7 @@ public sealed partial class CommandPaletteViewModel
                         ? entry.SecondaryServerId
                         : entry.PrimaryServerId;
 
-                    var serverVm = _main.ServerList.Servers.FirstOrDefault(
+                    var serverVm = _main.ServerList.AllServers.FirstOrDefault(
                         s => string.Equals(s.Id, partnerId, StringComparison.Ordinal));
                     if (serverVm is not null && boostedIds.Add(partnerId))
                     {
@@ -87,7 +87,9 @@ public sealed partial class CommandPaletteViewModel
             // In split mode, show ALL servers so every treeview entry is reachable.
             // In normal palette mode, surface up to 10 servers, with hosts the
             // user recently connected to bubbled to the top (RDP-DISC-05).
-            var availableServers = _main.ServerList.Servers
+            // The whole inventory in the tree's order, not the tree's filtered view: the palette
+            // is a launcher, and a filter left on in the tree must not hide sessions from it.
+            var availableServers = _main.ServerList.InventoryInTreeOrder
                 .Where(s => !boostedIds.Contains(s.Id));
 
             if (_splitPaletteSession is null)
@@ -190,7 +192,7 @@ public sealed partial class CommandPaletteViewModel
             }
         }
 
-        foreach (var server in _main.ServerList.Servers)
+        foreach (var server in _main.ServerList.InventoryInTreeOrder)
         {
             var score = FuzzyScore(server, query);
             if (score > 0)
