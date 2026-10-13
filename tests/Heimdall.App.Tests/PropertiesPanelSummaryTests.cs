@@ -118,10 +118,13 @@ public sealed partial class ServerListSelectionTests
             CreateServer("alpha", "Alpha", "ops"),
             CreateServer("gamma", "Gamma", "lab"));
         fixture.ViewModel.PropertiesFolder = fixture.FolderByPath("ops");
+        List<string?> changed = [];
+        fixture.ViewModel.PropertyChanged += (_, e) => changed.Add(e.PropertyName);
 
         fixture.ViewModel.SelectSingle(fixture.ServerById("gamma"));
 
         Assert.Null(fixture.ViewModel.PropertiesFolder);
+        Assert.Contains(nameof(ServerListViewModel.PropertiesFolder), changed);
         Assert.Null(fixture.ViewModel.PropertiesSummary);
         AssertPanelShows(fixture.ViewModel, PanelMode.Session);
     }
@@ -196,9 +199,12 @@ public sealed partial class ServerListSelectionTests
         AssertPanelShows(fixture.ViewModel, PanelMode.Summary);
     }
 
-    /// <summary>A search that hides the folder leaves no summary of rows that are gone.</summary>
+    /// <summary>
+    /// A search that hides the folder leaves no summary of rows that are gone, and the summary
+    /// comes back with the folder, where the cursor mark still is.
+    /// </summary>
     [Fact]
-    public async Task AFolderTheFilterHides_LeavesThePanel()
+    public async Task AFolderTheFilterHides_LeavesThePanelAndComesBackWithIt()
     {
         FakeTimeProvider timeProvider = new();
         await using ServerListSelectionFixture fixture =
@@ -208,12 +214,114 @@ public sealed partial class ServerListSelectionTests
             CreateServer("alpha", "Alpha", "ops"),
             CreateServer("gamma", "Gamma", "lab"));
         fixture.ViewModel.PropertiesFolder = fixture.FolderByPath("ops");
+        List<string?> changed = [];
+        fixture.ViewModel.PropertyChanged += (_, e) => changed.Add(e.PropertyName);
 
         fixture.ViewModel.SearchText = "Gamma";
         timeProvider.Advance(ServerListViewModel.SearchFilterDebounceDelay);
 
         Assert.Null(fixture.ViewModel.PropertiesFolder);
         Assert.Null(fixture.ViewModel.PropertiesSummary);
+        Assert.Contains(nameof(ServerListViewModel.PropertiesFolder), changed);
+
+        fixture.ViewModel.SearchText = "";
+        timeProvider.Advance(ServerListViewModel.SearchFilterDebounceDelay);
+
+        Assert.Equal("ops", fixture.ViewModel.PropertiesFolder?.FullPath);
+        Assert.Equal(1, fixture.ViewModel.PropertiesSummary?.SessionCount);
+    }
+
+    /// <summary>A reload builds new folder rows; the summary follows the folder, not the old row.</summary>
+    [Fact]
+    public async Task AReload_KeepsTheFolderSummary()
+    {
+        await using ServerListSelectionFixture fixture = await ServerListSelectionFixture.CreateAsync();
+        AppSettings settings = new();
+        fixture.LoadServers(settings, CreateServer("alpha", "Alpha", "ops"));
+        FolderViewModel before = fixture.FolderByPath("ops");
+        fixture.ViewModel.PropertiesFolder = before;
+
+        fixture.LoadServers(settings, CreateServer("alpha", "Alpha", "ops"), CreateServer("beta", "Beta", "ops"));
+
+        FolderViewModel after = fixture.FolderByPath("ops");
+        Assert.NotSame(before, after);
+        Assert.Same(after, fixture.ViewModel.PropertiesFolder);
+        Assert.Equal(2, fixture.ViewModel.PropertiesSummary?.SessionCount);
+    }
+
+    [Fact]
+    public async Task ASessionThatCloses_LowersTheConnectedCount()
+    {
+        await using ServerListSelectionFixture fixture = await ServerListSelectionFixture.CreateAsync();
+        fixture.LoadServers(fixture.ExpandGroups("ops"), CreateServer("alpha", "Alpha", "ops"));
+        string sessionId = SessionIdCodec.Create("alpha");
+        TransitionSshSessionToConnected(fixture.StateMachine, sessionId);
+        fixture.ViewModel.PropertiesFolder = fixture.FolderByPath("ops");
+        Assert.Equal(1, fixture.ViewModel.PropertiesSummary!.ConnectedCount);
+
+        fixture.StateMachine.Reset(sessionId);
+
+        Assert.Equal(0, fixture.ViewModel.PropertiesSummary!.ConnectedCount);
+    }
+
+    /// <summary>
+    /// The panel reads each flag when it is announced. Announced before the selection settled,
+    /// a flag would leave the panel on the session block after the selection was cleared.
+    /// </summary>
+    [Fact]
+    public async Task TheModeFlags_AreAnnouncedWithTheirFinalValue()
+    {
+        await using ServerListSelectionFixture fixture = await ServerListSelectionFixture.CreateAsync();
+        fixture.LoadServers(fixture.ExpandGroups("ops"), CreateServer("alpha", "Alpha", "ops"));
+        fixture.ViewModel.SelectSingle(fixture.ServerById("alpha"));
+        Dictionary<string, bool> announced = [];
+        fixture.ViewModel.PropertyChanged += (_, e) =>
+        {
+            switch (e.PropertyName)
+            {
+                case nameof(ServerListViewModel.PropertiesPanelShowsSession):
+                    announced[e.PropertyName] = fixture.ViewModel.PropertiesPanelShowsSession;
+                    break;
+                case nameof(ServerListViewModel.PropertiesPanelShowsEmpty):
+                    announced[e.PropertyName] = fixture.ViewModel.PropertiesPanelShowsEmpty;
+                    break;
+            }
+        };
+
+        fixture.ViewModel.ClearSelection();
+
+        Assert.False(announced[nameof(ServerListViewModel.PropertiesPanelShowsSession)]);
+        Assert.True(announced[nameof(ServerListViewModel.PropertiesPanelShowsEmpty)]);
+    }
+
+    /// <summary>
+    /// Focus comes back to the row with the cursor mark after a dialog or a switch to another
+    /// window. That is not the user choosing the folder again, so a selection made since keeps
+    /// the panel.
+    /// </summary>
+    [Fact]
+    public async Task FocusComingBackToTheMarkedFolder_DoesNotTakeThePanel()
+    {
+        await using ServerListSelectionFixture fixture = await ServerListSelectionFixture.CreateAsync();
+        fixture.LoadServers(
+            fixture.ExpandGroups("ops"),
+            CreateServer("alpha", "Alpha", "ops"),
+            CreateServer("beta", "Beta", "ops"));
+        Heimdall.App.Services.TreeInteractionState state = new();
+        FolderViewModel ops = fixture.FolderByPath("ops");
+
+        MainWindow.MoveFolderCursorAndPanel(state, fixture.ViewModel, ops);
+        Assert.Same(ops, fixture.ViewModel.PropertiesFolder);
+
+        fixture.ViewModel.SelectAllVisible();
+        MainWindow.MoveFolderCursorAndPanel(state, fixture.ViewModel, ops);
+
+        Assert.Null(fixture.ViewModel.PropertiesFolder);
+        Assert.Equal(2, fixture.ViewModel.PropertiesSummary?.SessionCount);
+        Assert.Equal(fixture.ViewModel.SelectionCountText, fixture.ViewModel.PropertiesSummary?.Title);
+
+        MainWindow.MoveFolderCursorAndPanel(state, fixture.ViewModel, fixture.ServerById("alpha"));
+        Assert.Null(state.CursorFolder);
     }
 
     /// <summary>
@@ -237,6 +345,26 @@ public sealed partial class ServerListSelectionTests
         XElement block = Assert.Single(window.Descendants(), e => (string?)e.Attribute(xaml + "Name") == name);
 
         Assert.Equal(visibility, (string?)block.Attribute("Visibility"));
+    }
+
+    /// <summary>The summary block reads the summary, not the window's view model.</summary>
+    [Fact]
+    public void TheSummaryBlock_ReadsTheSummary()
+    {
+        XNamespace xaml = "http://schemas.microsoft.com/winfx/2006/xaml";
+        string root = AppContext.BaseDirectory;
+        while (!File.Exists(Path.Combine(root, "Heimdall.slnx")))
+        {
+            root = Path.GetDirectoryName(root) ?? throw new DirectoryNotFoundException("Heimdall.slnx");
+        }
+
+        XDocument window = XDocument.Load(Path.Combine(root, "src", "Heimdall.App", "MainWindow.xaml"));
+        XElement block = Assert.Single(window.Descendants(), e => (string?)e.Attribute(xaml + "Name") == "Mw_PropertiesPanelSummary");
+
+        Assert.Equal("{Binding ServerList.PropertiesSummary}", (string?)block.Attribute("DataContext"));
+        Assert.Contains(
+            block.Descendants(),
+            e => (string?)e.Attribute("ItemsSource") == "{Binding Protocols}");
     }
 
     private enum PanelMode

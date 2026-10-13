@@ -237,17 +237,19 @@ public sealed class TreeInteractionState
     /// </remarks>
     /// <param name="focusedNode">The data context of the row that took keyboard focus, or
     /// <see langword="null"/> when focus is outside any row.</param>
-    public void MoveFolderCursor(object? focusedNode)
+    /// <returns>Whether the mark moved. Focus coming back to the row that already has it, after
+    /// a dialog or a switch to another window, does not move it.</returns>
+    public bool MoveFolderCursor(object? focusedNode)
     {
         if (focusedNode is null)
         {
-            return;
+            return false;
         }
 
         FolderViewModel? next = focusedNode as FolderViewModel;
         if (ReferenceEquals(CursorFolder, next))
         {
-            return;
+            return false;
         }
 
         if (CursorFolder is not null)
@@ -261,6 +263,7 @@ public sealed class TreeInteractionState
         }
 
         CursorFolder = next;
+        return true;
     }
 
     /// <summary>

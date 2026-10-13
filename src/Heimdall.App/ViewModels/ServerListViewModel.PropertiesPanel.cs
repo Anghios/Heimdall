@@ -22,31 +22,38 @@ namespace Heimdall.App.ViewModels;
 /// </summary>
 /// <remarks>
 /// A folder is never selected; the tree marks the folder under its cursor instead. The panel
-/// follows whichever the user touched last: the window hands the cursor folder over as it moves,
-/// and any change of selection takes it back, so picking a session from the palette or a search
-/// is not hidden behind a folder the cursor left on the screen.
+/// follows whichever the user touched last: the window hands the cursor folder over when the
+/// cursor moves onto it or the folder is clicked, and any selection the user makes takes it back,
+/// so picking a session from the palette or a search is not hidden behind a folder the cursor
+/// left on the screen. The folder is followed by its key, not by its row: a reload builds new
+/// rows, and a search can hide the folder and show it again.
 /// </remarks>
 public partial class ServerListViewModel
 {
+    private string? _propertiesFolderKey;
     private FolderViewModel? _propertiesFolder;
     private PropertiesSummaryViewModel? _propertiesSummary;
 
     /// <summary>
-    /// The folder under the tree cursor, handed over by the window; null when the cursor is on a
-    /// session, or once the selection has changed since.
+    /// The folder the panel summarizes, as it is on screen now; null when the panel follows the
+    /// selection, or while a search hides the folder.
     /// </summary>
+    /// <remarks>
+    /// Setting a folder hands the panel to it; setting null hands the panel back to the selection.
+    /// </remarks>
     public FolderViewModel? PropertiesFolder
     {
         get => _propertiesFolder;
         set
         {
-            if (ReferenceEquals(_propertiesFolder, value))
+            string? key = value?.ExpansionKey;
+            if (string.Equals(_propertiesFolderKey, key, StringComparison.Ordinal)
+                && ReferenceEquals(_propertiesFolder, value))
             {
                 return;
             }
 
-            _propertiesFolder = value;
-            OnPropertyChanged();
+            _propertiesFolderKey = key;
             RefreshPropertiesSummary();
         }
     }
@@ -70,22 +77,22 @@ public partial class ServerListViewModel
     /// Rebuilds the summary from the current folder or selection, and tells the panel.
     /// </summary>
     /// <remarks>
-    /// Called when the folder, the selection, the visible tree or a session state changes. The
-    /// failure paths that write <c>Error</c> straight onto a row leave the connected count alone:
-    /// a launch that never connected was not counted as connected.
+    /// Called when the folder, the selection, the visible tree, a session state or the language
+    /// changes. The summary is a snapshot, so every one of those has to come through here.
     /// </remarks>
     internal void RefreshPropertiesSummary()
     {
-        // A reload or a filter can take the folder off the tree; its summary would describe rows
-        // that are no longer there.
-        if (_propertiesFolder is { } shown && !IsFolderOnScreen(GroupedServers, shown))
+        FolderViewModel? folder = _propertiesFolderKey is { } key
+            ? FindFolderOnScreen(GroupedServers, key)
+            : null;
+        if (!ReferenceEquals(folder, _propertiesFolder))
         {
-            _propertiesFolder = null;
+            _propertiesFolder = folder;
             OnPropertyChanged(nameof(PropertiesFolder));
         }
 
         PropertiesSummaryViewModel? summary = null;
-        if (_propertiesFolder is { } folder)
+        if (folder is not null)
         {
             summary = PropertiesSummaryViewModel.Build(
                 folder.Name,
@@ -123,27 +130,31 @@ public partial class ServerListViewModel
     private void OnPropertiesPanelSelectionChanged()
     {
         // A filter or a collapse moving the selection is the view, not the user moving on.
-        if (_propertiesFolder is not null && !_synchronizingSelection)
+        if (!_synchronizingSelection)
         {
-            _propertiesFolder = null;
-            OnPropertyChanged(nameof(PropertiesFolder));
+            _propertiesFolderKey = null;
         }
 
         RefreshPropertiesSummary();
         NotifyPropertiesPanelMode();
     }
 
-    private static bool IsFolderOnScreen(IEnumerable<FolderViewModel> folders, FolderViewModel target)
+    private static FolderViewModel? FindFolderOnScreen(IEnumerable<FolderViewModel> folders, string key)
     {
         foreach (FolderViewModel folder in folders)
         {
-            if (ReferenceEquals(folder, target) || IsFolderOnScreen(folder.SubFolders, target))
+            if (string.Equals(folder.ExpansionKey, key, StringComparison.Ordinal))
             {
-                return true;
+                return folder;
+            }
+
+            if (FindFolderOnScreen(folder.SubFolders, key) is { } found)
+            {
+                return found;
             }
         }
 
-        return false;
+        return null;
     }
 
     /// <summary>The sessions a folder holds on screen, its subfolders included.</summary>

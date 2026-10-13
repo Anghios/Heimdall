@@ -140,13 +140,40 @@ public partial class MainWindow
     private void OnSessionTreeViewGotKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
     {
         object? focusedNode = FindAncestor<TreeViewItem>(e.NewFocus as DependencyObject)?.DataContext;
-        _treeState.MoveFolderCursor(focusedNode);
-
-        // The properties panel summarizes the folder under the cursor. Focus outside any row
-        // leaves both the mark and the panel where they were.
-        if (focusedNode is not null && DataContext is MainViewModel vm)
+        if (DataContext is MainViewModel vm)
         {
-            vm.ServerList.PropertiesFolder = _treeState.CursorFolder;
+            MoveFolderCursorAndPanel(_treeState, vm.ServerList, focusedNode);
+        }
+        else
+        {
+            _treeState.MoveFolderCursor(focusedNode);
+        }
+    }
+
+    /// <summary>
+    /// Moves the folder cursor mark, and hands the properties panel to the folder when the mark
+    /// moved onto one or off one.
+    /// </summary>
+    /// <remarks>
+    /// Only a move counts. Focus comes back to the row that already has the mark after a dialog,
+    /// a context menu or a switch to another window; handing the folder over then took the panel
+    /// away from a selection made since, though the user never touched the folder.
+    /// </remarks>
+    /// <param name="state">The tree's interaction state, which owns the mark.</param>
+    /// <param name="serverList">The list whose panel follows the folder.</param>
+    /// <param name="focusedNode">The data context of the row that took keyboard focus, or
+    /// <see langword="null"/> when focus is outside any row.</param>
+    internal static void MoveFolderCursorAndPanel(
+        TreeInteractionState state,
+        ServerListViewModel serverList,
+        object? focusedNode)
+    {
+        ArgumentNullException.ThrowIfNull(state);
+        ArgumentNullException.ThrowIfNull(serverList);
+
+        if (state.MoveFolderCursor(focusedNode))
+        {
+            serverList.PropertiesFolder = state.CursorFolder;
         }
     }
 
@@ -572,6 +599,14 @@ public partial class MainWindow
     /// </summary>
     private void OnSessionTreeViewPreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
     {
+        // A click on a folder hands the properties panel to it even when the folder already had
+        // the cursor mark, which focus alone would not do.
+        if (DataContext is MainViewModel clickVm
+            && FindAncestor<TreeViewItem>(e.OriginalSource as DependencyObject)?.DataContext is FolderViewModel clicked)
+        {
+            clickVm.ServerList.PropertiesFolder = clicked;
+        }
+
         if (DataContext is not MainViewModel vm
             || !_treeState.TryTakeDeferredSingleSelection(out ServerItemViewModel? server)
             || server is null)
