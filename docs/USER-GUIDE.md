@@ -308,6 +308,8 @@ Press **F1** at any time for the full list. The ones that pay for themselves imm
 | `F11` | Fullscreen, `Escape` to leave it |
 | `Ctrl+Shift+T` | Switch the left panel between Sessions and Tools |
 | `Ctrl+Tab` | Next tab, `Ctrl+Shift+Tab` for the previous one; a collapsed folder is skipped |
+| `Ctrl+F4` | Close the open tab, from a terminal too; inside an RDP session it goes to the remote computer |
+| `Shift+F10` or the Menu key | On the tab strip, open the tab's menu; in the tree, the session or folder menu |
 | `Ctrl+A` | In the sessions tree, select every session in the open folders |
 | `Alt+Up` / `Alt+Down` | Move the focused session within its folder |
 | `F2` | Rename the selected session or folder |

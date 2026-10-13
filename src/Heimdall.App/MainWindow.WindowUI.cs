@@ -170,13 +170,22 @@ public partial class MainWindow
     private void OnWindowPreviewKeyDown(object sender, KeyEventArgs e)
     {
         ModifierKeys modifiers = Keyboard.Modifiers;
-        if ((e.Key == Key.Apps
-                || (e.Key == Key.F10 && modifiers == ModifierKeys.Shift))
+        bool isContextMenuKey = IsContextMenuKey(e, modifiers);
+        if (isContextMenuKey
             && SessionTreeView.IsKeyboardFocusWithin
             && DataContext is MainViewModel contextMenuViewModel)
         {
             e.Handled = true;
             OpenTreeViewKeyboardContextMenu(contextMenuViewModel);
+            return;
+        }
+
+        // The same keys on the tab strip open the tab's menu, which was mouse-only.
+        if (isContextMenuKey
+            && SessionTabControl.IsKeyboardFocusWithin
+            && OpenSessionTabKeyboardContextMenu())
+        {
+            e.Handled = true;
             return;
         }
 
@@ -189,6 +198,24 @@ public partial class MainWindow
         e.Handled = true;
         ApplyFullscreenShortcutAction(action);
     }
+
+    /// <summary>
+    /// True for the keys that open a context menu from the keyboard: Apps, and Shift+F10.
+    /// </summary>
+    /// <remarks>
+    /// F10 is a system key: WPF reports it as <see cref="Key.System"/> with the real key in
+    /// <see cref="KeyEventArgs.SystemKey"/>. Comparing <see cref="KeyEventArgs.Key"/> with F10
+    /// therefore never matched, and Shift+F10 opened no menu, in the tree as on the tab strip.
+    /// </remarks>
+    internal static bool IsContextMenuKey(Key key, Key systemKey, ModifierKeys modifiers)
+    {
+        Key effective = key == Key.System ? systemKey : key;
+        return effective == Key.Apps
+            || (effective == Key.F10 && modifiers == ModifierKeys.Shift);
+    }
+
+    private static bool IsContextMenuKey(KeyEventArgs e, ModifierKeys modifiers)
+        => IsContextMenuKey(e.Key, e.SystemKey, modifiers);
 
     private void OnThreadPreprocessMessage(ref MSG msg, ref bool handled)
     {
@@ -346,6 +373,16 @@ public partial class MainWindow
         if (action == FullscreenShortcutAction.None)
         {
             if (IsActive && LowLevelGlobalShortcutRouter.ShouldRoute(key, modifiers))
+            {
+                Dispatcher.BeginInvoke(
+                    DispatcherPriority.Input,
+                    new Action(() => _keyboardShortcutService.TryHandle(key, modifiers)));
+                return true;
+            }
+
+            if (IsActive
+                && LowLevelGlobalShortcutRouter.ShouldRouteUnlessRdpFocused(key, modifiers)
+                && !RdpKeyboardEscapeHook.IsRegisteredRdpViewFocused())
             {
                 Dispatcher.BeginInvoke(
                     DispatcherPriority.Input,

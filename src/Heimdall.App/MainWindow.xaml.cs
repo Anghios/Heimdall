@@ -1948,12 +1948,14 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
         });
 
         // ── Session lifecycle ────────────────────────────────────────
-        // Ctrl+W: close active session (terminal-gated)
-        _keyboardShortcutService.Register(Key.W, ModifierKeys.Control, () =>
-        {
-            if (GetMainVm() is { Connection.ActiveSession: { } active } vm)
-                TryExecute(vm.Connection.CloseSessionCommand, active);
-        }, canExecute: () => !IsTerminalFocusedContext());
+        RegisterCloseTabShortcuts(
+            _keyboardShortcutService,
+            IsTerminalFocusedContext,
+            () =>
+            {
+                if (GetMainVm() is { Connection.ActiveSession: { } active } vm)
+                    TryExecute(vm.Connection.CloseSessionCommand, active);
+            });
 
         // Ctrl+Tab: cycle to next session, skipping tabs folded away in a collapsed folder
         _keyboardShortcutService.Register(Key.Tab, ModifierKeys.Control, () =>
@@ -1995,6 +1997,34 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
             if (GetMainVm() is { } vm)
                 OpenTreeViewKeyboardContextMenu(vm);
         }, canExecute: () => !IsTerminalFocusedContext());
+    }
+
+    /// <summary>
+    /// Registers the two keys that close the active tab.
+    /// </summary>
+    /// <param name="service">Dispatcher the bindings are added to.</param>
+    /// <param name="isTerminalFocused">Whether embedded session content owns focus.</param>
+    /// <param name="closeActiveTab">Closes the active tab, asking first when it is connected.</param>
+    /// <remarks>
+    /// <para>Ctrl+W is left to a focused terminal, where a shell binds it to delete-word.</para>
+    /// <para>Ctrl+F4, the Windows document-close key, is not: a shell has no use for it, so it
+    /// closes the tab from a terminal too, which left a keyboard user in a terminal with no way
+    /// to close it. The low-level hook brings it out of a WebView2 terminal, and leaves it to a
+    /// focused RDP view, where it belongs to the remote application.</para>
+    /// <para>Taken as parameters rather than read from this window so the gates can be exercised
+    /// without one.</para>
+    /// </remarks>
+    internal static void RegisterCloseTabShortcuts(
+        KeyboardShortcutService service,
+        Func<bool> isTerminalFocused,
+        Action closeActiveTab)
+    {
+        ArgumentNullException.ThrowIfNull(service);
+        ArgumentNullException.ThrowIfNull(isTerminalFocused);
+        ArgumentNullException.ThrowIfNull(closeActiveTab);
+
+        service.Register(Key.W, ModifierKeys.Control, closeActiveTab, canExecute: () => !isTerminalFocused());
+        service.Register(Key.F4, ModifierKeys.Control, closeActiveTab);
     }
 
     /// <summary>

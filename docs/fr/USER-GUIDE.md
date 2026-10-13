@@ -333,6 +333,8 @@ Appuyez sur **F1** à tout moment pour la liste complète. Ceux qui se rentabili
 | `F11` | Plein écran, `Echap` pour en sortir |
 | `Ctrl+Shift+T` | Basculer le panneau gauche entre Sessions et Outils |
 | `Ctrl+Tab` | Onglet suivant, `Ctrl+Shift+Tab` pour le précédent ; un dossier replié est sauté |
+| `Ctrl+F4` | Fermer l'onglet ouvert, depuis un terminal aussi ; dans une session RDP, il va à l'ordinateur distant |
+| `Shift+F10` ou la touche Menu | Sur la barre d'onglets, ouvrir le menu de l'onglet ; dans l'arbre, celui de la session ou du dossier |
 | `Ctrl+A` | Dans l'arborescence, sélectionner toutes les sessions des dossiers ouverts |
 | `Alt+Haut` / `Alt+Bas` | Déplacer la session en surbrillance dans son dossier |
 | `F2` | Renommer la session ou le dossier sélectionné |

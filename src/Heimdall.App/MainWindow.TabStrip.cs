@@ -128,6 +128,25 @@ public partial class MainWindow
         e.Handled = true;
     }
 
+    /// <summary>
+    /// Opens the selected tab's menu under the tab, for Apps and Shift+F10 on the strip. The
+    /// menu used to open on a right-click only. Returns false when there is no tab to act on.
+    /// </summary>
+    private bool OpenSessionTabKeyboardContextMenu()
+    {
+        if (GetMainVm() is not { Connection.ActiveSession: { } session } vm)
+        {
+            return false;
+        }
+
+        ContextMenu menu = _sessionTabContextMenuFactory.CreateMenu(session, vm, this);
+        menu.PlacementTarget = SessionTabControl.ItemContainerGenerator.ContainerFromItem(session) as UIElement
+            ?? SessionTabControl;
+        menu.Placement = PlacementMode.Bottom;
+        menu.IsOpen = true;
+        return true;
+    }
+
     private void OnSessionTabListButtonClick(object sender, RoutedEventArgs e)
     {
         if (GetMainVm() is not { } vm)

@@ -26,4 +26,15 @@ internal static class LowLevelGlobalShortcutRouter
             || (key == Key.Tab && modifiers == (ModifierKeys.Control | ModifierKeys.Shift))
             || (key == Key.O && modifiers == (ModifierKeys.Control | ModifierKeys.Shift));
     }
+
+    /// <summary>
+    /// Shortcuts taken from a focused terminal or tool surface but left to a focused RDP view.
+    /// </summary>
+    /// <remarks>
+    /// Ctrl+F4 closes the tab. A shell has no use for it, so it is taken from the WebView2
+    /// terminal, which the window's own key handling never sees. On a remote Windows desktop it
+    /// closes the document or tab of the remote application, so an RDP view keeps it.
+    /// </remarks>
+    internal static bool ShouldRouteUnlessRdpFocused(Key key, ModifierKeys modifiers)
+        => key == Key.F4 && modifiers == ModifierKeys.Control;
 }
