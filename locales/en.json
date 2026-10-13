@@ -2486,6 +2486,7 @@
   "SessionGroupTabsByFolder": "Arrange tabs by folder",
   "SessionCollapseTabGroup": "Collapse this folder's tabs",
   "SessionExpandTabGroup": "Expand this folder's tabs",
+  "SessionCollapseOtherTabGroups": "Collapse the other folders",
   "SessionTabGroupChipExpandedA11y": "Tabs of folder {0}, expanded",
   "SessionTabGroupChipCollapsedA11y": "Tabs of folder {0}, collapsed",
   "SessionTabListButton": "All open tabs",

@@ -134,6 +134,9 @@ line under each of them. The choice is remembered.
 
 - Click a chip to fold that folder's tabs into the chip alone, and click it again to unfold them.
   The tab menu also offers **Collapse this folder's tabs** and **Expand this folder's tabs**.
+- **Collapse the other folders**, in a tab's menu, folds every other folder at once and keeps this
+  one open: one gesture to switch from one set of machines to another. Tabs outside any folder
+  stay visible.
 - Collapsing the folder that holds the open tab moves to the nearest tab outside it. When every
   tab belongs to that folder, its tabs stay open.
 - Opening a session, or switching to a tab, of a collapsed folder unfolds its tabs.

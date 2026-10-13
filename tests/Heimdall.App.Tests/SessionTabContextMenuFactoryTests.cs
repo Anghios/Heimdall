@@ -729,6 +729,28 @@ public sealed partial class SessionCoordinatorPreMountTests
         });
     }
 
+    [Fact]
+    public void SessionTabContextMenu_CollapseOtherFolders_OnlyWithAnotherFolderInTheStrip()
+    {
+        RunOnStaThread(() =>
+        {
+            using TestHarness harness = TestHarness.Create();
+            SessionTabViewModel ops = CreateSession("ops", "SSH");
+            SessionTabViewModel lab = CreateSession("lab", "SSH");
+            harness.Main.Connection.ActiveSessions.Add(ops);
+            harness.Main.Connection.ActiveSessions.Add(lab);
+            ops.TabGroupKey = "Ops";
+            string collapseOthers = harness.Main.Localize("SessionCollapseOtherTabGroups");
+
+            Assert.Null(FindMenuItem(CreateSessionTabMenu(harness.Main, ops), collapseOthers));
+
+            lab.TabGroupKey = "Lab";
+            MenuItem item = AssertMenuItem(CreateSessionTabMenu(harness.Main, ops), collapseOthers);
+            Assert.Same(harness.Main.Connection.CollapseOtherTabGroupsCommand, item.Command);
+            Assert.Same(ops, item.CommandParameter);
+        });
+    }
+
     private static SessionTabViewModel CreateSession(string serverId, string connectionType)
     {
         return new SessionTabViewModel

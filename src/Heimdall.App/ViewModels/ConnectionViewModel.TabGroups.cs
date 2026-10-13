@@ -126,6 +126,48 @@ public partial class ConnectionViewModel
     }
 
     /// <summary>
+    /// Collapses every folder group except the one of <paramref name="session"/>, which is
+    /// expanded, so the strip shows that folder's tabs and the tabs outside any folder: switching
+    /// from one set of machines to another in one gesture, as mRemoteNG's per-folder panels do.
+    /// The selection moves into the folder first when it was elsewhere, so no collapsed folder
+    /// is left holding the open tab.
+    /// </summary>
+    [RelayCommand]
+    private void CollapseOtherTabGroups(SessionTabViewModel? session)
+    {
+        if (session?.TabGroupKey is not { } key || !ActiveSessions.Contains(session))
+        {
+            return;
+        }
+
+        // Selecting a tab of a collapsed folder unfolds it, and a folder holding the open tab is
+        // never collapsed, so once the selection is inside this folder it is open.
+        if (ActiveSession is not { } selected || !IsInTabGroup(selected, key))
+        {
+            ActiveSession = session;
+        }
+
+        foreach (SessionTabViewModel tab in ActiveSessions)
+        {
+            if (tab.TabGroupKey is { } other && !IsInTabGroup(tab, key))
+            {
+                _collapsedTabGroups.Add(other);
+            }
+        }
+
+        RefreshTabGroupFlags();
+    }
+
+    /// <summary>True when the strip holds a folder group other than the one of <paramref name="session"/>.</summary>
+    internal bool HasOtherTabGroup(SessionTabViewModel session)
+    {
+        ArgumentNullException.ThrowIfNull(session);
+
+        return session.TabGroupKey is { } key
+            && ActiveSessions.Any(tab => tab.TabGroupKey is not null && !IsInTabGroup(tab, key));
+    }
+
+    /// <summary>
     /// Selects the next tab (<paramref name="step"/> = 1) or the previous one (-1), wrapping round
     /// the strip. A collapsed folder is skipped whole, its chip included, as a browser skips a
     /// collapsed tab group: landing on any of its tabs would unfold it and undo the collapse.
