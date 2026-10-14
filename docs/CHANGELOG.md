@@ -12,6 +12,67 @@
 
 All notable changes to Heimdall are documented in this file.
 
+## 2026-10-14: session tabs that show their state, and a properties panel you can act from (v2026.101402)
+
+### Session tabs
+
+- **A tab marks a session that needs a look** (#579): a pulsing dot while it connects, reconnects
+  or disconnects, a ring once it dropped, a warning glyph when it failed, nothing when connected.
+  The shapes differ, so colour is never the only cue. The tab's accessible name says the state
+  after the title, and a free-text failure is named by the generic error.
+- **The tooltip is composed when it opens** (#579): full title, endpoint and protocol, user,
+  folder, and the state, a free-text failure reason as written. The profile is read from the whole
+  inventory, not the tree's filtered view.
+- **"Close all tabs" in the tab menu** (#579). The command existed and no gesture reached it; its
+  confirmation counted the connected tabs and called them the total.
+- **The session tab's "Disconnect" item reads "Close tab"** (#579): it has always closed the tab.
+- **A dragged tab scrolls the strip** inside a 32 px zone at each end (#579).
+- **A refused drop detaches the tab only outside the window or over the session content** (#579);
+  over the tree or the toolbar it stays in the strip.
+- **The close button names the tab it closes**, with the ordinal that tells two tabs of one
+  profile apart (#579).
+- **Ctrl+PgDn / Ctrl+PgUp, Ctrl+Shift+PgDn / Ctrl+Shift+PgUp, Ctrl+1..8 and Ctrl+9** (#582): next
+  and previous tab, move the tab, go to a tab, the last tab. The page keys are taken from a WebView2
+  terminal through the low-level hook and left to a focused RDP view; the digits stay with a
+  focused terminal.
+- **Ctrl+Shift+R reopens the last close, and a bulk close is one entry** (#582). "Close others"
+  over twenty-five tabs used to leave ten single entries. A group reopens through the bulk connect
+  path, which applies the session limit and the sign-in gate.
+- **"Close others" and "Close to the right" skip a collapsed folder** (#584).
+- **A folder chip that cannot fold its group says why** (#584): with no tab left to select outside
+  it, the toggle leaves it open, and the chip named no reason.
+- **Tab template sizes are tokens**, the drop zone lost its English fallback, the busy mark names
+  itself, and the French and Spanish menu wording was corrected (#584).
+
+### Properties panel
+
+- **Connect and Edit in the panel** (#581); the detail pane that holds them hides while a tab is
+  open.
+- **Project and Origin rows** (#581).
+- **Each value is named by its field then its value, and its tooltip opens with the value**
+  (#581), through `LocalizedFormatConverter`, which shares its formatting with
+  `AccessibleRowNameConverter`; the row-name guard's slot count covers both.
+- **The panel is refitted when the sidebar resizes, and its height is saved after the layout
+  catches up with the splitter and after a keyboard resize** (#581).
+- **Ctrl+Shift+B shows a panel that cannot be seen** (Tools tab, hidden sidebar) instead of
+  toggling it (#583).
+- **A selected tool is shown as a tool**, the panel is a named region with a heading, the menu
+  item is named by its visible label, its shortcut text is localized, the protocol badge shows the
+  display name, the splitter is 6 px, and a height from the settings is laid out at once (#583).
+
+### Embedded views
+
+- **Every WebView2 environment starts with `--disable-features=HideCursorWhileTyping`** (#578,
+  issue #577, by @Anghios). Runtimes 152 to 154 could leave the window without a pointer after a
+  view closed while the pointer was hidden. A guard reads the compiled helper and fails when an
+  environment is created without the composed arguments.
+
+### Tests
+
+- **The FTP disconnect lock test is decided by the lock, not by a race between two clocks**
+  (#580). A starved thread pool let the 250 ms bound win over a 100 ms timer; `FtpBrowser` takes
+  the bound from an internal constructor, as `SftpBrowser` does.
+
 ## 2026-10-14: web consoles and a properties panel (v2026.101401)
 
 ### Web consoles
