@@ -15,10 +15,10 @@
  */
 
 using System.Diagnostics;
-using System.Net;
 using System.Net.Sockets;
 using Heimdall.App.Services;
 using Heimdall.Core.Network;
+using Heimdall.TestSupport;
 
 namespace Heimdall.App.Tests;
 
@@ -150,12 +150,12 @@ public sealed class TcpPingServiceTests
         // still fails loudly if the probe regresses to a multi-second hang.
         const long maxElapsedMs = 10_000;
 
-        int unusedPort = GetUnusedTcpPort();
+        using RefusedLoopbackPort refusedPort = RefusedLoopbackPort.Reserve();
         TcpPingService service = new();
         Stopwatch stopwatch = Stopwatch.StartNew();
 
         TcpPingProbeResult result = await service.ProbeAsync(
-            new TcpPingProbeRequest("127.0.0.1", unusedPort, 1, 250),
+            new TcpPingProbeRequest("127.0.0.1", refusedPort.Port, 1, 250),
             CancellationToken.None);
         stopwatch.Stop();
 
@@ -181,13 +181,4 @@ public sealed class TcpPingServiceTests
 
     private static Func<string, int, CancellationToken, Task<double>> Throws(Exception ex)
         => (_, _, _) => Task.FromException<double>(ex);
-
-    private static int GetUnusedTcpPort()
-    {
-        var listener = new TcpListener(IPAddress.Loopback, 0);
-        listener.Start();
-        var port = ((IPEndPoint)listener.LocalEndpoint).Port;
-        listener.Stop();
-        return port;
-    }
 }

@@ -15,7 +15,6 @@
  */
 
 using System.IO;
-using System.Net;
 using System.Net.Sockets;
 using Heimdall.App.Localization;
 using Heimdall.App.Services;
@@ -33,6 +32,7 @@ using Heimdall.Core.Ssh;
 using Heimdall.Core.StateMachine;
 using Heimdall.Ssh;
 using Heimdall.Ssh.Plink;
+using Heimdall.TestSupport;
 
 namespace Heimdall.App.Tests;
 
@@ -637,12 +637,12 @@ public sealed class SshHandlerConnectTests : IDisposable
     [Fact]
     public async Task ConnectAsync_TunneledConnectFailureReleasesTunnelReference()
     {
-        int freePort = ReserveAndReleaseLoopbackPort();
+        using RefusedLoopbackPort refusedPort = RefusedLoopbackPort.Reserve();
         FakeTunnelService tunnelService = new FakeTunnelService
         {
             UsesTunnel = true,
             TargetHost = "127.0.0.1",
-            TargetPort = freePort
+            TargetPort = refusedPort.Port
         };
         SshHandler handler = CreateHandler(tunnelService);
         ServerProfileDto server = CreateGatewayServer();
@@ -654,19 +654,19 @@ public sealed class SshHandlerConnectTests : IDisposable
 
         Assert.False(result.Success);
         Assert.Equal(1, tunnelService.ReleaseCount);
-        Assert.Equal(freePort, tunnelService.ReleasedLocalPort);
+        Assert.Equal(refusedPort.Port, tunnelService.ReleasedLocalPort);
     }
 
     [Fact]
     public async Task ConnectAsync_DirectConnectFailureDoesNotReleaseTunnelReference()
     {
-        int freePort = ReserveAndReleaseLoopbackPort();
+        using RefusedLoopbackPort refusedPort = RefusedLoopbackPort.Reserve();
         FakeTunnelService tunnelService = new FakeTunnelService
         {
             UsesTunnel = false
         };
         SshHandler handler = CreateHandler(tunnelService);
-        ServerProfileDto server = CreateDirectServer(freePort);
+        ServerProfileDto server = CreateDirectServer(refusedPort.Port);
 
         ConnectionResult result = await handler.ConnectAsync(
             server,
@@ -687,17 +687,17 @@ public sealed class SshHandlerConnectTests : IDisposable
     public async Task ConnectAsync_SshNetPathWithRelativeKeyPath_FailsWithTheKeyPathErrorBeforeDialling(
         bool usesTunnel)
     {
-        int freePort = ReserveAndReleaseLoopbackPort();
+        using RefusedLoopbackPort refusedPort = RefusedLoopbackPort.Reserve();
         FakeTunnelService tunnelService = new FakeTunnelService
         {
             UsesTunnel = usesTunnel,
             TargetHost = "127.0.0.1",
-            TargetPort = freePort
+            TargetPort = refusedPort.Port
         };
         LocalizationManager localizer = new LocalizationManager();
         await localizer.LoadAsync(Path.Combine(AppContext.BaseDirectory, "locales"), "fr");
         using SshHandler handler = CreateHandler(tunnelService, localizer: localizer);
-        ServerProfileDto server = usesTunnel ? CreateGatewayServer() : CreateDirectServer(freePort);
+        ServerProfileDto server = usesTunnel ? CreateGatewayServer() : CreateDirectServer(refusedPort.Port);
         server.SshKeyPath = @"keys\relative_id_ed25519";
 
         ConnectionResult result = await handler.ConnectAsync(
@@ -722,17 +722,17 @@ public sealed class SshHandlerConnectTests : IDisposable
         bool usesTunnel,
         SessionFailureStage expectedStage)
     {
-        int freePort = ReserveAndReleaseLoopbackPort();
+        using RefusedLoopbackPort refusedPort = RefusedLoopbackPort.Reserve();
         FakeTunnelService tunnelService = new FakeTunnelService
         {
             UsesTunnel = usesTunnel,
             TargetHost = "127.0.0.1",
-            TargetPort = freePort
+            TargetPort = refusedPort.Port
         };
         LocalizationManager localizer = new LocalizationManager();
         await localizer.LoadAsync(Path.Combine(AppContext.BaseDirectory, "locales"), "fr");
         using SshHandler handler = CreateHandler(tunnelService, localizer: localizer);
-        ServerProfileDto server = usesTunnel ? CreateGatewayServer() : CreateDirectServer(freePort);
+        ServerProfileDto server = usesTunnel ? CreateGatewayServer() : CreateDirectServer(refusedPort.Port);
 
         ConnectionResult result = await handler.ConnectAsync(
             server,
@@ -774,7 +774,7 @@ public sealed class SshHandlerConnectTests : IDisposable
     [Fact]
     public async Task ConnectAsync_ExternalModeFailureReleasesTunnelReference()
     {
-        int freePort = ReserveAndReleaseLoopbackPort();
+        using RefusedLoopbackPort refusedPort = RefusedLoopbackPort.Reserve();
         string puttyPath = Path.GetTempFileName();
         try
         {
@@ -782,7 +782,7 @@ public sealed class SshHandlerConnectTests : IDisposable
             {
                 UsesTunnel = true,
                 TargetHost = "127.0.0.1",
-                TargetPort = freePort
+                TargetPort = refusedPort.Port
             };
             SshHandler handler = CreateHandler(tunnelService);
             ServerProfileDto server = CreateExternalGatewayServer();
@@ -798,7 +798,7 @@ public sealed class SshHandlerConnectTests : IDisposable
 
             Assert.False(result.Success);
             Assert.Equal(1, tunnelService.ReleaseCount);
-            Assert.Equal(freePort, tunnelService.ReleasedLocalPort);
+            Assert.Equal(refusedPort.Port, tunnelService.ReleasedLocalPort);
         }
         finally
         {
@@ -1126,21 +1126,6 @@ public sealed class SshHandlerConnectTests : IDisposable
             SshUsername = "operator",
             UseDirectConnection = true
         };
-    }
-
-    private static int ReserveAndReleaseLoopbackPort()
-    {
-        TcpListener listener = new TcpListener(IPAddress.Loopback, 0);
-        listener.Start();
-        try
-        {
-            IPEndPoint endpoint = (IPEndPoint)listener.LocalEndpoint;
-            return endpoint.Port;
-        }
-        finally
-        {
-            listener.Stop();
-        }
     }
 
     private sealed class FakeTunnelService : ITunnelService
