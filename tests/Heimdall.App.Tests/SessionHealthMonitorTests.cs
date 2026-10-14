@@ -25,7 +25,7 @@ namespace Heimdall.App.Tests;
 /// the internal <c>RunCycleAsync</c> seam so no real timer fires and no real
 /// socket is opened — <see cref="FakeHealthProbe"/> replays canned states.
 /// </summary>
-public class SessionHealthMonitorTests
+public partial class SessionHealthMonitorTests
 {
     [Theory]
     [InlineData("RDP", 3389)]
@@ -703,10 +703,10 @@ public class SessionHealthMonitorTests
         public MonitorFixture(IHealthProbe probe, params ServerProfileDto[] profiles)
             : this(new FakeConfigManager(profiles), probe) { }
 
-        public MonitorFixture(FakeConfigManager configManager, IHealthProbe probe)
+        public MonitorFixture(FakeConfigManager configManager, IHealthProbe probe, IWebHealthProbe? webProbe = null)
         {
             _configManager = configManager;
-            Monitor = new SessionHealthMonitor(configManager, probe);
+            Monitor = new SessionHealthMonitor(configManager, probe, webProbe);
             Monitor.Start(new AppSettings { SessionHealthMonitorEnabled = true }, armTimer: false);
         }
 
