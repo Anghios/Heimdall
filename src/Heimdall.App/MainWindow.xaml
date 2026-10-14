@@ -527,11 +527,11 @@
                                                               AutomationProperties.Name="{loc:Translate FilterShowGatewayBadgeAutomationName}"/>
                                                     <MenuItem x:Name="Mw_ShowPropertiesPanelMenu"
                                                               Header="{loc:Translate FilterShowPropertiesPanel}"
-                                                              InputGestureText="Ctrl+Shift+B"
+                                                              InputGestureText="{loc:Translate PropertiesPanelGesture}"
                                                               IsCheckable="True"
                                                               IsChecked="{Binding ServerList.ShowPropertiesPanel, Mode=TwoWay}"
                                                               StaysOpenOnClick="True"
-                                                              AutomationProperties.Name="{loc:Translate FilterShowPropertiesPanelAutomationName}"/>
+                                                              AutomationProperties.HelpText="{loc:Translate FilterShowPropertiesPanelHelpText}"/>
                                                 </ContextMenu>
                                             </Button.ContextMenu>
                                         </Button>
@@ -1164,7 +1164,7 @@
                                  control as the detail pane so the two list the same fields. -->
                             <GridSplitter x:Name="PropertiesPanelSplitter"
                                           Grid.Row="1"
-                                          Height="4"
+                                          Height="{x:Static services:SessionPropertiesPanelLayout.SplitterHeight}"
                                           HorizontalAlignment="Stretch"
                                           VerticalAlignment="Stretch"
                                           ResizeBehavior="PreviousAndNext"
@@ -1179,8 +1179,7 @@
                                     Background="{DynamicResource SurfaceBrush}"
                                     BorderBrush="{DynamicResource BorderBrush}"
                                     BorderThickness="0,1,0,0"
-                                    Visibility="Collapsed"
-                                    AutomationProperties.Name="{loc:Translate PropertiesPanelTitle}">
+                                    Visibility="Collapsed">
                                 <DockPanel>
                                     <DockPanel DockPanel.Dock="Top" Margin="8,4,4,0">
                                         <Button x:Name="Mw_PropertiesPanelCloseBtn"
@@ -1194,6 +1193,7 @@
                                                 ToolTip="{loc:Translate PropertiesPanelHideToolTip}"
                                                 AutomationProperties.Name="{loc:Translate PropertiesPanelHide}"/>
                                         <TextBlock Text="{loc:Translate PropertiesPanelTitle}"
+                                                   AutomationProperties.HeadingLevel="Level2"
                                                    FontSize="{StaticResource FontSizeCaption}"
                                                    FontWeight="SemiBold"
                                                    Foreground="{DynamicResource TextSecondaryBrush}"
@@ -1201,7 +1201,8 @@
                                     </DockPanel>
                                     <ScrollViewer VerticalScrollBarVisibility="Auto"
                                                   HorizontalScrollBarVisibility="Disabled"
-                                                  Padding="8,4,8,8">
+                                                  Padding="8,4,8,8"
+                                                  AutomationProperties.Name="{loc:Translate PropertiesPanelTitle}">
                                         <Grid Grid.IsSharedSizeScope="True">
                                             <StackPanel x:Name="Mw_PropertiesPanelSession"
                                                         Visibility="{Binding ServerList.PropertiesPanelShowsSession, Converter={StaticResource BoolToVisibilityConverter}}">
@@ -1243,6 +1244,12 @@
                                                        Foreground="{DynamicResource TextSecondaryBrush}"
                                                        TextWrapping="Wrap"
                                                        Visibility="{Binding ServerList.PropertiesPanelShowsEmpty, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                            <TextBlock x:Name="Mw_PropertiesPanelTool"
+                                                       Text="{loc:Translate PropertiesPanelToolSelected}"
+                                                       FontSize="{StaticResource FontSizeCaption}"
+                                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                                       TextWrapping="Wrap"
+                                                       Visibility="{Binding ServerList.PropertiesPanelShowsTool, Converter={StaticResource BoolToVisibilityConverter}}"/>
                                             <!-- A folder under the tree cursor, or several selected sessions. -->
                                             <StackPanel x:Name="Mw_PropertiesPanelSummary"
                                                         DataContext="{Binding ServerList.PropertiesSummary}"

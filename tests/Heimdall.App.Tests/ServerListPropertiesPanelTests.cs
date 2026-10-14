@@ -65,6 +65,56 @@ public sealed partial class ServerListSelectionTests
         Assert.Same(persistenceBefore, fixture.ViewModel.ViewPreferencePersistence);
     }
 
+    /// <summary>A tool row said "Select a session to see its properties", as if nothing were selected.</summary>
+    [Fact]
+    public async Task ASelectedTool_IsNamedAsATool_NotAsNothingSelected()
+    {
+        await using ServerListSelectionFixture fixture = await ServerListSelectionFixture.CreateAsync();
+        ServerProfileDto tool = CreateServer("ping", "Ping", "ops");
+        tool.ConnectionType = "TOOL:PING";
+        fixture.LoadServers(await fixture.ConfigManager.LoadSettingsAsync(), tool);
+        List<string?> raised = [];
+        fixture.ViewModel.PropertyChanged += (_, e) => raised.Add(e.PropertyName);
+
+        fixture.ViewModel.SelectedServer = fixture.ViewModel.AllServers.Single(server => server.Id == "ping");
+
+        Assert.True(fixture.ViewModel.PropertiesPanelShowsTool);
+        Assert.False(fixture.ViewModel.PropertiesPanelShowsEmpty);
+        Assert.False(fixture.ViewModel.PropertiesPanelShowsSession);
+        Assert.Contains(nameof(fixture.ViewModel.PropertiesPanelShowsTool), raised);
+    }
+
+    [Fact]
+    public async Task NothingSelected_ShowsTheEmptyHint_NotTheToolOne()
+    {
+        await using ServerListSelectionFixture fixture = await ServerListSelectionFixture.CreateAsync();
+        fixture.LoadServers(await fixture.ConfigManager.LoadSettingsAsync(), CreateServer("alpha", "Alpha", "ops"));
+
+        fixture.ViewModel.SelectedServer = null;
+
+        Assert.True(fixture.ViewModel.PropertiesPanelShowsEmpty);
+        Assert.False(fixture.ViewModel.PropertiesPanelShowsTool);
+    }
+
+    /// <summary>
+    /// The window lays the panel out when the height is announced: a height arriving from the
+    /// settings, by an import or a reset, used to wait for the next toggle of the panel.
+    /// </summary>
+    [Fact]
+    public async Task AHeightFromTheSettings_IsAnnounced()
+    {
+        await using ServerListSelectionFixture fixture = await ServerListSelectionFixture.CreateAsync();
+        List<string?> raised = [];
+        fixture.ViewModel.PropertyChanged += (_, e) => raised.Add(e.PropertyName);
+
+        // Whichever of the two applies it first, the settings change or the load, must announce it.
+        await fixture.ConfigManager.MergeSettingAsync(persisted => persisted.SessionPropertiesPanelHeight = 333);
+        fixture.LoadServers(await fixture.ConfigManager.LoadSettingsAsync(), CreateServer("alpha", "Alpha", "ops"));
+
+        Assert.Equal(333d, fixture.ViewModel.PropertiesPanelHeight);
+        Assert.Contains(nameof(fixture.ViewModel.PropertiesPanelHeight), raised);
+    }
+
     [Fact]
     public async Task ADraggedPanelHeight_IsClampedAndSaved()
     {

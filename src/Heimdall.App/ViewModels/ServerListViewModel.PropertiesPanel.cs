@@ -71,7 +71,10 @@ public partial class ServerListViewModel
     public bool PropertiesPanelShowsSession => _propertiesSummary is null && ShowSessionDetail;
 
     /// <summary>Whether the panel shows its hint that nothing is selected.</summary>
-    public bool PropertiesPanelShowsEmpty => _propertiesSummary is null && !ShowSessionDetail;
+    public bool PropertiesPanelShowsEmpty => _propertiesSummary is null && SelectedServer is null;
+
+    /// <summary>Whether the panel says the selected row is a tool, which has no session properties.</summary>
+    public bool PropertiesPanelShowsTool => _propertiesSummary is null && ShowToolDetail;
 
     /// <summary>
     /// Rebuilds the summary from the current folder or selection, and tells the panel.
@@ -122,6 +125,7 @@ public partial class ServerListViewModel
         OnPropertyChanged(nameof(PropertiesPanelShowsSummary));
         OnPropertyChanged(nameof(PropertiesPanelShowsSession));
         OnPropertyChanged(nameof(PropertiesPanelShowsEmpty));
+        OnPropertyChanged(nameof(PropertiesPanelShowsTool));
     }
 
     /// <summary>

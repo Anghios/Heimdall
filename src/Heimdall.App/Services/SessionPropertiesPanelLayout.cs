@@ -34,6 +34,16 @@ internal static class SessionPropertiesPanelLayout
     /// <summary>Height the tree keeps whatever the panel asks for.</summary>
     public const double TreeMinHeight = 120d;
 
+    /// <summary>Height of the splitter above the panel: 4 left a target hard to catch.</summary>
+    public const double SplitterHeight = 6d;
+
+    /// <summary>
+    /// Whether Ctrl+Shift+B shows the panel rather than toggling it: while the Tools tab is up or
+    /// the sidebar is hidden the panel cannot be seen, and a toggle there turned it off unseen,
+    /// so the second press of a user looking for it put it back where it started.
+    /// </summary>
+    public static bool ShortcutReveals(bool toolsTabActive, bool sidebarHidden) => toolsTabActive || sidebarHidden;
+
     /// <summary>
     /// Whether the panel is on screen: the user asked for it and the sidebar shows the sessions,
     /// not the tools, whose list has no session to describe.
