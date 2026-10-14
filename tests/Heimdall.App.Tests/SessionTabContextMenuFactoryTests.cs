@@ -29,7 +29,7 @@ namespace Heimdall.App.Tests;
 public sealed partial class SessionCoordinatorPreMountTests
 {
     [Theory]
-    [InlineData("SSH", "SessionDisconnect")]
+    [InlineData("SSH", "SessionCloseTab")]
     [InlineData("TOOL:PING", "SessionCloseTab")]
     public void SessionTabContextMenu_SessionType_ExposesSingleCloseActionAndClosesOnce(
         string connectionType,
@@ -41,14 +41,12 @@ public sealed partial class SessionCoordinatorPreMountTests
             SessionTabViewModel session = CreateSession("session-id", connectionType);
             harness.Main.Connection.ActiveSessions.Add(session);
             ContextMenu menu = CreateSessionTabMenu(harness.Main, session);
-            string disconnectHeader = harness.Main.Localize("SessionDisconnect");
             string closeTabHeader = harness.Main.Localize("SessionCloseTab");
             string closeSessionHeader = harness.Main.Localize("SessionCloseSession");
             List<MenuItem> closeItems = menu.Items
                 .OfType<MenuItem>()
                 .Where((MenuItem item) => item.Header is string header
-                    && (string.Equals(header, disconnectHeader, StringComparison.Ordinal)
-                        || string.Equals(header, closeTabHeader, StringComparison.Ordinal)
+                    && (string.Equals(header, closeTabHeader, StringComparison.Ordinal)
                         || string.Equals(header, closeSessionHeader, StringComparison.Ordinal)))
                 .ToList();
 
@@ -601,9 +599,29 @@ public sealed partial class SessionCoordinatorPreMountTests
 
             Assert.Equal(harness.Main.Localize("SessionReconnectTab"), Assert.IsType<MenuItem>(menu.Items[0]).Header);
             Assert.Equal(
-                harness.Main.Localize("SessionDisconnect"),
+                harness.Main.Localize("SessionCloseTab"),
                 Assert.IsType<MenuItem>(menu.Items[menu.Items.Count - 1]).Header);
             AssertSeparatorsOnlyBetweenItems(menu);
+        });
+    }
+
+    [Theory]
+    [InlineData("SSH")]
+    [InlineData("TOOL:PING")]
+    public void SessionTabContextMenu_OffersCloseAllTabs_JustAboveTheCloseItem(string connectionType)
+    {
+        RunOnStaThread(() =>
+        {
+            using TestHarness harness = TestHarness.Create();
+            SessionTabViewModel session = CreateSession("session-id", connectionType);
+            harness.Main.Connection.ActiveSessions.Add(session);
+
+            ContextMenu menu = CreateSessionTabMenu(harness.Main, session);
+
+            // The command was written and tested, and no gesture reached it.
+            MenuItem closeAll = Assert.IsType<MenuItem>(menu.Items[menu.Items.Count - 2]);
+            Assert.Equal(harness.Main.Localize("SessionCloseAllTabs"), closeAll.Header);
+            Assert.Same(harness.Main.Connection.CloseAllSessionsCommand, closeAll.Command);
         });
     }
 

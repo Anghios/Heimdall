@@ -159,4 +159,45 @@ public partial class MainWindow
         menu.Placement = PlacementMode.Bottom;
         menu.IsOpen = true;
     }
+
+    /// <summary>
+    /// Writes a tab's tooltip as it opens: the profile behind the tab is edited while the tab
+    /// stays open, so a tooltip composed with the tab would go stale.
+    /// </summary>
+    private void OnSessionTabToolTipOpening(object sender, ToolTipEventArgs e)
+    {
+        if (sender is not FrameworkElement header
+            || header.DataContext is not SessionTabViewModel session
+            || GetMainVm() is not { } vm)
+        {
+            return;
+        }
+
+        Heimdall.Core.Localization.LocalizationManager localizer = vm.GetLocalizer();
+        header.ToolTip = SessionTabToolTipComposer.Compose(
+            session,
+            SessionTabToolTipComposer.FindProfile(vm, session),
+            key => localizer[key],
+            (key, args) => localizer.Format(key, args));
+    }
+
+    /// <summary>
+    /// Scrolls the strip while a dragged tab is held near one of its ends, so a tab can be
+    /// dropped beside one scrolled out of view. The strip shows no scroll bar to drag instead.
+    /// </summary>
+    private void AutoScrollTabStripDuringDrag(System.Windows.DragEventArgs e)
+    {
+        if (_tabStripScroller is null || _tabStripScroller.ScrollableWidth <= 0)
+        {
+            return;
+        }
+
+        double step = TabStripDragAutoScroll.Step(
+            e.GetPosition(_tabStripScroller).X,
+            _tabStripScroller.ViewportWidth);
+        if (step != 0d)
+        {
+            _tabStripScroller.ScrollToHorizontalOffset(_tabStripScroller.HorizontalOffset + step);
+        }
+    }
 }

@@ -115,7 +115,7 @@ public sealed class SessionTabContextMenuFactory
             Section(host =>
             {
                 AppendCloseGroupItems(host, session, vm);
-                AppendCloseItem(host, session, vm, isToolTab);
+                AppendCloseItem(host, session, vm);
             }),
         ];
 
@@ -334,12 +334,13 @@ public sealed class SessionTabContextMenuFactory
     private static void AppendCloseItem(
         ContextMenu menu,
         SessionTabViewModel session,
-        MainViewModel vm,
-        bool isToolTab)
+        MainViewModel vm)
     {
         var closeItem = new MenuItem
         {
-            Header = vm.Localize(isToolTab ? "SessionCloseTab" : "SessionDisconnect")
+            // Named for what it does. It read "Disconnect" on a session tab, and a user who meant
+            // to keep the tab for a later reconnect lost it: the item has always closed the tab.
+            Header = vm.Localize("SessionCloseTab")
         };
         closeItem.Click += async (_, _) =>
             await vm.Connection.CloseSessionAsync(session, DisconnectReason.UserAction);
@@ -396,12 +397,7 @@ public sealed class SessionTabContextMenuFactory
     {
         // The whole inventory, not the tree's filtered view: with a search typed in the tree, the
         // profile of an open tab is usually filtered out, and these entries vanished with it.
-        string lookupId = session.ProfileLookupServerId;
-        ServerItemViewModel? serverVm = string.IsNullOrEmpty(lookupId)
-            ? null
-            : vm.ServerList.AllServers.FirstOrDefault(
-                (ServerItemViewModel server) =>
-                    string.Equals(server.Id, lookupId, StringComparison.Ordinal));
+        ServerItemViewModel? serverVm = SessionTabToolTipComposer.FindProfile(vm, session);
 
         if (serverVm is null)
         {
@@ -843,6 +839,13 @@ public sealed class SessionTabContextMenuFactory
             };
             menu.Items.Add(closeFolderItem);
         }
+
+        // The command was written, tested and reachable from nowhere.
+        menu.Items.Add(new MenuItem
+        {
+            Header = vm.Localize("SessionCloseAllTabs"),
+            Command = vm.Connection.CloseAllSessionsCommand,
+        });
     }
 
     // ── Split / merge / unsplit items ────────────────────────────────
