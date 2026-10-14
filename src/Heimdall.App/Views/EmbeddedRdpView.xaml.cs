@@ -5452,16 +5452,21 @@ public partial class EmbeddedRdpView
         }
     }
 
+    // The connection pipeline applied the group defaults before the handler ran, so the profile
+    // this view holds already names any inherited gateway.
+    private static bool ConnectsDirect(ServerProfileDto server)
+        => !SshGatewayRoute.IsThroughGateway(server, groupDefaults: null);
+
     private static string ResolveConnectHost(ServerProfileDto server)
     {
-        return server.UseDirectConnection || string.IsNullOrWhiteSpace(server.SshGatewayId)
+        return ConnectsDirect(server)
             ? server.RemoteServer
             : "127.0.0.1";
     }
 
     private int ResolveConnectPort(ServerProfileDto server)
     {
-        if (server.UseDirectConnection || string.IsNullOrWhiteSpace(server.SshGatewayId))
+        if (ConnectsDirect(server))
         {
             return server.RemotePort;
         }
@@ -5472,7 +5477,7 @@ public partial class EmbeddedRdpView
 
     private string BuildEndpointText(ServerProfileDto server)
     {
-        if (server.UseDirectConnection || string.IsNullOrWhiteSpace(server.SshGatewayId))
+        if (ConnectsDirect(server))
         {
             return string.Format("{0}:{1}", server.RemoteServer, server.RemotePort);
         }

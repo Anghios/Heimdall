@@ -46,6 +46,33 @@ public sealed class SessionHealthMonitorReasonTests
     }
 
     [Fact]
+    public void UnprobedReason_AProfileGatewayWithUseDirectConnection_IsProbed()
+    {
+        // It opens direct, so its dot must say whether the host answers, not Unknown.
+        ServerProfileDto dto = new() { Id = "s", ConnectionType = "SSH", SshGatewayId = "gw", UseDirectConnection = true };
+
+        Assert.Null(SessionHealthMonitor.UnprobedReason(dto, new AppSettings()));
+    }
+
+    [Fact]
+    public void UnprobedReason_AnInheritedGatewayWithUseDirectConnection_IsProbed()
+    {
+        ServerProfileDto dto = new() { Id = "s", ConnectionType = "SSH", Group = "PROD", UseDirectConnection = true };
+        AppSettings settings = new();
+        settings.GroupDefaults["PROD"] = new GroupDefaultsDto { SshGatewayId = "gw" };
+
+        Assert.Null(SessionHealthMonitor.UnprobedReason(dto, settings));
+    }
+
+    [Fact]
+    public void UnprobedReason_AGatewayOnAProtocolThatNeverTunnels_IsProbed()
+    {
+        ServerProfileDto dto = new() { Id = "s", ConnectionType = "VNC", SshGatewayId = "gw" };
+
+        Assert.Null(SessionHealthMonitor.UnprobedReason(dto, new AppSettings()));
+    }
+
+    [Fact]
     public void UnprobedReason_AnRdpProfileBehindAnRdGateway_IsBehindRdGateway()
     {
         ServerProfileDto dto = new() { Id = "s", ConnectionType = "RDP", RdpGateway = "rdgw.example.com" };

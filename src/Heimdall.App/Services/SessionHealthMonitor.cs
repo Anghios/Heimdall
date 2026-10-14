@@ -30,7 +30,7 @@ namespace Heimdall.App.Services;
 /// subscribe to.
 /// </summary>
 /// <remarks>
-/// Gateway-fronted servers (<see cref="ServerProfileDto.SshGatewayId"/> set)
+/// Gateway-fronted servers (<see cref="SshGatewayRoute.IsThroughGateway"/>)
 /// and servers whose protocol exposes no probe port (Citrix, Local Shell) are
 /// recorded as <see cref="HealthStatus.Unknown"/> without consuming a probe
 /// slot - the MVP scope chose direct TCP only.
@@ -338,19 +338,16 @@ public sealed class SessionHealthMonitor : IDisposable
     /// <remarks>
     /// A server reached through a gateway is not reachable from here by design. Dialling it
     /// directly marked it Down - a red dot for a session that connects fine - and sent a DNS query
-    /// and a SYN to an internal name every interval. That covered an SSH gateway set on the profile,
-    /// but not one inherited from its group defaults, as the connection itself applies, nor an RD
-    /// Gateway.
+    /// and a SYN to an internal name every interval. The SSH gateway answer is the one the
+    /// connection itself acts on, through <see cref="SshGatewayRoute"/>: a profile marked for a direct
+    /// connection, or whose protocol never tunnels, is probed even when it names a gateway.
     /// </remarks>
     internal static string? UnprobedReason(ServerProfileDto dto, AppSettings settings)
     {
         ArgumentNullException.ThrowIfNull(dto);
         ArgumentNullException.ThrowIfNull(settings);
 
-        if (!string.IsNullOrEmpty(dto.SshGatewayId)
-            || (settings.GroupDefaults.Count > 0
-                && !string.IsNullOrEmpty(dto.Group)
-                && !string.IsNullOrEmpty(GroupDefaultsDto.Resolve(dto.Group, settings.GroupDefaults).SshGatewayId)))
+        if (SshGatewayRoute.IsThroughGateway(dto, settings.GroupDefaults))
         {
             return "behind-gateway";
         }

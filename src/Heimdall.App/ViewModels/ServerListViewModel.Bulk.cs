@@ -1368,13 +1368,7 @@ public partial class ServerListViewModel
                 continue;
             }
 
-            if (settings.GroupDefaults.Count > 0 && !string.IsNullOrEmpty(serverDto.Group))
-            {
-                var groupDefaults = Core.Configuration.GroupDefaultsDto.Resolve(
-                    serverDto.Group,
-                    settings.GroupDefaults);
-                groupDefaults.ApplyTo(serverDto);
-            }
+            Core.Configuration.GroupDefaultsDto.ApplyInherited(serverDto, settings.GroupDefaults);
 
             var skippedForCredentials = await TryResolveExternalCredentialsAsync(
                 serverDto,

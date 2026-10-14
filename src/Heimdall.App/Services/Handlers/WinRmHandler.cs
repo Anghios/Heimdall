@@ -103,8 +103,7 @@ internal sealed class WinRmHandler : IProtocolHandler, IDisposable
             // dialling first put the user through the gateway's sign-in and host key prompts for a
             // connection that was then refused anyway.
             if (server.WinRmUseSsl
-                && !server.UseDirectConnection
-                && !string.IsNullOrEmpty(server.SshGatewayId))
+                && SshGatewayRoute.IsThroughGateway(server, settings.GroupDefaults))
             {
                 string message = _localizer["ErrorWinRmSslGatewayUnsupported"];
                 _connectionSm.SetError(server.Id, message);

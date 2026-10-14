@@ -138,19 +138,19 @@ public sealed class ConnectionService : IConnectionService
         ArgumentNullException.ThrowIfNull(server);
         ArgumentNullException.ThrowIfNull(settings);
 
-        if (string.IsNullOrEmpty(server.SshGatewayId) || server.UseDirectConnection)
+        if (SshGatewayRoute.GatewayIdFor(server, settings.GroupDefaults) is not { } gatewayId)
         {
             return PreflightResult.Ok();
         }
 
         var gateway = settings.SshGateways.FirstOrDefault(
-            g => string.Equals(g.Id, server.SshGatewayId, StringComparison.OrdinalIgnoreCase));
+            g => string.Equals(g.Id, gatewayId, StringComparison.OrdinalIgnoreCase));
 
         if (gateway is null)
         {
             return PreflightResult.Fail(
                 SshFailureCode.Unknown,
-                _localizer.Format("ErrorGatewayNotFound", server.SshGatewayId, server.DisplayName));
+                _localizer.Format("ErrorGatewayNotFound", gatewayId, server.DisplayName));
         }
 
         PreflightResult? unreadable = FindUnreadableGatewaySecret(gateway, settings.SshGateways);
@@ -308,6 +308,10 @@ public sealed class ConnectionService : IConnectionService
                 return new ConnectionResult(false, _localizer["StatusExecutionBlockedUnconfirmed"], null);
             }
         }
+
+        // Every path that opens a connection lands here, the split pane and its reconnect
+        // included, which used to skip the group defaults and open direct where the tab tunnelled.
+        GroupDefaultsDto.ApplyInherited(server, settings.GroupDefaults);
 
         if (_handlers.TryGetValue(protocol, out var handler))
         {

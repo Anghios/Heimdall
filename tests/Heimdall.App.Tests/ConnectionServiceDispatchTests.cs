@@ -145,6 +145,133 @@ public sealed class ConnectionServiceDispatchTests : IDisposable
     }
 
     [Fact]
+    public async Task RunPreflight_AMissingGatewayInheritedFromTheGroup_ReturnsActionableFailure()
+    {
+        string rootPath = Path.Combine(
+            Path.GetTempPath(),
+            "heimdall-preflight-inherited-gateway",
+            Guid.NewGuid().ToString("N"));
+        ConfigManager configManager = new ConfigManager(rootPath);
+
+        try
+        {
+            LocalizationManager localizer = await CreateLocalizerAsync();
+            using ConnectionService service = new ConnectionService(
+                configManager,
+                localizer,
+                new StubTunnelService(),
+                []);
+            AppSettings settings = new();
+            settings.GroupDefaults["PROD"] = new GroupDefaultsDto { SshGatewayId = "missing-group-gateway" };
+            ServerProfileDto server = new()
+            {
+                Id = "inherited-gateway-test",
+                DisplayName = "Inherited Gateway Test",
+                ConnectionType = "SSH",
+                RemoteServer = "ssh.example.com",
+                Group = "PROD/Linux"
+            };
+
+            Heimdall.Ssh.PreflightResult result = service.RunPreflight(server, settings);
+
+            Assert.False(result.Success);
+            Assert.Contains("missing-group-gateway", result.Message, StringComparison.Ordinal);
+        }
+        finally
+        {
+            if (Directory.Exists(rootPath))
+            {
+                Directory.Delete(rootPath, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task RunPreflight_UseDirectConnection_LeavesTheGatewayAlone()
+    {
+        string rootPath = Path.Combine(
+            Path.GetTempPath(),
+            "heimdall-preflight-direct",
+            Guid.NewGuid().ToString("N"));
+        ConfigManager configManager = new ConfigManager(rootPath);
+
+        try
+        {
+            LocalizationManager localizer = await CreateLocalizerAsync();
+            using ConnectionService service = new ConnectionService(
+                configManager,
+                localizer,
+                new StubTunnelService(),
+                []);
+            ServerProfileDto server = new()
+            {
+                Id = "direct-test",
+                DisplayName = "Direct Test",
+                ConnectionType = "SSH",
+                RemoteServer = "ssh.example.com",
+                SshGatewayId = "missing-gateway",
+                UseDirectConnection = true
+            };
+
+            Heimdall.Ssh.PreflightResult result = service.RunPreflight(server, new AppSettings());
+
+            Assert.True(result.Success);
+        }
+        finally
+        {
+            if (Directory.Exists(rootPath))
+            {
+                Directory.Delete(rootPath, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task Dispatch_AGatewayFromTheGroupDefaults_ReachesTheHandler()
+    {
+        // A split pane and its reconnect hand the stored profile straight to the service, without
+        // the group defaults the tab's path applies. The dispatch applies them for every path.
+        string rootPath = Path.Combine(
+            Path.GetTempPath(),
+            "heimdall-dispatch-group-defaults",
+            Guid.NewGuid().ToString("N"));
+        ConfigManager configManager = new ConfigManager(rootPath);
+
+        try
+        {
+            LocalizationManager localizer = await CreateLocalizerAsync();
+            CapturingProtocolHandler handler = new CapturingProtocolHandler("SSH");
+            using ConnectionService service = new ConnectionService(
+                configManager,
+                localizer,
+                new StubTunnelService(),
+                new IProtocolHandler[] { handler });
+            AppSettings settings = new();
+            settings.GroupDefaults["PROD"] = new GroupDefaultsDto { SshGatewayId = "group-gateway" };
+            ServerProfileDto server = new()
+            {
+                Id = "split-pane-test",
+                ConnectionType = "SSH",
+                RemoteServer = "ssh.example.com",
+                Group = "PROD/Linux"
+            };
+
+            ConnectionResult result = await service.ConnectSshAsync(server, settings);
+
+            Assert.True(result.Success);
+            Assert.Equal("group-gateway", handler.Server?.SshGatewayId);
+            Assert.Equal("group-gateway", SshGatewayRoute.GatewayIdFor(handler.Server!, groupDefaults: null));
+        }
+        finally
+        {
+            if (Directory.Exists(rootPath))
+            {
+                Directory.Delete(rootPath, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
     public async Task ConnectWinRmAsync_DispatchesToWinRmHandler()
     {
         string rootPath = Path.Combine(

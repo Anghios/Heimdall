@@ -85,7 +85,8 @@ internal sealed class WebHandler : IProtocolHandler
             return Fail(server.Id, _localizer["ErrorWebInvalidAddress"]);
         }
 
-        bool viaGateway = UsesGateway(server);
+        string? gatewayId = SshGatewayRoute.GatewayIdFor(server, settings.GroupDefaults);
+        bool viaGateway = gatewayId is not null;
         if (viaGateway && server.WebOpenExternally)
         {
             // The external program would not go through the tunnel; opening it anyway would
@@ -96,7 +97,7 @@ internal sealed class WebHandler : IProtocolHandler
         int? proxyPort = null;
         if (viaGateway)
         {
-            TunnelSetupOutcome? tunnel = await OpenGatewayProxyAsync(server, settings, ct).ConfigureAwait(false);
+            TunnelSetupOutcome? tunnel = await OpenGatewayProxyAsync(server, gatewayId!, settings, ct).ConfigureAwait(false);
             if (tunnel is not { Success: true })
             {
                 return tunnel is null
@@ -104,7 +105,7 @@ internal sealed class WebHandler : IProtocolHandler
                     : new ConnectionResult(false, tunnel.ErrorMessage, null);
             }
 
-            proxyPort = _proxyPorts.GetOrAllocate(server.SshGatewayId!);
+            proxyPort = _proxyPorts.GetOrAllocate(gatewayId!);
         }
 
         _connectionSm.TryTransition(server.Id, ConnectionState.LaunchingWeb);
@@ -126,7 +127,7 @@ internal sealed class WebHandler : IProtocolHandler
             password,
             server.SessionLoggingOverride)
         {
-            GatewayId = viaGateway ? server.SshGatewayId : null,
+            GatewayId = gatewayId,
             ProxyPort = proxyPort,
             ExternalProgram = server.WebExternalProgram,
             ExternalArguments = server.WebExternalArguments,
@@ -135,16 +136,13 @@ internal sealed class WebHandler : IProtocolHandler
         return new ConnectionResult(true, null, session);
     }
 
-    /// <summary>Whether the profile is routed through an SSH gateway, as the tunnel service decides it.</summary>
-    internal static bool UsesGateway(ServerProfileDto server)
-        => !server.UseDirectConnection && !string.IsNullOrWhiteSpace(server.SshGatewayId);
-
     /// <summary>
     /// Opens, or joins, the gateway's SOCKS tunnel for this console. The tunnel service records
     /// the lease against the profile, and closing the tab gives it back the way it does for RDP.
     /// </summary>
     private async Task<TunnelSetupOutcome?> OpenGatewayProxyAsync(
         ServerProfileDto server,
+        string gatewayId,
         AppSettings settings,
         CancellationToken ct)
     {
@@ -155,7 +153,8 @@ internal sealed class WebHandler : IProtocolHandler
 
         ServerProfileDto tunnelProfile = server.CloneFaithfully();
         tunnelProfile.RemoteServer = GatewayTunnelTargetHost;
-        tunnelProfile.SocksProxyPort = _proxyPorts.GetOrAllocate(server.SshGatewayId!);
+        tunnelProfile.SshGatewayId = gatewayId;
+        tunnelProfile.SocksProxyPort = _proxyPorts.GetOrAllocate(gatewayId);
         tunnelProfile.RemoteBindPort = 0;
         tunnelProfile.RemoteLocalPort = 0;
         tunnelProfile.LocalPort = 0;

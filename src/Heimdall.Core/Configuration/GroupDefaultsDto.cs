@@ -96,12 +96,30 @@ public sealed class GroupDefaultsDto
     }
 
     /// <summary>
+    /// Fills a profile's unset fields from the defaults its group inherits, if any apply.
+    /// </summary>
+    /// <remarks>
+    /// Every connection passes through here before its handler runs, so the handlers, the tunnel
+    /// service and the session views read the same effective profile whichever path opened it.
+    /// </remarks>
+    public static void ApplyInherited(ServerProfileDto server, Dictionary<string, GroupDefaultsDto> allDefaults)
+    {
+        ArgumentNullException.ThrowIfNull(server);
+        ArgumentNullException.ThrowIfNull(allDefaults);
+
+        if (allDefaults.Count == 0 || string.IsNullOrWhiteSpace(server.Group))
+            return;
+
+        Resolve(server.Group, allDefaults).ApplyTo(server);
+    }
+
+    /// <summary>
     /// Applies group defaults to a server DTO, filling in null/empty fields.
     /// The server's own values always take priority over inherited defaults.
     /// </summary>
     public void ApplyTo(ServerProfileDto server)
     {
-        if (string.IsNullOrEmpty(server.SshGatewayId))
+        if (!SshGatewayRoute.IsAssigned(server.SshGatewayId))
             server.SshGatewayId = SshGatewayId;
 
         if (string.IsNullOrEmpty(server.SshUsername))
