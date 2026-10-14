@@ -78,6 +78,7 @@ Index of all issues encountered during development and their solutions.
 61. [Settings - "Configuration restored" at Startup](#settings-restored-from-backup)
 62. [Tunnel - "Plink exited before opening the tunnel"](#tunnel-plink-exited-early)
 63. [VNC - The Server Asks for a Username or a Password](#vnc-credentials-required)
+64. [WebView2 - The Pointer Disappears When a Terminal Is Closed](#webview2-pointer-hidden-after-close)
 
 ---
 
@@ -1149,3 +1150,19 @@ Do **not** use `IServiceProvider.QueryService` for this case. On `MsTscAx.MsTscA
 2. For the username message, switch the server to plain VNC password authentication if you control it (on macOS, the Screen Sharing option that lets VNC viewers control the screen with a password), or use another client for that server.
 
 **Files**: `Services/VncCredentialsPolicy.cs`, `Views/EmbeddedVncView.xaml.cs`, `Assets/vnc.html`
+
+---
+
+## 64. WebView2 - The Pointer Disappears When a Terminal Is Closed {#webview2-pointer-hidden-after-close}
+
+**Symptom**: The pointer disappears while typing in an embedded terminal, and closing that tab leaves it invisible over the whole window, including the buttons that would close it. Clicks still land where they are aimed, so the application works, but nothing points at what it is about to click until the pointer moves back over another embedded view.
+
+**Root cause**: Every embedded view is a WebView2, and Chromium hides the pointer while the user types when Windows asks for it, which the "Hide pointer while typing" setting of the Mouse control panel does by default. The pointer comes back only when a mouse event reaches the same window that hid it, and the browser hides it through a counter that belongs to its own thread, so nothing on Heimdall's side can restore it: closing the view that hid it removes the one thing that would have. The regression reached the WebView2 runtime in 152 and its own fix in 155, and the Fixed Version Runtime bundled with the Self-Contained edition does not update on its own.
+
+**Solution**:
+
+1. Every embedded view now starts with `--disable-features=HideCursorWhileTyping`: the pointer is never hidden while typing, so the state cannot be left behind, whatever runtime version the machine carries.
+2. On an older build, update the WebView2 runtime to 155 or later, or turn the Windows setting off (Control Panel > Mouse > Pointer Options > Hide pointer while typing) and restart Heimdall.
+3. A pointer already lost comes back as soon as it moves over another embedded view. The application needs no restart and no session is lost.
+
+**Files**: `Services/WebView2Helper.cs`
