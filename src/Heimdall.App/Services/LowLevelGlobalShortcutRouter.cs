@@ -34,7 +34,11 @@ internal static class LowLevelGlobalShortcutRouter
     /// Ctrl+F4 closes the tab. A shell has no use for it, so it is taken from the WebView2
     /// terminal, which the window's own key handling never sees. On a remote Windows desktop it
     /// closes the document or tab of the remote application, so an RDP view keeps it.
+    /// Ctrl+PgUp and Ctrl+PgDn, with or without Shift, move between tabs and move a tab, for the
+    /// same reasons: no use in a shell, the sheet or tab switch of a remote application.
     /// </remarks>
     internal static bool ShouldRouteUnlessRdpFocused(Key key, ModifierKeys modifiers)
-        => key == Key.F4 && modifiers == ModifierKeys.Control;
+        => (key == Key.F4 && modifiers == ModifierKeys.Control)
+            || (key is Key.PageUp or Key.PageDown
+                && modifiers is ModifierKeys.Control or (ModifierKeys.Control | ModifierKeys.Shift));
 }

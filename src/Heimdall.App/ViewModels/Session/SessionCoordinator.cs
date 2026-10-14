@@ -1289,7 +1289,8 @@ public sealed partial class SessionCoordinator : ObservableObject, IDisposable
     }
 
     /// <summary>
-    /// Reconnects the profile of the most recently closed tab, skipping profiles deleted since.
+    /// Reconnects the profiles of the most recent close gesture, every tab a bulk close closed,
+    /// skipping profiles deleted since.
     /// </summary>
     public void ReopenClosedTab()
     {
@@ -1298,16 +1299,23 @@ public sealed partial class SessionCoordinator : ObservableObject, IDisposable
             return;
         }
 
-        string? profileId = _main.Connection.TakeMostRecentlyClosed(
+        IReadOnlyList<string> profileIds = _main.Connection.TakeMostRecentlyClosed(
             id => _main.ServerList.AllServers.Any(
                 candidate => string.Equals(candidate.Id, id, StringComparison.Ordinal)));
-        ServerItemViewModel? server = profileId is null
-            ? null
-            : _main.ServerList.AllServers.First(
-                candidate => string.Equals(candidate.Id, profileId, StringComparison.Ordinal));
-        if (server is not null)
+        List<ServerItemViewModel> servers = profileIds
+            .Select(profileId => _main.ServerList.AllServers.First(
+                candidate => string.Equals(candidate.Id, profileId, StringComparison.Ordinal)))
+            .ToList();
+        if (servers.Count == 1)
         {
-            _main.ServerList.ConnectCommand.Execute(server);
+            _main.ServerList.ConnectCommand.Execute(servers[0]);
+        }
+        else if (servers.Count > 1)
+        {
+            // Through the bulk path: the connect command refuses a second run while the first is
+            // under way, so a loop over it reopened one tab of the gesture, and the bulk path is
+            // where the session limit and the sign-in gate are applied to a batch.
+            _main.ServerList.ConnectServersBulkCoreAsync(servers).SafeFireAndForget();
         }
     }
 

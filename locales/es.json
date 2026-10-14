@@ -2482,6 +2482,8 @@
   "SessionCloseFolderTabs": "Cerrar las pestañas de la carpeta",
   "SessionCloseAllTabs": "Cerrar todas las pestañas",
   "SessionReopenClosedTab": "Reabrir la pestaña cerrada",
+  "SessionReopenClosedTabs": "Reabrir las {0} pestañas cerradas",
+  "SessionReopenClosedTabGesture": "Ctrl+Mayús+R",
   "SessionRevealInTree": "Mostrar en el árbol",
   "SessionRenameTab": "Renombrar pestaña",
   "SessionResetTitle": "Restablecer título",
@@ -4035,7 +4037,7 @@
   "RdpDisconnectedMessage": "La sesión de Escritorio remoto ha terminado.",
 
   "HelpShortcutsTitle": "Atajos de teclado",
-  "HelpShortcutsContent": "Navegación\n  {0}\tAñadir nuevo servidor\n  {1}\tEditar servidor seleccionado\n  {2}\tEliminar servidor seleccionado\n  Ctrl+F\tBuscar servidores\n  Ctrl+B\tMostrar/ocultar barra lateral\n  Ctrl+May\u00fas+B\tMostrar/ocultar el panel de propiedades\n  F11\tAlternar pantalla completa\n  Ctrl+Mayús+F11\tAlternar pantalla completa sobre sesiones incrustadas\n\nConexiones\n  Ctrl+K\tConexión rápida\n  Intro\tConectar al servidor seleccionado\n\nSesión\n  Ctrl+W\tCerrar pestaña actual\n  Ctrl+F4\tCerrar pestaña actual, también desde un terminal\n  Aplicaciones, Mayús+F10\tMenú de la pestaña, desde la barra de pestañas\n  Ctrl+Tab\tPestaña siguiente\n  Ctrl+Mayús+Tab\tPestaña anterior\n  Ctrl+Mayús+S\tCapturar pantalla\n  Ctrl+Mayús+N\tEscáner de red\n  Ctrl+Mayús+O\tAlternar orientación de la división\n  Ctrl+Mayús+T\tMostrar/ocultar panel de herramientas\n\nAjustes\n  Ctrl+,\tAbrir ajustes\n  Ctrl+S\tGuardar ajustes\n\nGeneral\n  F1\tMostrar esta ayuda\n  Esc\tSalir de pantalla completa / cerrar paleta",
+  "HelpShortcutsContent": "Navegación\n  {0}\tAñadir nuevo servidor\n  {1}\tEditar servidor seleccionado\n  {2}\tEliminar servidor seleccionado\n  Ctrl+F\tBuscar servidores\n  Ctrl+B\tMostrar/ocultar barra lateral\n  Ctrl+Mayús+B\tMostrar/ocultar el panel de propiedades\n  F11\tAlternar pantalla completa\n  Ctrl+Mayús+F11\tAlternar pantalla completa sobre sesiones incrustadas\n\nConexiones\n  Ctrl+K\tConexión rápida\n  Intro\tConectar al servidor seleccionado\n\nSesión\n  Ctrl+W\tCerrar pestaña actual\n  Ctrl+F4\tCerrar pestaña actual, también desde un terminal\n  Aplicaciones, Mayús+F10\tMenú de la pestaña, desde la barra de pestañas\n  Ctrl+Tab\tPestaña siguiente\n  Ctrl+Mayús+Tab\tPestaña anterior\n  Ctrl+AvPág, Ctrl+RePág\tPestaña siguiente o anterior, también desde un terminal\n  Ctrl+Mayús+AvPág, Ctrl+Mayús+RePág\tMover la pestaña a la derecha o a la izquierda\n  Ctrl+1 a Ctrl+8\tIr a esa pestaña; Ctrl+9 a la última\n  Ctrl+Mayús+R\tReabrir las pestañas del último cierre\n  Ctrl+Mayús+S\tCapturar pantalla\n  Ctrl+Mayús+N\tEscáner de red\n  Ctrl+Mayús+O\tAlternar orientación de la división\n  Ctrl+Mayús+T\tMostrar/ocultar panel de herramientas\n\nAjustes\n  Ctrl+,\tAbrir ajustes\n  Ctrl+S\tGuardar ajustes\n\nGeneral\n  F1\tMostrar esta ayuda\n  Esc\tSalir de pantalla completa / cerrar paleta",
 
   "BtnYes": "Sí",
   "BtnNo": "No",

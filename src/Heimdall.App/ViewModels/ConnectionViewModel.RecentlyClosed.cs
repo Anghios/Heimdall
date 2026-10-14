@@ -21,46 +21,86 @@ namespace Heimdall.App.ViewModels;
 
 /// <summary>
 /// The profiles of the tabs the user closed, most recent last, so "Reopen closed tab" can bring
-/// one back the way a browser does.
+/// them back the way a browser does.
 /// </summary>
 /// <remarks>
-/// Only a close the user asked for is remembered: not an application exit, a failed session or a
-/// reconnect. Tool tabs and ad-hoc connections have no saved profile to reopen and are skipped.
-/// Session-lifetime only, like pinning; never persisted.
+/// <para>Only a close the user asked for is remembered: not an application exit, a failed session
+/// or a reconnect. Tool tabs and ad-hoc connections have no saved profile to reopen and are
+/// skipped. Session-lifetime only, like pinning; never persisted.</para>
+/// <para>One gesture is one entry. "Close others" over twenty-five tabs used to leave ten single
+/// entries, the last ten, to bring back one right-click at a time: the other fifteen were gone.
+/// A bulk close is now remembered whole and reopened whole.</para>
 /// </remarks>
 public partial class ConnectionViewModel
 {
-    /// <summary>How many closed tabs are remembered.</summary>
+    /// <summary>How many close gestures are remembered.</summary>
     internal const int RecentlyClosedCapacity = 10;
 
-    private readonly List<string> _recentlyClosedProfileIds = [];
+    private readonly List<List<string>> _recentlyClosedGroups = [];
+
+    /// <summary>Collects the tabs of a bulk close into one entry while it runs.</summary>
+    private List<string>? _recentlyClosedBatch;
 
     /// <summary>The remembered profile ids, oldest first. Exposed for tests.</summary>
-    internal IReadOnlyList<string> RecentlyClosedProfileIds => _recentlyClosedProfileIds;
+    internal IReadOnlyList<string> RecentlyClosedProfileIds => _recentlyClosedGroups.SelectMany(group => group).ToList();
+
+    /// <summary>How many close gestures are remembered. Exposed for tests.</summary>
+    internal int RecentlyClosedGroupCount => _recentlyClosedGroups.Count;
 
     /// <summary>True when there is a closed tab to reopen.</summary>
-    public bool HasRecentlyClosedTab => _recentlyClosedProfileIds.Count > 0;
+    public bool HasRecentlyClosedTab => _recentlyClosedGroups.Count > 0;
+
+    /// <summary>How many tabs the most recent close gesture closed; 0 when none is remembered.</summary>
+    public int MostRecentlyClosedCount => _recentlyClosedGroups.Count > 0 ? _recentlyClosedGroups[^1].Count : 0;
 
     /// <summary>
-    /// Takes the most recently closed profile that <paramref name="stillExists"/> accepts, dropping
-    /// the ones it refuses on the way (a profile deleted since). Null when none is left.
+    /// Takes the profiles of the most recent close gesture that <paramref name="stillExists"/>
+    /// accepts, in the order they were closed. A gesture whose profiles were all deleted since is
+    /// dropped and the one before it is taken. Empty when none is left.
     /// </summary>
-    internal string? TakeMostRecentlyClosed(Func<string, bool> stillExists)
+    internal IReadOnlyList<string> TakeMostRecentlyClosed(Func<string, bool> stillExists)
     {
         ArgumentNullException.ThrowIfNull(stillExists);
 
-        while (_recentlyClosedProfileIds.Count > 0)
+        while (_recentlyClosedGroups.Count > 0)
         {
-            int last = _recentlyClosedProfileIds.Count - 1;
-            string profileId = _recentlyClosedProfileIds[last];
-            _recentlyClosedProfileIds.RemoveAt(last);
-            if (stillExists(profileId))
+            List<string> group = _recentlyClosedGroups[^1];
+            _recentlyClosedGroups.RemoveAt(_recentlyClosedGroups.Count - 1);
+            List<string> kept = group.Where(stillExists).ToList();
+            if (kept.Count > 0)
             {
-                return profileId;
+                return kept;
             }
         }
 
-        return null;
+        return [];
+    }
+
+    /// <summary>
+    /// Runs a bulk close so that every tab it closes is remembered as one entry.
+    /// </summary>
+    private async Task RememberAsOneGestureAsync(Func<Task> closeAll)
+    {
+        if (_recentlyClosedBatch is not null)
+        {
+            await closeAll();
+            return;
+        }
+
+        _recentlyClosedBatch = [];
+        try
+        {
+            await closeAll();
+        }
+        finally
+        {
+            List<string> batch = _recentlyClosedBatch;
+            _recentlyClosedBatch = null;
+            if (batch.Count > 0)
+            {
+                AddRecentlyClosedGroup(batch);
+            }
+        }
     }
 
     private void RememberClosedTab(SessionTabViewModel session, CloseRequest request)
@@ -74,10 +114,21 @@ public partial class ConnectionViewModel
             return;
         }
 
-        _recentlyClosedProfileIds.Add(session.ProfileLookupServerId);
-        if (_recentlyClosedProfileIds.Count > RecentlyClosedCapacity)
+        if (_recentlyClosedBatch is not null)
         {
-            _recentlyClosedProfileIds.RemoveAt(0);
+            _recentlyClosedBatch.Add(session.ProfileLookupServerId);
+            return;
+        }
+
+        AddRecentlyClosedGroup([session.ProfileLookupServerId]);
+    }
+
+    private void AddRecentlyClosedGroup(List<string> group)
+    {
+        _recentlyClosedGroups.Add(group);
+        if (_recentlyClosedGroups.Count > RecentlyClosedCapacity)
+        {
+            _recentlyClosedGroups.RemoveAt(0);
         }
     }
 }

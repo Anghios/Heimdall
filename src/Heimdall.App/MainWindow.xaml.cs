@@ -1978,6 +1978,14 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
         _keyboardShortcutService.Register(Key.Tab, ModifierKeys.Control | ModifierKeys.Shift, () =>
             GetMainVm()?.Connection.SelectAdjacentTab(-1));
 
+        RegisterTabNavigationShortcuts(
+            _keyboardShortcutService,
+            IsTerminalFocusedContext,
+            step => GetMainVm()?.Connection.SelectAdjacentTab(step),
+            step => GetMainVm()?.Connection.MoveActiveTab(step),
+            ordinal => GetMainVm()?.Connection.SelectTabAtOrdinal(ordinal),
+            () => GetMainVm()?.Session.ReopenClosedTab());
+
         // ── Modifier-laxist function keys (legacy: fire regardless of modifiers) ──
         // F1: show keyboard shortcut help
         _keyboardShortcutService.Register(Key.F1, ModifierKeys.None, ShowKeyboardShortcutHelp);
@@ -2038,6 +2046,61 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
 
         service.Register(Key.W, ModifierKeys.Control, closeActiveTab, canExecute: () => !isTerminalFocused());
         service.Register(Key.F4, ModifierKeys.Control, closeActiveTab);
+    }
+
+    /// <summary>
+    /// Registers the browser keys for moving between tabs, moving a tab, and reopening a closed one.
+    /// </summary>
+    /// <param name="service">Dispatcher the bindings are added to.</param>
+    /// <param name="isTerminalFocused">Whether embedded session content owns focus.</param>
+    /// <param name="selectAdjacent">Selects the next (1) or previous (-1) tab.</param>
+    /// <param name="moveActive">Moves the active tab right (1) or left (-1).</param>
+    /// <param name="selectOrdinal">Selects the tab at a 1-based ordinal, 9 meaning the last.</param>
+    /// <param name="reopenClosed">Reopens the tabs of the most recent close.</param>
+    /// <remarks>
+    /// <para>Ctrl+PgUp and Ctrl+PgDn, with Shift to move the tab, are taken from a terminal too,
+    /// as Ctrl+Tab is: a shell has no use for them. A focused RDP view keeps them (see
+    /// <see cref="LowLevelGlobalShortcutRouter"/>), where they switch the sheet or the tab of the
+    /// remote application.</para>
+    /// <para>Ctrl+1 to Ctrl+9 and Ctrl+Shift+R are left to a focused terminal: a terminal sends
+    /// Ctrl+3 as Escape and Ctrl+2 as NUL, and Ctrl+Shift+T, the browser's reopen key, already
+    /// toggles the tools panel here.</para>
+    /// </remarks>
+    internal static void RegisterTabNavigationShortcuts(
+        KeyboardShortcutService service,
+        Func<bool> isTerminalFocused,
+        Action<int> selectAdjacent,
+        Action<int> moveActive,
+        Action<int> selectOrdinal,
+        Action reopenClosed)
+    {
+        ArgumentNullException.ThrowIfNull(service);
+        ArgumentNullException.ThrowIfNull(isTerminalFocused);
+        ArgumentNullException.ThrowIfNull(selectAdjacent);
+        ArgumentNullException.ThrowIfNull(moveActive);
+        ArgumentNullException.ThrowIfNull(selectOrdinal);
+        ArgumentNullException.ThrowIfNull(reopenClosed);
+
+        service.Register(Key.PageDown, ModifierKeys.Control, () => selectAdjacent(1));
+        service.Register(Key.PageUp, ModifierKeys.Control, () => selectAdjacent(-1));
+        service.Register(Key.PageDown, ModifierKeys.Control | ModifierKeys.Shift, () => moveActive(1));
+        service.Register(Key.PageUp, ModifierKeys.Control | ModifierKeys.Shift, () => moveActive(-1));
+
+        for (int ordinal = 1; ordinal <= ConnectionViewModel.LastTabOrdinal; ordinal++)
+        {
+            int captured = ordinal;
+            service.Register(
+                Key.D1 + (ordinal - 1),
+                ModifierKeys.Control,
+                () => selectOrdinal(captured),
+                canExecute: () => !isTerminalFocused());
+        }
+
+        service.Register(
+            Key.R,
+            ModifierKeys.Control | ModifierKeys.Shift,
+            reopenClosed,
+            canExecute: () => !isTerminalFocused());
     }
 
     /// <summary>

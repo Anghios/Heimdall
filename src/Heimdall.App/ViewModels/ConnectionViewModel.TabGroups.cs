@@ -220,6 +220,63 @@ public partial class ConnectionViewModel
         return null;
     }
 
+    /// <summary>The ordinal that means the last tab rather than the ninth, as in a browser.</summary>
+    internal const int LastTabOrdinal = 9;
+
+    /// <summary>
+    /// Selects the tab at <paramref name="ordinal"/> (1-based) among those Ctrl+Tab can reach;
+    /// <see cref="LastTabOrdinal"/> selects the last of them. With forty tabs open, reaching the
+    /// thirty-fifth took thirty-four presses of Ctrl+Tab.
+    /// </summary>
+    public void SelectTabAtOrdinal(int ordinal)
+    {
+        if (TabAtOrdinal(ActiveSessions, ordinal) is { } target)
+        {
+            ActiveSession = target;
+        }
+    }
+
+    /// <summary>
+    /// The tab at <paramref name="ordinal"/> among those not folded in a collapsed group; the last
+    /// of them for <see cref="LastTabOrdinal"/>. Null when the strip holds fewer.
+    /// </summary>
+    internal static SessionTabViewModel? TabAtOrdinal(IReadOnlyList<SessionTabViewModel> ordered, int ordinal)
+    {
+        List<SessionTabViewModel> reachable = ordered.Where(tab => !tab.IsTabGroupCollapsed).ToList();
+        if (reachable.Count == 0 || ordinal < 1 || ordinal > LastTabOrdinal)
+        {
+            return null;
+        }
+
+        if (ordinal == LastTabOrdinal)
+        {
+            return reachable[^1];
+        }
+
+        return ordinal <= reachable.Count ? reachable[ordinal - 1] : null;
+    }
+
+    /// <summary>
+    /// Moves the active tab one place left (<paramref name="step"/> = -1) or right (1). Kept inside
+    /// its pinned block and its folder by <see cref="MoveSession"/>, as a drag is.
+    /// </summary>
+    public void MoveActiveTab(int step)
+    {
+        if (ActiveSession is not { } current || step == 0)
+        {
+            return;
+        }
+
+        int index = ActiveSessions.IndexOf(current);
+        if (index < 0)
+        {
+            return;
+        }
+
+        MoveSession(current, index + Math.Sign(step));
+        ActiveSession = current;
+    }
+
     /// <summary>
     /// Stable order for the strip: pinned tabs first, then the rest with the tabs of each folder
     /// group gathered where the group's first tab stands. Ungrouped tabs keep their place
