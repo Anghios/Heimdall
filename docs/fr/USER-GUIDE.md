@@ -109,6 +109,10 @@ dans **Chemin**. La ligne sous le chemin montre l'adresse qui sera ouverte.
   navigateur lui-même (Basic ou NTLM). Un formulaire de connexion dans la page n'est pas rempli.
   Avec le fournisseur d'identifiants activé, indiquez seulement le nom d'utilisateur : le mot de
   passe vient de votre coffre.
+- Avec la vérification d'accessibilité activée, la pastille d'une console web demande sa page au
+  lieu de seulement ouvrir son port : une console qui répond par une erreur serveur (5xx) apparaît
+  injoignable, avec le code dans l'infobulle. Une console dont la connexion sécurisée échoue, souvent
+  une ancienne, reste joignable, avec la raison dans l'infobulle.
 - Une console s'ouvre au zoom où vous l'avez laissée (Ctrl et la molette, ou Ctrl et + ou -),
   gardé par profil. Revenue à 100 %, rien n'est gardé.
 - Si une console s'affiche mal dans son onglet, le bouton en haut à droite de l'onglet ouvre la

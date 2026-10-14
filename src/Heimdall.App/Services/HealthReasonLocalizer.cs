@@ -59,6 +59,7 @@ public static class HealthReasonLocalizer
             "other" => "HealthReasonOther",
             "no-port" => "HealthReasonNoPort",
             "no-host" => "HealthReasonNoHost",
+            HttpHealthProbe.TlsFailedReason => "HealthReasonTlsFailed",
             _ => null
         };
     }
@@ -82,7 +83,12 @@ public static class HealthReasonLocalizer
             parts[0] = $"{status} ({state.LatencyMs.Value} ms)";
         }
 
-        if (!string.IsNullOrEmpty(state.Reason))
+        if (HttpHealthProbe.TryParseHttpErrorReason(state.Reason, out int statusCode))
+        {
+            // The code is the useful part: 503 is a console still starting, 500 a broken one.
+            parts.Add(localizer?.Format("HealthReasonHttpError", statusCode) ?? $"({state.Reason})");
+        }
+        else if (!string.IsNullOrEmpty(state.Reason))
         {
             var reasonKey = ReasonKey(state.Reason);
             parts.Add(reasonKey is not null ? Localize(reasonKey) : $"({state.Reason})");

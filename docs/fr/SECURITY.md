@@ -215,6 +215,13 @@ l'utilisateur vient de rejeter. Une discordance résolue contre une entrée
 hachée remplace cette entrée au lieu de laisser l'ancienne empreinte effective
 à côté de la nouvelle.
 
+La sonde d'accessibilité d'une console web (`HttpHealthProbe`) ne vérifie pas
+le certificat de la console. Elle n'envoie ni identifiants, ni cookies, ni
+corps, ne suit aucune redirection et contourne le proxy système ; elle ne lit
+que la ligne d'état et les en-têtes. Un serveur usurpé ne peut donc mentir que
+sur la couleur de la pastille. La confiance dans le certificat d'une console se
+décide dans son onglet web, par l'épinglage que l'utilisateur y accepte.
+
 L'import et l'export de `~/.ssh/known_hosts` sont des actions utilisateur
 explicites exposées dans `Settings > SSH & SFTP > Trusted host keys`. L'import
 préserve les entrées existantes en conflit, sauf si l'utilisateur choisit
@@ -1151,7 +1158,7 @@ remplacer la destination.
   bloquante (la suite moins les cas marqués `CIUnstable` ou `RequiresDesktop`,
   qui tournent dans deux autres lanes signalant leurs échecs sans faire rougir
   l'exécution), la parité des locales JSON (chaque catalogue porte exactement
-  le jeu de clés anglais, actuellement 7 008 clés) et une analyse informative
+  le jeu de clés anglais, actuellement 7 010 clés) et une analyse informative
   `dotnet list package --vulnerable`.
 - Analyse des dépendances pour revue manuelle : `dotnet list Heimdall.slnx
   package --vulnerable --include-transitive`. La CI émet des avertissements mais

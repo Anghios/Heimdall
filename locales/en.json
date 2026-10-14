@@ -4494,6 +4494,8 @@
   "HealthReasonOther": "Connection failed",
   "HealthReasonNoPort": "No probe port for this protocol",
   "HealthReasonNoHost": "No host configured",
+  "HealthReasonHttpError": "The console answered with HTTP {0}",
+  "HealthReasonTlsFailed": "Port answers, but the secure connection failed (an old console?)",
   "HealthLastCheckedNever": "never",
   "SettingsSectionSessionHealthMonitor": "Session Health Monitor",
   "SettingsLabelSessionHealthMonitorEnabled": "Enable background reachability probes",

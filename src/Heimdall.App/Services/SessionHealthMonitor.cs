@@ -33,12 +33,15 @@ namespace Heimdall.App.Services;
 /// Gateway-fronted servers (<see cref="SshGatewayRoute.IsThroughGateway"/>)
 /// and servers whose protocol exposes no probe port (Citrix, Local Shell) are
 /// recorded as <see cref="HealthStatus.Unknown"/> without consuming a probe
-/// slot - the MVP scope chose direct TCP only.
+/// slot - the MVP scope chose direct TCP only. A web console is asked for its page
+/// through <see cref="IWebHealthProbe"/> when one is given: an open port says
+/// nothing of a console that answers every request with an error.
 /// </remarks>
 public sealed class SessionHealthMonitor : IDisposable
 {
     private readonly IConfigManager _configManager;
     private readonly IHealthProbe _probe;
+    private readonly IWebHealthProbe? _webProbe;
     private readonly ConcurrentDictionary<string, HealthState> _states = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, long> _stateGenerations = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, object> _stateGates = new(StringComparer.Ordinal);
@@ -55,10 +58,14 @@ public sealed class SessionHealthMonitor : IDisposable
 
     public event Action<HealthStateChange>? StatusChanged;
 
-    public SessionHealthMonitor(IConfigManager configManager, IHealthProbe probe)
+    public SessionHealthMonitor(
+        IConfigManager configManager,
+        IHealthProbe probe,
+        IWebHealthProbe? webProbe = null)
     {
         _configManager = configManager;
         _probe = probe;
+        _webProbe = webProbe;
         _configManager.SettingsChanged += OnSettingsChanged;
     }
 
@@ -414,7 +421,9 @@ public sealed class SessionHealthMonitor : IDisposable
                 new HealthState(HealthStatus.Probing, DateTime.UtcNow, null, null),
                 generation,
                 lifecycleVersion);
-            var result = await _probe.ProbeAsync(dto.RemoteServer, port.Value, timeoutMs, ct).ConfigureAwait(false);
+            var result = ResolveWebProbeAddress(dto) is { } address && _webProbe is not null
+                ? await _webProbe.ProbeAsync(address, timeoutMs, ct).ConfigureAwait(false)
+                : await _probe.ProbeAsync(dto.RemoteServer, port.Value, timeoutMs, ct).ConfigureAwait(false);
             PublishState(dto.Id, result, generation, lifecycleVersion);
         }
         finally
@@ -428,6 +437,15 @@ public sealed class SessionHealthMonitor : IDisposable
     /// Citrix (StoreFront HTTP/HTTPS in this codebase) and Local Shell are
     /// intentionally non-probable in the MVP.
     /// </summary>
+    /// <summary>
+    /// The page a web console is probed at: the address its tab opens. Null for any other type,
+    /// or for a web profile whose address cannot be formed, which falls back to the TCP probe.
+    /// </summary>
+    internal static Uri? ResolveWebProbeAddress(ServerProfileDto dto) =>
+        string.Equals(dto.ConnectionType, "WEB", StringComparison.OrdinalIgnoreCase)
+            ? WebAddress.From(dto)
+            : null;
+
     internal static int? ResolveProbePort(ServerProfileDto dto)
     {
         return (dto.ConnectionType ?? string.Empty).ToUpperInvariant() switch

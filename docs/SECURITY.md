@@ -194,6 +194,13 @@ blob or none, so the known_hosts export can never write back a key the user
 just decided against. A mismatch resolved against a hashed entry replaces that
 entry instead of leaving the old fingerprint effective beside the new one.
 
+The reachability probe of a web console (`HttpHealthProbe`) does not check the
+console's certificate. It sends no credentials, no cookies and no body, follows
+no redirect and bypasses the system proxy; it reads the status line and
+headers only. A forged server can therefore lie about the dot's colour and
+nothing else. Trust in a console's certificate is decided in its web tab, by
+the pin the user accepts there.
+
 `~/.ssh/known_hosts` import and export are explicit user actions surfaced in
 `Settings > SSH & SFTP > Trusted host keys`. Import preserves conflicting
 existing entries unless the user explicitly opts into replacement in a
@@ -1037,7 +1044,7 @@ caller refuses: there is no fallback to a primitive that could replace the desti
   `dotnet format --verify-no-changes`, the blocking test lane (the suite minus
   the cases marked `CIUnstable` or `RequiresDesktop`, which run in two further
   lanes that report their failures without turning the run red), JSON locale
-  parity (every catalogue holds exactly the English key set, currently 7,008
+  parity (every catalogue holds exactly the English key set, currently 7,010
   keys each), and an informational `dotnet list package --vulnerable` scan.
 - Dependency scan for manual review: `dotnet list Heimdall.slnx package
   --vulnerable --include-transitive`. CI emits warnings but does not gate on
