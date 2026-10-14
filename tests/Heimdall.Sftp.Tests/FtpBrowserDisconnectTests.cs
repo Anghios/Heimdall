@@ -20,6 +20,54 @@ namespace Heimdall.Sftp.Tests;
 
 public sealed class FtpBrowserDisconnectTests
 {
+    /// <summary>
+    /// Failure bound, not a synchronisation point: the waits it bounds complete when the lock is
+    /// released or Disconnect returns, and it is paid only on failure.
+    /// </summary>
+    private static readonly TimeSpan SignalBackstop = TimeSpan.FromSeconds(30);
+
+    /// <summary>
+    /// Disconnect's own bound in the test that holds the lock. Longer than the backstop, so a
+    /// Disconnect that returns within the backstop after the release can only have taken the lock.
+    /// </summary>
+    private static readonly TimeSpan HeldLockDisconnectBound = TimeSpan.FromMinutes(5);
+
+    /// <summary>
+    /// How long the lock is held before it is released. A window, not a bound: stretching it under
+    /// load cannot turn a correct Disconnect red, only give a wrong one longer to show itself.
+    /// </summary>
+    private static readonly TimeSpan HeldLockObservationWindow = TimeSpan.FromMilliseconds(100);
+
+    /// <remarks>
+    /// This used to run against the production bound of 250 milliseconds and assert that Disconnect
+    /// had not returned after 100. Two clocks raced: the 250 millisecond wait is a kernel timeout
+    /// that needs no pool thread once Disconnect is running, while the 100 millisecond delay
+    /// completes only through a timer callback on the thread pool. A pool starved for longer than
+    /// the gap let Disconnect give up on the lock and return first. It failed that way once in a
+    /// full-solution run, and a loop over the same body with the pool blocked by sleeping work items
+    /// failed 15 times in 30, always on that assertion with Disconnect returning at its bound.
+    /// </remarks>
+    [Fact]
+    public async Task Disconnect_WhenOperationIsActive_WaitsForTheLock()
+    {
+        using FtpBrowser browser = new(HeldLockDisconnectBound);
+        SemaphoreSlim operationLock = GetOperationLock(browser);
+        await operationLock.WaitAsync();
+
+        Task disconnect = Task.Run(browser.Disconnect);
+        try
+        {
+            Task finished = await Task.WhenAny(disconnect, Task.Delay(HeldLockObservationWindow));
+            Assert.NotSame(disconnect, finished);
+        }
+        finally
+        {
+            operationLock.Release();
+        }
+
+        await disconnect.WaitAsync(SignalBackstop);
+    }
+
     [Fact]
     public async Task DisconnectAsync_WhenOperationIsActive_WaitsWithoutBlockingCaller()
     {
