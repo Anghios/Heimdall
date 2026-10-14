@@ -17,6 +17,8 @@
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls.Primitives;
+using System.Windows.Input;
+using System.Windows.Threading;
 using Heimdall.App.Services;
 using Heimdall.App.ViewModels;
 using Heimdall.App.ViewModels.Sidebar;
@@ -57,6 +59,11 @@ public partial class MainWindow
             }
         };
         viewModel.Sidebar.PropertyChanged += _propertiesPanelSidebarHandler;
+
+        // The fit was computed only when the panel was toggled, so a panel dragged tall in a
+        // maximised window kept its pixels when the window was restored and squeezed the tree.
+        SidebarContentGrid.SizeChanged += OnSidebarContentGridSizeChanged;
+        PropertiesPanelSplitter.KeyUp += OnPropertiesPanelSplitterKeyUp;
     }
 
     private void UnwirePropertiesPanel(MainViewModel viewModel)
@@ -69,6 +76,17 @@ public partial class MainWindow
         if (_propertiesPanelSidebarHandler is not null)
         {
             viewModel.Sidebar.PropertyChanged -= _propertiesPanelSidebarHandler;
+        }
+
+        SidebarContentGrid.SizeChanged -= OnSidebarContentGridSizeChanged;
+        PropertiesPanelSplitter.KeyUp -= OnPropertiesPanelSplitterKeyUp;
+    }
+
+    private void OnSidebarContentGridSizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        if (e.HeightChanged && DataContext is MainViewModel vm)
+        {
+            ApplyPropertiesPanelLayout(vm);
         }
     }
 
@@ -99,11 +117,34 @@ public partial class MainWindow
     }
 
     private void OnPropertiesPanelSplitterDragCompleted(object sender, DragCompletedEventArgs e)
+        => CommitPropertiesPanelHeightAfterLayout();
+
+    /// <summary>
+    /// The arrow keys move a focused splitter without any drag, so no DragCompleted ever saved a
+    /// height resized from the keyboard.
+    /// </summary>
+    private void OnPropertiesPanelSplitterKeyUp(object sender, KeyEventArgs e)
     {
-        if (DataContext is MainViewModel vm && PropertiesPanel.ActualHeight > 0d)
+        if (e.Key is Key.Up or Key.Down)
         {
-            vm.ServerList.CommitPropertiesPanelHeight(PropertiesPanel.ActualHeight);
+            CommitPropertiesPanelHeightAfterLayout();
         }
+    }
+
+    /// <summary>
+    /// Saves the panel height once the layout has caught up with the splitter. With a preview,
+    /// the splitter moves the row only as the drag completes, and the panel's ActualHeight read
+    /// in that same handler is still the height before the drag.
+    /// </summary>
+    private void CommitPropertiesPanelHeightAfterLayout()
+    {
+        Dispatcher.BeginInvoke(DispatcherPriority.Loaded, () =>
+        {
+            if (DataContext is MainViewModel vm && PropertiesPanel.ActualHeight > 0d)
+            {
+                vm.ServerList.CommitPropertiesPanelHeight(PropertiesPanel.ActualHeight);
+            }
+        });
     }
 
     private void OnPropertiesPanelCloseClick(object sender, RoutedEventArgs e)

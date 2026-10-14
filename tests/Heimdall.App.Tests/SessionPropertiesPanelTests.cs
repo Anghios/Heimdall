@@ -264,6 +264,7 @@ public sealed class SessionPropertiesPanelTests
     [InlineData("Spv_SshKeyCopy", "SshKeyText")]
     [InlineData("Spv_LatencyCopy", "LatencyText")]
     [InlineData("Spv_LastOpenedCopy", "LastOpenedText")]
+    [InlineData("Spv_ProjectCopy", "ProjectName")]
     public void EveryValue_CopiesWhatItShows(string buttonName, string property)
     {
         XDocument control = LoadXaml(Path.Combine("Controls", "SessionPropertiesView.xaml"));
@@ -299,6 +300,96 @@ public sealed class SessionPropertiesPanelTests
 
         Assert.Contains("LastOpenedText", paths);
         Assert.All(paths, path => Assert.NotNull(typeof(ServerItemViewModel).GetProperty(path)));
+    }
+
+    /// <summary>
+    /// A screen reader heard "admin, button" with no field: every value was named by itself. Each
+    /// is now named by its label, then its value, from the catalogue so a language change follows.
+    /// </summary>
+    [Theory]
+    [InlineData("Spv_EndpointCopy", "Endpoint", "DetailLabelEndpoint")]
+    [InlineData("Spv_UsernameCopy", "Username", "DetailLabelUsername")]
+    [InlineData("Spv_GatewayCopy", "GatewayDetailText", "DetailLabelGateway")]
+    [InlineData("Spv_GroupCopy", "Group", "DetailLabelGroup")]
+    [InlineData("Spv_ProjectCopy", "ProjectName", "DetailLabelProject")]
+    [InlineData("Spv_EnvCopy", "Environment", "DetailLabelEnvironment")]
+    [InlineData("Spv_TagsCopy", "Tags", "DetailLabelTags")]
+    [InlineData("Spv_SshKeyCopy", "SshKeyText", "DetailLabelSshKey")]
+    [InlineData("Spv_LatencyCopy", "LatencyText", "DetailLabelLatency")]
+    [InlineData("Spv_LastOpenedCopy", "LastOpenedText", "DetailLabelLastOpened")]
+    public void EveryValue_IsNamedByItsFieldThenItsValue(string buttonName, string property, string labelKey)
+    {
+        XDocument control = LoadXaml(Path.Combine("Controls", "SessionPropertiesView.xaml"));
+        XElement button = FindNamed(control, buttonName);
+
+        Assert.Null(button.Attribute("AutomationProperties.Name"));
+        XElement name = Assert.Single(button.Elements(), e => e.Name.LocalName == "AutomationProperties.Name");
+        XElement multi = Assert.Single(name.Elements());
+        Assert.Equal("{StaticResource LocalizedFormatConverter}", (string?)multi.Attribute("Converter"));
+        string[] paths = multi.Elements().Select(binding => (string?)binding.Attribute("Path") ?? "").ToArray();
+        Assert.Equal(["[PropertiesCopyValueName]", $"[{labelKey}]", property], paths);
+    }
+
+    /// <summary>
+    /// A long value ends in an ellipsis at the sidebar's narrowest, and its tooltip said only
+    /// how to copy it: the tooltip now opens with the value itself.
+    /// </summary>
+    [Fact]
+    public void AValueTooltip_ShowsTheValueBeforeTheCopyHint()
+    {
+        XDocument control = LoadXaml(Path.Combine("Controls", "SessionPropertiesView.xaml"));
+        XElement style = Assert.Single(
+            control.Descendants(PresentationNamespace + "Style"),
+            s => (string?)s.Attribute(XamlNamespace + "Key") == "SpvCopyValueStyle");
+        XElement tooltip = Assert.Single(
+            style.Elements(PresentationNamespace + "Setter"),
+            s => (string?)s.Attribute("Property") == "ToolTip");
+
+        Assert.Null(tooltip.Attribute("Value"));
+        XElement[] bindings = tooltip.Descendants(PresentationNamespace + "Binding").ToArray();
+        Assert.Equal("[PropertiesCopyValueToolTip]", (string?)bindings[0].Attribute("Path"));
+        Assert.Equal("Tag", (string?)bindings[1].Attribute("Path"));
+        Assert.Equal("{RelativeSource Self}", (string?)bindings[1].Attribute("RelativeSource"));
+    }
+
+    [Fact]
+    public void TheOriginOfAnImportedSession_IsShown_AndAHandMadeOneShowsNone()
+    {
+        XDocument control = LoadXaml(Path.Combine("Controls", "SessionPropertiesView.xaml"));
+        XElement origin = FindNamed(control, "Spv_Origin");
+
+        Assert.Equal("{Binding OriginDisplayName}", (string?)origin.Attribute("Text"));
+        Assert.StartsWith("{Binding IsOriginBadgeVisible", (string?)origin.Attribute("Visibility"), StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// The detail pane holds Connect and Edit, and hides as soon as a session tab is open, which
+    /// left the panel a dead end: it showed a session and offered nothing to do with it.
+    /// </summary>
+    [Theory]
+    [InlineData("Mw_PropertiesPanelConnectBtn", "{Binding ServerList.ConnectCommand}")]
+    [InlineData("Mw_PropertiesPanelEditBtn", "{Binding ServerList.EditServerCommand}")]
+    public void ThePanel_ActsOnTheSessionItShows(string buttonName, string command)
+    {
+        XDocument window = LoadXaml("MainWindow.xaml");
+        XElement session = FindNamed(window, "Mw_PropertiesPanelSession");
+        XElement button = Assert.Single(
+            session.Descendants(),
+            e => (string?)e.Attribute(XamlNamespace + "Name") == buttonName);
+
+        Assert.Equal(command, (string?)button.Attribute("Command"));
+        Assert.Equal("{Binding ServerList.SelectedServer}", (string?)button.Attribute("CommandParameter"));
+    }
+
+    /// <summary>Closed by mistake, the panel came back only from the tree's filter menu or Settings.</summary>
+    [Fact]
+    public void TheCloseButtonTooltip_SaysHowToBringThePanelBack()
+    {
+        XDocument window = LoadXaml("MainWindow.xaml");
+
+        Assert.Equal(
+            "{loc:Translate PropertiesPanelHideToolTip}",
+            (string?)FindNamed(window, "Mw_PropertiesPanelCloseBtn").Attribute("ToolTip"));
     }
 
     private sealed class RecordingClipboard : IClipboardService
