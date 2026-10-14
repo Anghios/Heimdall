@@ -69,7 +69,8 @@ public sealed class FtpBrowser : IRemoteBrowser
     private CancellationToken _certificateValidationToken = CancellationToken.None;
 
     /// <summary>How long a synchronous disconnect waits for the operation lock before forcing the teardown.</summary>
-    private static readonly TimeSpan DisconnectLockTimeout = TimeSpan.FromMilliseconds(250);
+    private static readonly TimeSpan DefaultDisconnectLockTimeout = TimeSpan.FromMilliseconds(250);
+    private readonly TimeSpan _disconnectLockTimeout;
     private readonly FtpsCertificateStore _certificateStore;
     private readonly IFtpsCertificateVerifier _certificateVerifier;
     private AsyncFtpClient? _client;
@@ -118,9 +119,32 @@ public sealed class FtpBrowser : IRemoteBrowser
     public FtpBrowser(
         FtpsCertificateStore certificateStore,
         IFtpsCertificateVerifier certificateVerifier)
+        : this(certificateStore, certificateVerifier, DefaultDisconnectLockTimeout)
     {
+    }
+
+    /// <summary>
+    /// Lets a test choose the disconnect bound, the way the SFTP browser does. With the default
+    /// bound, a test that holds the lock races its own clock against it.
+    /// </summary>
+    internal FtpBrowser(TimeSpan disconnectLockTimeout)
+        : this(new FtpsCertificateStore(), RejectingFtpsCertificateVerifier.Instance, disconnectLockTimeout)
+    {
+    }
+
+    private FtpBrowser(
+        FtpsCertificateStore certificateStore,
+        IFtpsCertificateVerifier certificateVerifier,
+        TimeSpan disconnectLockTimeout)
+    {
+        if (disconnectLockTimeout < TimeSpan.Zero)
+        {
+            throw new ArgumentOutOfRangeException(nameof(disconnectLockTimeout));
+        }
+
         _certificateStore = certificateStore;
         _certificateVerifier = certificateVerifier;
+        _disconnectLockTimeout = disconnectLockTimeout;
     }
 
     /// <summary>
@@ -581,7 +605,7 @@ public sealed class FtpBrowser : IRemoteBrowser
         // for the whole of a stalled transfer. When the lock is not obtained the client is
         // torn down under the operation that holds it, which is what unblocks that
         // operation.
-        bool lockTaken = _opLock.Wait(DisconnectLockTimeout);
+        bool lockTaken = _opLock.Wait(_disconnectLockTimeout);
         bool disconnected;
         try
         {
