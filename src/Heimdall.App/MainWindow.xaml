@@ -1191,7 +1191,7 @@
                                                 Click="OnPropertiesPanelCloseClick"
                                                 Style="{DynamicResource GhostButtonStyle}"
                                                 Padding="6,2"
-                                                ToolTip="{loc:Translate PropertiesPanelHide}"
+                                                ToolTip="{loc:Translate PropertiesPanelHideToolTip}"
                                                 AutomationProperties.Name="{loc:Translate PropertiesPanelHide}"/>
                                         <TextBlock Text="{loc:Translate PropertiesPanelTitle}"
                                                    FontSize="{StaticResource FontSizeCaption}"
@@ -1211,7 +1211,29 @@
                                                            FontWeight="SemiBold"
                                                            Foreground="{DynamicResource TextPrimaryBrush}"
                                                            TextTrimming="CharacterEllipsis"
+                                                           ToolTip="{Binding ServerList.SelectedServer.DisplayName}"
                                                            Margin="0,0,0,6"/>
+                                                <!-- The detail pane holds these too, and it hides as soon as a tab
+                                                     is open: this is the panel's own way to act on what it shows. -->
+                                                <StackPanel x:Name="Mw_PropertiesPanelActions"
+                                                            Orientation="Horizontal"
+                                                            Margin="0,0,0,8">
+                                                    <Button x:Name="Mw_PropertiesPanelConnectBtn"
+                                                            Content="{loc:Translate DetailBtnConnect}"
+                                                            Command="{Binding ServerList.ConnectCommand}"
+                                                            CommandParameter="{Binding ServerList.SelectedServer}"
+                                                            Style="{DynamicResource PrimaryButtonStyle}"
+                                                            Padding="12,4" Margin="0,0,8,0"
+                                                            AutomationProperties.Name="{loc:Translate AccessDetailConnect}"/>
+                                                    <Button x:Name="Mw_PropertiesPanelEditBtn"
+                                                            Content="{loc:Translate BtnEdit}"
+                                                            Command="{Binding ServerList.EditServerCommand}"
+                                                            CommandParameter="{Binding ServerList.SelectedServer}"
+                                                            Style="{DynamicResource SecondaryButtonStyle}"
+                                                            Padding="12,4"
+                                                            ToolTip="{loc:Translate TooltipEdit}"
+                                                            AutomationProperties.Name="{loc:Translate BtnEdit}"/>
+                                                </StackPanel>
                                                 <controls:SessionPropertiesView x:Name="Mw_PropertiesPanelView"
                                                                                 DataContext="{Binding ServerList.SelectedServer}"/>
                                             </StackPanel>

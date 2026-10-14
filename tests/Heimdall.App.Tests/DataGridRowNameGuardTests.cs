@@ -156,6 +156,78 @@ public sealed class DataGridRowNameGuardTests
     }
 
     /// <summary>
+    /// The same slot count for the formats filled by <c>LocalizedFormatConverter</c>, whose key is
+    /// whatever its first binding names. A mismatch reads as a bare join with no label, unseen.
+    /// </summary>
+    [Fact]
+    public void EveryLocalizedFormat_SuppliesAsManyValuesAsItsFormatAsksFor()
+    {
+        string repoRoot = FindRepoRoot();
+        var en = ReadLocale(Path.Combine(repoRoot, "locales", "en.json"));
+        var fr = ReadLocale(Path.Combine(repoRoot, "locales", "fr.json"));
+        var slotPattern = new Regex(@"\{(\d+)\}", RegexOptions.Compiled);
+        var keyPattern = new Regex(@"^\[(\w+)\]$", RegexOptions.Compiled);
+
+        List<string> problems = new();
+        int checkedFormats = 0;
+
+        foreach (string file in EnumerateXaml())
+        {
+            foreach (XElement multi in XDocument.Load(file).Descendants(Xaml + "MultiBinding"))
+            {
+                if (!string.Equals(
+                        (string?)multi.Attribute("Converter"),
+                        "{StaticResource LocalizedFormatConverter}",
+                        StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                XElement[] bindings = multi.Elements(Xaml + "Binding").ToArray();
+                Match key = bindings.Length == 0
+                    ? Match.Empty
+                    : keyPattern.Match((string?)bindings[0].Attribute("Path") ?? string.Empty);
+                if (!key.Success)
+                {
+                    problems.Add($"  {Relative(file)}: a localized format whose first binding names no key");
+                    continue;
+                }
+
+                checkedFormats++;
+                string name = key.Groups[1].Value;
+                int supplied = bindings.Length - 1;
+                foreach (var (locale, table) in new[] { ("en", en), ("fr", fr) })
+                {
+                    if (!table.TryGetValue(name, out string? format))
+                    {
+                        problems.Add($"  {Relative(file)}: {name} is missing from locales/{locale}.json");
+                        continue;
+                    }
+
+                    int slots = slotPattern.Matches(format)
+                        .Select(m => m.Groups[1].Value)
+                        .Distinct(StringComparer.Ordinal)
+                        .Count();
+                    if (slots != supplied)
+                    {
+                        problems.Add(
+                            $"  {Relative(file)}: {name} ({locale}) declares {slots} slot(s)"
+                            + $" but the XAML supplies {supplied} value binding(s)");
+                    }
+                }
+            }
+        }
+
+        // The properties view alone holds eleven; a sweep that finds none checked nothing.
+        Assert.True(checkedFormats >= 11, $"Only {checkedFormats} localized format(s) were found.");
+        Assert.True(
+            problems.Count == 0,
+            "Localized formats and their bindings disagree:"
+            + Environment.NewLine
+            + string.Join(Environment.NewLine, problems));
+    }
+
+    /// <summary>
     /// Proves the sweep reaches a subdirectory. Without it a broken enumeration would report zero
     /// problems and read as a clean tree.
     /// </summary>

@@ -31,7 +31,16 @@
             <Setter Property="HorizontalAlignment" Value="Left"/>
             <Setter Property="HorizontalContentAlignment" Value="Left"/>
             <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="ToolTip" Value="{loc:Translate PropertiesCopyValueHint}"/>
+            <!-- The value in full, then how to copy it: a long value ends in an ellipsis at the
+                 sidebar's narrowest, and the hint alone left no way to read it. -->
+            <Setter Property="ToolTip">
+                <Setter.Value>
+                    <MultiBinding Converter="{StaticResource LocalizedFormatConverter}">
+                        <Binding Source="{x:Static loc:LocalizationSource.Instance}" Path="[PropertiesCopyValueToolTip]"/>
+                        <Binding Path="Tag" RelativeSource="{RelativeSource Self}"/>
+                    </MultiBinding>
+                </Setter.Value>
+            </Setter>
             <Setter Property="AutomationProperties.HelpText" Value="{loc:Translate PropertiesCopyValueHint}"/>
             <Setter Property="Template">
                 <Setter.Value>
@@ -94,8 +103,14 @@
                 Tag="{Binding Endpoint}"
                 Click="OnCopyValueClick"
                 Margin="0,8,0,0"
-                AutomationProperties.Name="{Binding Endpoint}"
                 Visibility="{Binding Endpoint, Converter={StaticResource NullToVisibilityConverter}}">
+            <AutomationProperties.Name>
+                <MultiBinding Converter="{StaticResource LocalizedFormatConverter}">
+                    <Binding Source="{x:Static loc:LocalizationSource.Instance}" Path="[PropertiesCopyValueName]"/>
+                    <Binding Source="{x:Static loc:LocalizationSource.Instance}" Path="[DetailLabelEndpoint]"/>
+                    <Binding Path="Endpoint"/>
+                </MultiBinding>
+            </AutomationProperties.Name>
             <TextBlock x:Name="Spv_Endpoint"
                        Text="{Binding Endpoint}"
                        Foreground="{DynamicResource TextSecondaryBrush}"
@@ -114,6 +129,8 @@
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
                 <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
@@ -150,8 +167,14 @@
                         Tag="{Binding Username}"
                         Click="OnCopyValueClick"
                         Margin="0,2,0,2"
-                        AutomationProperties.Name="{Binding Username}"
                         Visibility="{Binding Username, Converter={StaticResource NullToVisibilityConverter}}">
+                    <AutomationProperties.Name>
+                        <MultiBinding Converter="{StaticResource LocalizedFormatConverter}">
+                            <Binding Source="{x:Static loc:LocalizationSource.Instance}" Path="[PropertiesCopyValueName]"/>
+                            <Binding Source="{x:Static loc:LocalizationSource.Instance}" Path="[DetailLabelUsername]"/>
+                            <Binding Path="Username"/>
+                        </MultiBinding>
+                    </AutomationProperties.Name>
                     <TextBlock Text="{Binding Username}"
                                FontSize="{StaticResource FontSizeCaption}"
                                Foreground="{DynamicResource TextPrimaryBrush}"
@@ -169,8 +192,14 @@
                         Tag="{Binding SshKeyText}"
                         Click="OnCopyValueClick"
                         Margin="0,2,0,2"
-                        AutomationProperties.Name="{Binding SshKeyText}"
                         Visibility="{Binding SshKeyText, Converter={StaticResource NullToVisibilityConverter}}">
+                    <AutomationProperties.Name>
+                        <MultiBinding Converter="{StaticResource LocalizedFormatConverter}">
+                            <Binding Source="{x:Static loc:LocalizationSource.Instance}" Path="[PropertiesCopyValueName]"/>
+                            <Binding Source="{x:Static loc:LocalizationSource.Instance}" Path="[DetailLabelSshKey]"/>
+                            <Binding Path="SshKeyText"/>
+                        </MultiBinding>
+                    </AutomationProperties.Name>
                     <TextBlock Text="{Binding SshKeyText}"
                                FontSize="{StaticResource FontSizeCaption}"
                                Foreground="{DynamicResource TextPrimaryBrush}"
@@ -188,8 +217,14 @@
                         Tag="{Binding GatewayDetailText}"
                         Click="OnCopyValueClick"
                         Margin="0,2,0,2"
-                        AutomationProperties.Name="{Binding GatewayDetailText}"
                         Visibility="{Binding IsGatewayBadgeVisible, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <AutomationProperties.Name>
+                        <MultiBinding Converter="{StaticResource LocalizedFormatConverter}">
+                            <Binding Source="{x:Static loc:LocalizationSource.Instance}" Path="[PropertiesCopyValueName]"/>
+                            <Binding Source="{x:Static loc:LocalizationSource.Instance}" Path="[DetailLabelGateway]"/>
+                            <Binding Path="GatewayDetailText"/>
+                        </MultiBinding>
+                    </AutomationProperties.Name>
                 <TextBlock FontSize="{StaticResource FontSizeCaption}"
                            TextWrapping="Wrap">
                     <TextBlock.Style>
@@ -217,27 +252,77 @@
                         Tag="{Binding Group}"
                         Click="OnCopyValueClick"
                         Margin="0,2,0,2"
-                        AutomationProperties.Name="{Binding Group}"
                         Visibility="{Binding Group, Converter={StaticResource NullToVisibilityConverter}}">
+                    <AutomationProperties.Name>
+                        <MultiBinding Converter="{StaticResource LocalizedFormatConverter}">
+                            <Binding Source="{x:Static loc:LocalizationSource.Instance}" Path="[PropertiesCopyValueName]"/>
+                            <Binding Source="{x:Static loc:LocalizationSource.Instance}" Path="[DetailLabelGroup]"/>
+                            <Binding Path="Group"/>
+                        </MultiBinding>
+                    </AutomationProperties.Name>
                     <TextBlock Text="{Binding Group}"
                                FontSize="{StaticResource FontSizeCaption}"
                                Foreground="{DynamicResource TextPrimaryBrush}"
                                TextWrapping="Wrap"/>
                 </Button>
 
+                <!-- Project: the import or team grouping, which a tree of hundreds is often sorted by. -->
+                <TextBlock x:Name="Spv_ProjectLabel" Grid.Row="5" Grid.Column="0"
+                           Text="{loc:Translate DetailLabelProject}" FontSize="{StaticResource FontSizeCaption}"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
+                           Margin="0,2,12,2" VerticalAlignment="Top"
+                           Visibility="{Binding ProjectName, Converter={StaticResource NullToVisibilityConverter}}"/>
+                <Button x:Name="Spv_ProjectCopy" Grid.Row="5" Grid.Column="1"
+                        Style="{StaticResource SpvCopyValueStyle}"
+                        Tag="{Binding ProjectName}"
+                        Click="OnCopyValueClick"
+                        Margin="0,2,0,2"
+                        Visibility="{Binding ProjectName, Converter={StaticResource NullToVisibilityConverter}}">
+                    <AutomationProperties.Name>
+                        <MultiBinding Converter="{StaticResource LocalizedFormatConverter}">
+                            <Binding Source="{x:Static loc:LocalizationSource.Instance}" Path="[PropertiesCopyValueName]"/>
+                            <Binding Source="{x:Static loc:LocalizationSource.Instance}" Path="[DetailLabelProject]"/>
+                            <Binding Path="ProjectName"/>
+                        </MultiBinding>
+                    </AutomationProperties.Name>
+                    <TextBlock Text="{Binding ProjectName}"
+                               FontSize="{StaticResource FontSizeCaption}"
+                               Foreground="{DynamicResource TextPrimaryBrush}"
+                               TextWrapping="Wrap"/>
+                </Button>
+
+                <!-- Origin: where an imported session came from. A session made by hand has none to show. -->
+                <TextBlock x:Name="Spv_OriginLabel" Grid.Row="6" Grid.Column="0"
+                           Text="{loc:Translate DetailLabelOrigin}" FontSize="{StaticResource FontSizeCaption}"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
+                           Margin="0,2,12,2" VerticalAlignment="Top"
+                           Visibility="{Binding IsOriginBadgeVisible, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                <TextBlock x:Name="Spv_Origin" Grid.Row="6" Grid.Column="1"
+                           Text="{Binding OriginDisplayName}"
+                           FontSize="{StaticResource FontSizeCaption}"
+                           Foreground="{DynamicResource TextPrimaryBrush}"
+                           Margin="0,2,0,2" TextWrapping="Wrap"
+                           Visibility="{Binding IsOriginBadgeVisible, Converter={StaticResource BoolToVisibilityConverter}}"/>
+
                 <!-- Environment -->
-                <TextBlock x:Name="Spv_EnvLabel" Grid.Row="5" Grid.Column="0"
+                <TextBlock x:Name="Spv_EnvLabel" Grid.Row="7" Grid.Column="0"
                            Text="{loc:Translate DetailLabelEnvironment}" FontSize="{StaticResource FontSizeCaption}"
                            Foreground="{DynamicResource TextSecondaryBrush}"
                            Margin="0,2,12,2" VerticalAlignment="Top"
                            Visibility="{Binding Environment, Converter={StaticResource NullToVisibilityConverter}}"/>
-                <Button x:Name="Spv_EnvCopy" Grid.Row="5" Grid.Column="1"
+                <Button x:Name="Spv_EnvCopy" Grid.Row="7" Grid.Column="1"
                         Style="{StaticResource SpvCopyValueStyle}"
                         Tag="{Binding Environment}"
                         Click="OnCopyValueClick"
                         Margin="0,2,0,2"
-                        AutomationProperties.Name="{Binding Environment}"
                         Visibility="{Binding Environment, Converter={StaticResource NullToVisibilityConverter}}">
+                    <AutomationProperties.Name>
+                        <MultiBinding Converter="{StaticResource LocalizedFormatConverter}">
+                            <Binding Source="{x:Static loc:LocalizationSource.Instance}" Path="[PropertiesCopyValueName]"/>
+                            <Binding Source="{x:Static loc:LocalizationSource.Instance}" Path="[DetailLabelEnvironment]"/>
+                            <Binding Path="Environment"/>
+                        </MultiBinding>
+                    </AutomationProperties.Name>
                     <TextBlock Text="{Binding Environment}"
                                FontSize="{StaticResource FontSizeCaption}"
                                Foreground="{DynamicResource TextPrimaryBrush}"
@@ -245,18 +330,24 @@
                 </Button>
 
                 <!-- Tags -->
-                <TextBlock x:Name="Spv_TagsLabel" Grid.Row="6" Grid.Column="0"
+                <TextBlock x:Name="Spv_TagsLabel" Grid.Row="8" Grid.Column="0"
                            Text="{loc:Translate DetailLabelTags}" FontSize="{StaticResource FontSizeCaption}"
                            Foreground="{DynamicResource TextSecondaryBrush}"
                            Margin="0,2,12,2" VerticalAlignment="Top"
                            Visibility="{Binding Tags, Converter={StaticResource NullToVisibilityConverter}}"/>
-                <Button x:Name="Spv_TagsCopy" Grid.Row="6" Grid.Column="1"
+                <Button x:Name="Spv_TagsCopy" Grid.Row="8" Grid.Column="1"
                         Style="{StaticResource SpvCopyValueStyle}"
                         Tag="{Binding Tags}"
                         Click="OnCopyValueClick"
                         Margin="0,2,0,2"
-                        AutomationProperties.Name="{Binding Tags}"
                         Visibility="{Binding Tags, Converter={StaticResource NullToVisibilityConverter}}">
+                    <AutomationProperties.Name>
+                        <MultiBinding Converter="{StaticResource LocalizedFormatConverter}">
+                            <Binding Source="{x:Static loc:LocalizationSource.Instance}" Path="[PropertiesCopyValueName]"/>
+                            <Binding Source="{x:Static loc:LocalizationSource.Instance}" Path="[DetailLabelTags]"/>
+                            <Binding Path="Tags"/>
+                        </MultiBinding>
+                    </AutomationProperties.Name>
                     <TextBlock Text="{Binding Tags}"
                                FontSize="{StaticResource FontSizeCaption}"
                                Foreground="{DynamicResource TextPrimaryBrush}"
@@ -264,12 +355,12 @@
                 </Button>
 
                 <!-- Favorite -->
-                <TextBlock x:Name="Spv_FavoriteLabel" Grid.Row="7" Grid.Column="0"
+                <TextBlock x:Name="Spv_FavoriteLabel" Grid.Row="9" Grid.Column="0"
                            Text="{loc:Translate DetailLabelFavorite}" FontSize="{StaticResource FontSizeCaption}"
                            Foreground="{DynamicResource TextSecondaryBrush}"
                            Margin="0,2,12,2" VerticalAlignment="Center"
                            Visibility="{Binding IsFavorite, Converter={StaticResource BoolToVisibilityConverter}}"/>
-                <TextBlock Grid.Row="7" Grid.Column="1"
+                <TextBlock Grid.Row="9" Grid.Column="1"
                            Text="&#xE735;" FontFamily="Segoe MDL2 Assets"
                            FontSize="{StaticResource FontSizeBody}"
                            Foreground="{DynamicResource WarningTextBrush}"
@@ -278,18 +369,24 @@
                            AutomationProperties.Name="{loc:Translate A11yFavoriteIndicator}"/>
 
                 <!-- Latency of the last successful probe -->
-                <TextBlock x:Name="Spv_LatencyLabel" Grid.Row="8" Grid.Column="0"
+                <TextBlock x:Name="Spv_LatencyLabel" Grid.Row="10" Grid.Column="0"
                            Text="{loc:Translate DetailLabelLatency}" FontSize="{StaticResource FontSizeCaption}"
                            Foreground="{DynamicResource TextSecondaryBrush}"
                            Margin="0,2,12,2" VerticalAlignment="Top"
                            Visibility="{Binding LatencyText, Converter={StaticResource NullToVisibilityConverter}}"/>
-                <Button x:Name="Spv_LatencyCopy" Grid.Row="8" Grid.Column="1"
+                <Button x:Name="Spv_LatencyCopy" Grid.Row="10" Grid.Column="1"
                         Style="{StaticResource SpvCopyValueStyle}"
                         Tag="{Binding LatencyText}"
                         Click="OnCopyValueClick"
                         Margin="0,2,0,2"
-                        AutomationProperties.Name="{Binding LatencyText}"
                         Visibility="{Binding LatencyText, Converter={StaticResource NullToVisibilityConverter}}">
+                    <AutomationProperties.Name>
+                        <MultiBinding Converter="{StaticResource LocalizedFormatConverter}">
+                            <Binding Source="{x:Static loc:LocalizationSource.Instance}" Path="[PropertiesCopyValueName]"/>
+                            <Binding Source="{x:Static loc:LocalizationSource.Instance}" Path="[DetailLabelLatency]"/>
+                            <Binding Path="LatencyText"/>
+                        </MultiBinding>
+                    </AutomationProperties.Name>
                     <TextBlock Text="{Binding LatencyText}"
                                FontSize="{StaticResource FontSizeCaption}"
                                Foreground="{DynamicResource TextPrimaryBrush}"
@@ -297,18 +394,24 @@
                 </Button>
 
                 <!-- Last opened, from the connection history -->
-                <TextBlock x:Name="Spv_LastOpenedLabel" Grid.Row="9" Grid.Column="0"
+                <TextBlock x:Name="Spv_LastOpenedLabel" Grid.Row="11" Grid.Column="0"
                            Text="{loc:Translate DetailLabelLastOpened}" FontSize="{StaticResource FontSizeCaption}"
                            Foreground="{DynamicResource TextSecondaryBrush}"
                            Margin="0,2,12,2" VerticalAlignment="Top"
                            Visibility="{Binding LastOpenedText, Converter={StaticResource NullToVisibilityConverter}}"/>
-                <Button x:Name="Spv_LastOpenedCopy" Grid.Row="9" Grid.Column="1"
+                <Button x:Name="Spv_LastOpenedCopy" Grid.Row="11" Grid.Column="1"
                         Style="{StaticResource SpvCopyValueStyle}"
                         Tag="{Binding LastOpenedText}"
                         Click="OnCopyValueClick"
                         Margin="0,2,0,2"
-                        AutomationProperties.Name="{Binding LastOpenedText}"
                         Visibility="{Binding LastOpenedText, Converter={StaticResource NullToVisibilityConverter}}">
+                    <AutomationProperties.Name>
+                        <MultiBinding Converter="{StaticResource LocalizedFormatConverter}">
+                            <Binding Source="{x:Static loc:LocalizationSource.Instance}" Path="[PropertiesCopyValueName]"/>
+                            <Binding Source="{x:Static loc:LocalizationSource.Instance}" Path="[DetailLabelLastOpened]"/>
+                            <Binding Path="LastOpenedText"/>
+                        </MultiBinding>
+                    </AutomationProperties.Name>
                     <TextBlock Text="{Binding LastOpenedText}"
                                FontSize="{StaticResource FontSizeCaption}"
                                Foreground="{DynamicResource TextPrimaryBrush}"

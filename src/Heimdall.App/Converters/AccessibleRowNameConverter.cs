@@ -49,6 +49,13 @@ namespace Heimdall.App.Converters;
 public sealed class AccessibleRowNameConverter : IMultiValueConverter
 {
     public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
+        => Format(values, culture);
+
+    /// <summary>
+    /// Fills the format in <paramref name="values"/>[0] with the values after it. Shared with
+    /// <see cref="LocalizedFormatConverter"/>, so the two can never format differently.
+    /// </summary>
+    internal static string Format(object[] values, CultureInfo culture)
     {
         if (values is null || values.Length == 0)
         {
