@@ -195,9 +195,10 @@ just decided against. A mismatch resolved against a hashed entry replaces that
 entry instead of leaving the old fingerprint effective beside the new one.
 
 The reachability probe of a web console (`HttpHealthProbe`) does not check the
-console's certificate. It sends no credentials, no cookies and no body, follows
-no redirect and bypasses the system proxy; it reads the status line and
-headers only. A forged server can therefore lie about the dot's colour and
+console's certificate. It asks for the console's root page, never the
+configured path, sends no credentials, no cookies and no body, follows no
+redirect and bypasses the system proxy; it reads the status line and headers
+only and closes the connection rather than drain a body. A forged server can therefore lie about the dot's colour and
 nothing else. Trust in a console's certificate is decided in its web tab, by
 the pin the user accepts there.
 

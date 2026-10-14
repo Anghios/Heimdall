@@ -4494,7 +4494,7 @@
   "HealthReasonNoPort": "Pas de port \u00e0 sonder pour ce protocole",
   "HealthReasonNoHost": "Aucun h\u00f4te configur\u00e9",
   "HealthReasonHttpError": "La console a r\u00e9pondu HTTP {0}",
-  "HealthReasonTlsFailed": "Le port r\u00e9pond, mais la connexion s\u00e9curis\u00e9e a \u00e9chou\u00e9 (console ancienne ?)",
+  "HealthReasonTlsFailed": "Le port r\u00e9pond, mais la connexion s\u00e9curis\u00e9e a \u00e9t\u00e9 refus\u00e9e",
   "HealthLastCheckedNever": "jamais",
   "SettingsSectionSessionHealthMonitor": "Moniteur de sant\u00e9 des sessions",
   "SettingsLabelSessionHealthMonitorEnabled": "Activer les sondes de joignabilit\u00e9 en arri\u00e8re-plan",

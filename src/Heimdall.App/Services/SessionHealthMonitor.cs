@@ -437,15 +437,6 @@ public sealed class SessionHealthMonitor : IDisposable
     /// Citrix (StoreFront HTTP/HTTPS in this codebase) and Local Shell are
     /// intentionally non-probable in the MVP.
     /// </summary>
-    /// <summary>
-    /// The page a web console is probed at: the address its tab opens. Null for any other type,
-    /// or for a web profile whose address cannot be formed, which falls back to the TCP probe.
-    /// </summary>
-    internal static Uri? ResolveWebProbeAddress(ServerProfileDto dto) =>
-        string.Equals(dto.ConnectionType, "WEB", StringComparison.OrdinalIgnoreCase)
-            ? WebAddress.From(dto)
-            : null;
-
     internal static int? ResolveProbePort(ServerProfileDto dto)
     {
         return (dto.ConnectionType ?? string.Empty).ToUpperInvariant() switch
@@ -459,6 +450,20 @@ public sealed class SessionHealthMonitor : IDisposable
             _ => null
         };
     }
+
+    /// <summary>
+    /// The page a web console is probed at: the root of the address its tab opens. Null for any
+    /// other type, or for a web profile whose address cannot be formed, which keeps the TCP probe.
+    /// </summary>
+    /// <remarks>
+    /// The root, not the configured path: any answer below 500 means the same there, and a deep
+    /// link can carry a query or reach a page that acts when requested, every minute.
+    /// </remarks>
+    internal static Uri? ResolveWebProbeAddress(ServerProfileDto dto) =>
+        string.Equals(dto.ConnectionType, "WEB", StringComparison.OrdinalIgnoreCase)
+            && WebAddress.From(dto) is { } address
+            ? new Uri(address.GetLeftPart(UriPartial.Authority) + "/")
+            : null;
 
     internal bool PublishState(string serverId, HealthState state, long generation)
     {

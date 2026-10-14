@@ -216,9 +216,10 @@ hachée remplace cette entrée au lieu de laisser l'ancienne empreinte effective
 à côté de la nouvelle.
 
 La sonde d'accessibilité d'une console web (`HttpHealthProbe`) ne vérifie pas
-le certificat de la console. Elle n'envoie ni identifiants, ni cookies, ni
-corps, ne suit aucune redirection et contourne le proxy système ; elle ne lit
-que la ligne d'état et les en-têtes. Un serveur usurpé ne peut donc mentir que
+le certificat de la console. Elle demande la page racine de la console, jamais
+le chemin configuré, n'envoie ni identifiants, ni cookies, ni corps, ne suit
+aucune redirection et contourne le proxy système ; elle ne lit que la ligne
+d'état et les en-têtes et ferme la connexion au lieu de lire un corps. Un serveur usurpé ne peut donc mentir que
 sur la couleur de la pastille. La confiance dans le certificat d'une console se
 décide dans son onglet web, par l'épinglage que l'utilisateur y accepte.
 

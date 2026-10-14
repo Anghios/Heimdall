@@ -27,9 +27,9 @@ namespace Heimdall.App.Tests;
 /// </summary>
 public sealed class WebHealthProbeRoutingTests
 {
-    /// <summary>The probe asks for the page the tab opens, path included.</summary>
+    /// <summary>The probe asks for the root of the console the tab opens, never the configured path.</summary>
     [Fact]
-    public void AWebProfile_IsProbedAtTheAddressItsTabOpens()
+    public void AWebProfile_IsProbedAtTheRootOfItsAddress()
     {
         ServerProfileDto dto = new()
         {
@@ -39,7 +39,7 @@ public sealed class WebHealthProbeRoutingTests
             WebPath = "/login",
         };
 
-        Assert.Equal(new Uri("https://ilo.example.test:8443/login"), SessionHealthMonitor.ResolveWebProbeAddress(dto));
+        Assert.Equal(new Uri("https://ilo.example.test:8443/"), SessionHealthMonitor.ResolveWebProbeAddress(dto));
     }
 
     [Theory]

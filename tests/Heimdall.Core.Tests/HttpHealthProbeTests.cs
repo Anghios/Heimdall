@@ -100,16 +100,44 @@ public sealed class HttpHealthProbeTests
         });
     }
 
+    /// <summary>The handler the probe really sends through, not a fresh copy of the recipe.</summary>
     [Fact]
-    public void TheHandler_GoesDirectAndFollowsNothing()
+    public void TheHandler_GoesDirectFollowsNothingAndReadsNoBody()
     {
-        using SocketsHttpHandler handler = HttpHealthProbe.CreateHandler();
+        using HttpHealthProbe probe = new();
+        SocketsHttpHandler handler = Assert.IsType<SocketsHttpHandler>(probe.Handler);
 
         Assert.False(handler.UseProxy);
         Assert.False(handler.AllowAutoRedirect);
         Assert.False(handler.UseCookies);
+        Assert.False(handler.PreAuthenticate);
         Assert.Null(handler.Credentials);
         Assert.Equal(TimeSpan.Zero, handler.PooledConnectionLifetime);
+        Assert.Equal(0, handler.MaxResponseDrainSize);
+        Assert.Equal(TimeSpan.Zero, handler.ResponseDrainTimeout);
+    }
+
+    /// <summary>The caller stopping the cycle is not the console timing out.</summary>
+    [Fact]
+    public async Task TheCallerCancelling_IsNotATimeout()
+    {
+        await using LoopbackServer server = LoopbackServer.Silent();
+        using HttpHealthProbe probe = new();
+        using CancellationTokenSource cancel = new(TimeSpan.FromMilliseconds(200));
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(
+            () => probe.ProbeAsync(server.HttpAddress, TimeoutMs, cancel.Token));
+    }
+
+    [Fact]
+    public async Task AnUnknownName_IsADnsFailure()
+    {
+        using HttpHealthProbe probe = new();
+
+        HealthState state = await probe.ProbeAsync(new Uri("http://heimdall-probe-test.invalid/"), TimeoutMs, CancellationToken.None);
+
+        Assert.Equal(HealthStatus.Down, state.Status);
+        Assert.Equal("dns", state.Reason);
     }
 
     [Fact]
@@ -155,11 +183,11 @@ public sealed class HttpHealthProbeTests
     }
 
     /// <summary>
-    /// An old controller whose TLS the system refuses still answers on its port: up, with a
-    /// reason, rather than down.
+    /// A port that answers something the system refuses as TLS still answers: up, with a reason,
+    /// rather than down.
     /// </summary>
     [Fact]
-    public async Task AFailedHandshake_IsUpWithAReason()
+    public async Task ARefusedHandshake_IsUpWithAReason()
     {
         await using LoopbackServer server = LoopbackServer.Garbage();
         using HttpHealthProbe probe = new();
@@ -169,6 +197,22 @@ public sealed class HttpHealthProbeTests
         Assert.Equal(HealthStatus.Up, state.Status);
         Assert.Equal(HttpHealthProbe.TlsFailedReason, state.Reason);
         Assert.Null(state.LatencyMs);
+    }
+
+    /// <summary>
+    /// A load balancer with no live member, or a console whose web service died behind its
+    /// listener, accepts the connection and closes it during the handshake: that is down.
+    /// </summary>
+    [Fact]
+    public async Task AHandshakeCutShort_IsDown()
+    {
+        await using LoopbackServer server = LoopbackServer.ClosingAtOnce();
+        using HttpHealthProbe probe = new();
+
+        HealthState state = await probe.ProbeAsync(server.HttpsAddress, TimeoutMs, CancellationToken.None);
+
+        Assert.Equal(HealthStatus.Down, state.Status);
+        Assert.NotEqual(HttpHealthProbe.TlsFailedReason, state.Reason);
     }
 
     [Theory]
@@ -183,6 +227,23 @@ public sealed class HttpHealthProbeTests
     {
         Assert.Equal(expected, HttpHealthProbe.TryParseHttpErrorReason(reason, out int parsed));
         Assert.Equal(code, parsed);
+    }
+
+    /// <summary>
+    /// A handshake the system refused is told from one the peer cut short by the transport error
+    /// beneath it, wherever the handler wraps it.
+    /// </summary>
+    [Fact]
+    public void ARefusalIsToldFromAClosedConnection()
+    {
+        static HttpRequestException Secure(Exception inner) =>
+            new(HttpRequestError.SecureConnectionError, "tls", inner);
+
+        Assert.True(HttpHealthProbe.IsTlsRefusal(Secure(new AuthenticationException("refused"))));
+        Assert.True(HttpHealthProbe.IsTlsRefusal(Secure(new AuthenticationException("alert", new System.ComponentModel.Win32Exception(unchecked((int)0x80090326))))));
+        Assert.False(HttpHealthProbe.IsTlsRefusal(Secure(new AuthenticationException("closed", new IOException("eof")))));
+        Assert.False(HttpHealthProbe.IsTlsRefusal(Secure(new IOException("reset", new SocketException((int)SocketError.ConnectionReset)))));
+        Assert.False(HttpHealthProbe.IsTlsRefusal(new HttpRequestException(HttpRequestError.ConnectionError, "x", new AuthenticationException("y"))));
     }
 
     /// <summary>
@@ -281,6 +342,12 @@ public sealed class HttpHealthProbeTests
             byte[] noise = Encoding.ASCII.GetBytes("this is not a TLS server\r\n");
             await client.GetStream().WriteAsync(noise, ct);
             await Task.Delay(Timeout.Infinite, ct);
+        });
+
+        public static LoopbackServer ClosingAtOnce() => new((client, _) =>
+        {
+            client.Client.Close();
+            return Task.CompletedTask;
         });
 
         public static int FreePort()
