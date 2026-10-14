@@ -1621,9 +1621,9 @@
                                                                    FontSize="{StaticResource FontSizeSmallCaption}" FontWeight="SemiBold"
                                                                    Foreground="{DynamicResource TextPrimaryBrush}"
                                                                    VerticalAlignment="Center"
-                                                                   TextTrimming="CharacterEllipsis" MaxWidth="120"/>
+                                                                   TextTrimming="CharacterEllipsis" MaxWidth="{StaticResource SessionTabGroupLabelMaxWidth}"/>
                                                         <TextBlock x:Name="TabGroupChipChevron" Text="&#xE70D;"
-                                                                   FontFamily="Segoe MDL2 Assets" FontSize="8"
+                                                                   FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource SessionTabChevronFontSize}"
                                                                    Foreground="{DynamicResource TextSecondaryBrush}"
                                                                    VerticalAlignment="Center" Margin="5,0,0,0"/>
                                                     </StackPanel>
@@ -1670,19 +1670,20 @@
                                                                 <ContentPresenter/>
                                                             </ControlTemplate>
                                                         </Button.Template>
-                                                        <Border Width="14" Height="14" CornerRadius="2"
+                                                        <Border Width="{StaticResource SessionTabIconBoxSize}" Height="{StaticResource SessionTabIconBoxSize}"
+                                                                CornerRadius="{StaticResource CornerRadiusSm}"
                                                                 BorderThickness="1"
                                                                 BorderBrush="{DynamicResource BorderBrush}"
                                                                 Background="Transparent">
                                                             <TextBlock Text="&#xE73E;" FontFamily="Segoe MDL2 Assets"
-                                                                       FontSize="9"
+                                                                       FontSize="{StaticResource SessionTabBroadcastGlyphFontSize}"
                                                                        HorizontalAlignment="Center"
                                                                        VerticalAlignment="Center"
                                                                        Foreground="{DynamicResource AccentBrush}"
                                                                        Visibility="{Binding IsBroadcastTarget, Converter={StaticResource BoolToVisibilityConverter}}"/>
                                                         </Border>
                                                     </Button>
-                                                    <Grid Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,5,0">
+                                                    <Grid Width="{StaticResource SessionTabIconBoxSize}" Height="{StaticResource SessionTabIconBoxSize}" VerticalAlignment="Center" Margin="0,0,5,0">
                                                         <Path Data="{Binding ConnectionType, Converter={StaticResource TypeToGeoConverter}}"
                                                               Style="{StaticResource GeoIconSmall}">
                                                             <Path.Fill>
@@ -1721,7 +1722,7 @@
                                                             </Ellipse.Style>
                                                         </Ellipse>
                                                     </Grid>
-                                                    <TextBlock x:Name="TabPinGlyph" Text="&#xE718;" FontFamily="Segoe MDL2 Assets" FontSize="10"
+                                                    <TextBlock x:Name="TabPinGlyph" Text="&#xE718;" FontFamily="Segoe MDL2 Assets" FontSize="{StaticResource SessionTabPinGlyphFontSize}"
                                                                Foreground="{DynamicResource AccentBrush}"
                                                                VerticalAlignment="Center" Margin="0,0,4,0"
                                                                Visibility="{Binding IsPinned, Converter={StaticResource BoolToVisibilityConverter}}"
@@ -1729,7 +1730,7 @@
                                                     <TextBlock Text="{Binding DisplayTitle}" FontSize="{StaticResource FontSizeBody}" FontWeight="SemiBold"
                                                                Foreground="{DynamicResource TextPrimaryBrush}"
                                                                VerticalAlignment="Center"
-                                                               TextTrimming="CharacterEllipsis" MaxWidth="160"/>
+                                                               TextTrimming="CharacterEllipsis" MaxWidth="{StaticResource SessionTabTitleMaxWidth}"/>
                                                     <!-- The state in words is on the tab's own name and in its tooltip;
                                                          this is the mark the eye scans the strip for. -->
                                                     <Grid x:Name="TabStateMark"
@@ -1776,11 +1777,11 @@
                                                                    Foreground="{DynamicResource ErrorTextBrush}"
                                                                    Visibility="Collapsed"/>
                                                     </Grid>
-                                                    <TextBlock x:Name="BusyIndicator" Text="&#x25CF;" FontSize="8"
+                                                    <TextBlock x:Name="BusyIndicator" Text="&#x25CF;" FontSize="{StaticResource SessionTabBusyGlyphFontSize}"
                                                                Foreground="{DynamicResource AccentBrush}"
                                                                VerticalAlignment="Center" Margin="5,0,0,0"
                                                                Visibility="Collapsed"
-                                                               AutomationProperties.Name="{Binding Tag, RelativeSource={RelativeSource AncestorType=Grid, AncestorLevel=2}}">
+                                                               AutomationProperties.Name="{loc:Translate A11yOperationInProgress}">
                                                         <TextBlock.Style>
                                                             <Style TargetType="TextBlock">
                                                                 <Style.Resources>
@@ -1916,7 +1917,7 @@
                                     BorderThickness="2"
                                     CornerRadius="4"
                                     IsHitTestVisible="False">
-                                <TextBlock Text="{Binding DataContext.DropToMergeText, RelativeSource={RelativeSource AncestorType=Window}, FallbackValue='Drop to split'}"
+                                <TextBlock Text="{Binding DataContext.DropToMergeText, RelativeSource={RelativeSource AncestorType=Window}}"
                                            FontSize="{StaticResource FontSizeSubtitle}"
                                            Foreground="{DynamicResource AccentBrush}"
                                            HorizontalAlignment="Center"

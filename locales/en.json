@@ -2495,6 +2495,7 @@
   "SessionCollapseOtherTabGroups": "Collapse the other folders",
   "SessionTabGroupChipExpandedA11y": "Tabs of folder {0}, expanded",
   "SessionTabGroupChipCollapsedA11y": "Tabs of folder {0}, collapsed",
+  "SessionTabGroupChipLoneA11y": "Tabs of folder {0}, expanded; they are the only tabs open, so they cannot be folded away",
   "SessionTabListButton": "All open tabs",
   "SessionTitleSuffixForcedEmbedded": "(forced embedded)",
   "SessionTitleSuffixForcedExternal": "(forced external)",
@@ -4037,7 +4038,7 @@
   "RdpDisconnectedMessage": "The Remote Desktop session has ended.",
 
   "HelpShortcutsTitle": "Keyboard Shortcuts",
-  "HelpShortcutsContent": "Navigation\n  {0}\tAdd new server\n  {1}\tEdit selected server\n  {2}\tDelete selected server\n  Ctrl+F\tSearch servers\n  Ctrl+B\tToggle sidebar\n  Ctrl+Shift+B\tShow or hide the properties panel\n  F11\tToggle fullscreen\n  Ctrl+Shift+F11\tToggle fullscreen over embedded sessions\n\nConnections\n  Ctrl+K\tQuick Connect\n  Enter\tConnect to selected server\n\nSession\n  Ctrl+W\tClose current tab\n  Ctrl+F4\tClose current tab, from a terminal too\n  Apps, Shift+F10\tTab menu, from the tab strip\n  Ctrl+Tab\tNext tab\n  Ctrl+Shift+Tab\tPrevious tab\n  Ctrl+PgDn, Ctrl+PgUp\tNext or previous tab, from a terminal too\n  Ctrl+Shift+PgDn, Ctrl+Shift+PgUp\tMove the tab right or left\n  Ctrl+1 to Ctrl+8\tGo to that tab; Ctrl+9 the last one\n  Ctrl+Shift+R\tReopen the tabs of the last close\n  Ctrl+Shift+S\tCapture screenshot\n  Ctrl+Shift+N\tNetwork scanner\n  Ctrl+Shift+O\tToggle split orientation\n  Ctrl+Shift+T\tToggle tools panel\n\nSettings\n  Ctrl+,\tOpen settings\n  Ctrl+S\tSave settings\n\nGeneral\n  F1\tShow this help\n  Esc\tExit fullscreen / close palette",
+  "HelpShortcutsContent": "Navigation\n  {0}\tAdd new server\n  {1}\tEdit selected server\n  {2}\tDelete selected server\n  Ctrl+F\tSearch servers\n  Ctrl+B\tToggle sidebar\n  Ctrl+Shift+B\tShow or hide the properties panel\n  F11\tToggle fullscreen\n  Ctrl+Shift+F11\tToggle fullscreen over embedded sessions\n\nConnections\n  Ctrl+K\tQuick Connect\n  Enter\tConnect to selected server\n\nSession\n  Ctrl+W\tClose current tab\n  Ctrl+F4\tClose current tab, from a terminal too\n  Middle click\tClose the tab under the pointer\n  Apps, Shift+F10\tTab menu, from the tab strip\n  Ctrl+Tab\tNext tab\n  Ctrl+Shift+Tab\tPrevious tab\n  Ctrl+PgDn, Ctrl+PgUp\tNext or previous tab, from a terminal too\n  Ctrl+Shift+PgDn, Ctrl+Shift+PgUp\tMove the tab right or left\n  Ctrl+1 to Ctrl+8\tGo to that tab; Ctrl+9 the last one\n  Ctrl+Shift+R\tReopen the tabs of the last close\n  Ctrl+Shift+S\tCapture screenshot\n  Ctrl+Shift+N\tNetwork scanner\n  Ctrl+Shift+O\tToggle split orientation\n  Ctrl+Shift+T\tToggle tools panel\n\nSettings\n  Ctrl+,\tOpen settings\n  Ctrl+S\tSave settings\n\nGeneral\n  F1\tShow this help\n  Esc\tExit fullscreen / close palette",
 
   "BtnYes": "Yes",
   "BtnNo": "No",

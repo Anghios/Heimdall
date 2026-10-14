@@ -390,6 +390,7 @@ Appuyez sur **F1** à tout moment pour la liste complète. Ceux qui se rentabili
 | `Ctrl+1` à `Ctrl+8` | Aller à cet onglet ; `Ctrl+9` va au dernier |
 | `Ctrl+Shift+R` | Rouvrir les onglets de la dernière fermeture : un onglet, ou tous ceux qu'un "Fermer les autres" ou "Fermer tous les onglets" a fermés |
 | `Ctrl+F4` | Fermer l'onglet ouvert, depuis un terminal aussi ; dans une session RDP, il va à l'ordinateur distant |
+| Clic du milieu sur un onglet | Fermer cet onglet |
 | `Shift+F10` ou la touche Menu | Sur la barre d'onglets, ouvrir le menu de l'onglet ; dans l'arbre, celui de la session ou du dossier |
 | `Ctrl+A` | Dans l'arborescence, sélectionner toutes les sessions des dossiers ouverts |
 | `Alt+Haut` / `Alt+Bas` | Déplacer la session en surbrillance dans son dossier |

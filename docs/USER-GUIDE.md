@@ -357,6 +357,7 @@ Press **F1** at any time for the full list. The ones that pay for themselves imm
 | `Ctrl+1` to `Ctrl+8` | Go to that tab; `Ctrl+9` goes to the last one |
 | `Ctrl+Shift+R` | Reopen the tabs of the last close: one tab, or every tab a "Close others" or "Close all tabs" closed |
 | `Ctrl+F4` | Close the open tab, from a terminal too; inside an RDP session it goes to the remote computer |
+| Middle click on a tab | Close that tab |
 | `Shift+F10` or the Menu key | On the tab strip, open the tab's menu; in the tree, the session or folder menu |
 | `Ctrl+A` | In the sessions tree, select every session in the open folders |
 | `Alt+Up` / `Alt+Down` | Move the focused session within its folder |

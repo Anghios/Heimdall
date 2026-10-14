@@ -169,6 +169,15 @@
     <sys:Double x:Key="SessionTabStateGlyphFontSize">11</sys:Double>
     <Thickness x:Key="SessionTabStateMarkMargin">6,0,0,0</Thickness>
     <sys:String x:Key="SessionTabFailedGlyph">&#xE7BA;</sys:String>
+    <!-- Widths a tab title and a folder chip label are cut at, with an ellipsis. -->
+    <sys:Double x:Key="SessionTabTitleMaxWidth">160</sys:Double>
+    <sys:Double x:Key="SessionTabGroupLabelMaxWidth">120</sys:Double>
+    <!-- The small marks of a tab header: protocol icon box, broadcast box, and their glyphs. -->
+    <sys:Double x:Key="SessionTabIconBoxSize">14</sys:Double>
+    <sys:Double x:Key="SessionTabChevronFontSize">8</sys:Double>
+    <sys:Double x:Key="SessionTabBroadcastGlyphFontSize">9</sys:Double>
+    <sys:Double x:Key="SessionTabPinGlyphFontSize">10</sys:Double>
+    <sys:Double x:Key="SessionTabBusyGlyphFontSize">8</sys:Double>
     <!-- Transparent frame around the status dot: the hover target is the dot plus this on each side. -->
     <Thickness x:Key="SessionTreeStatusHitPadding">3</Thickness>
     <!-- The multiplication sign that closes a filter chip. -->

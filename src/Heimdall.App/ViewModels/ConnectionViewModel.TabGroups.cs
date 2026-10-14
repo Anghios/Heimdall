@@ -36,6 +36,7 @@ public partial class ConnectionViewModel
 {
     private const string TabGroupChipExpandedKey = "SessionTabGroupChipExpandedA11y";
     private const string TabGroupChipCollapsedKey = "SessionTabGroupChipCollapsedA11y";
+    private const string TabGroupChipLoneKey = "SessionTabGroupChipLoneA11y";
 
     private readonly HashSet<string> _collapsedTabGroups = new(StringComparer.OrdinalIgnoreCase);
 
@@ -406,9 +407,12 @@ public partial class ConnectionViewModel
             session.IsTabGroupHead = head;
             session.IsTabGroupCollapsed = collapsed;
             session.IsHiddenInCollapsedGroup = collapsed && !head;
-            session.TabGroupAccessibleName = _localizer.Format(
-                collapsed ? TabGroupChipCollapsedKey : TabGroupChipExpandedKey,
-                key);
+            // The same test the toggle makes: with no tab left to select outside the group, a
+            // click on the chip leaves it open, and the chip used to give no reason why.
+            string chipKey = collapsed
+                ? TabGroupChipCollapsedKey
+                : NearestTabOutsideGroup(ActiveSessions, key) is null ? TabGroupChipLoneKey : TabGroupChipExpandedKey;
+            session.TabGroupAccessibleName = _localizer.Format(chipKey, key);
         }
 
         // A group that no longer has a tab forgets it was collapsed: the next tab of that folder
