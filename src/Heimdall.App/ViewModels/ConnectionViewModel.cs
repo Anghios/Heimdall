@@ -587,10 +587,13 @@ public partial class ConnectionViewModel : ObservableObject
             }
         }
 
-        foreach (SessionTabViewModel session in sessions)
+        await RememberAsOneGestureAsync(async () =>
         {
-            await CloseSessionAsync(session, reason, confirm: false);
-        }
+            foreach (SessionTabViewModel session in sessions)
+            {
+                await CloseSessionAsync(session, reason, confirm: false);
+            }
+        });
     }
 
     /// <summary>
@@ -725,12 +728,15 @@ public partial class ConnectionViewModel : ObservableObject
         // group confirmation above settles "do you want to close these"; it says nothing about work
         // in flight, which is what a guard is for. Routing this through the silent path would have
         // torn down a running transfer without ever asking.
-        foreach (SessionTabViewModel session in ActiveSessions.ToList())
+        await RememberAsOneGestureAsync(async () =>
         {
-            // A session that refuses does not stop the others, matching what this command did
-            // before guards existed: it closed everything it could.
-            await CloseSessionAsync(session, DisconnectReason.UserAction, confirm: false);
-        }
+            foreach (SessionTabViewModel session in ActiveSessions.ToList())
+            {
+                // A session that refuses does not stop the others, matching what this command did
+                // before guards existed: it closed everything it could.
+                await CloseSessionAsync(session, DisconnectReason.UserAction, confirm: false);
+            }
+        });
     }
 
     [RelayCommand]

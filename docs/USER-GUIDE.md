@@ -352,6 +352,10 @@ Press **F1** at any time for the full list. The ones that pay for themselves imm
 | `F11` | Fullscreen, `Escape` to leave it |
 | `Ctrl+Shift+T` | Switch the left panel between Sessions and Tools |
 | `Ctrl+Tab` | Next tab, `Ctrl+Shift+Tab` for the previous one; a collapsed folder is skipped |
+| `Ctrl+PgDn` / `Ctrl+PgUp` | Next or previous tab, from a terminal too; inside an RDP session they go to the remote computer |
+| `Ctrl+Shift+PgDn` / `Ctrl+Shift+PgUp` | Move the open tab right or left, within its pinned block and its folder |
+| `Ctrl+1` to `Ctrl+8` | Go to that tab; `Ctrl+9` goes to the last one |
+| `Ctrl+Shift+R` | Reopen the tabs of the last close: one tab, or every tab a "Close others" or "Close all tabs" closed |
 | `Ctrl+F4` | Close the open tab, from a terminal too; inside an RDP session it goes to the remote computer |
 | `Shift+F10` or the Menu key | On the tab strip, open the tab's menu; in the tree, the session or folder menu |
 | `Ctrl+A` | In the sessions tree, select every session in the open folders |

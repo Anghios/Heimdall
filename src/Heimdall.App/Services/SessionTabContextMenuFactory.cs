@@ -300,7 +300,14 @@ public sealed class SessionTabContextMenuFactory
 
         if (vm.Connection.HasRecentlyClosedTab)
         {
-            var reopenItem = new MenuItem { Header = vm.Localize("SessionReopenClosedTab") };
+            int closedCount = vm.Connection.MostRecentlyClosedCount;
+            var reopenItem = new MenuItem
+            {
+                Header = closedCount > 1
+                    ? vm.GetLocalizer().Format("SessionReopenClosedTabs", closedCount)
+                    : vm.Localize("SessionReopenClosedTab"),
+                InputGestureText = vm.Localize("SessionReopenClosedTabGesture"),
+            };
             reopenItem.Click += (_, _) => vm.Session.ReopenClosedTab();
             menu.Items.Add(reopenItem);
         }

@@ -77,11 +77,11 @@ public sealed class SessionTabPolishTests
         await sut.CloseSessionAsync(Open(sut, "kept", "SSH"), DisconnectReason.TabClose, confirm: false);
         await sut.CloseSessionAsync(Open(sut, "deleted", "SSH"), DisconnectReason.TabClose, confirm: false);
 
-        string? reopened = sut.TakeMostRecentlyClosed(id => id != "deleted");
+        IReadOnlyList<string> reopened = sut.TakeMostRecentlyClosed(id => id != "deleted");
 
-        Assert.Equal("kept", reopened);
+        Assert.Equal(["kept"], reopened);
         Assert.Empty(sut.RecentlyClosedProfileIds);
-        Assert.Null(sut.TakeMostRecentlyClosed(static _ => true));
+        Assert.Empty(sut.TakeMostRecentlyClosed(static _ => true));
     }
 
     [Theory]
