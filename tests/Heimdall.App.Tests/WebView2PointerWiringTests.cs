@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-using System.IO;
-using System.Text.RegularExpressions;
+using System.Reflection;
+using Heimdall.App.Services;
 
 namespace Heimdall.App.Tests;
 
@@ -24,79 +24,127 @@ namespace Heimdall.App.Tests;
 /// </summary>
 /// <remarks>
 /// <see cref="WebView2PointerTests"/> pins the text of the switch. It stays green when the switch
-/// is composed and then never handed to WebView2: deleting <c>options: options</c> from
-/// <c>CreateEnvironmentAsync</c> brings the hidden pointer back to SSH, VNC and the editors, and
-/// passing the route's <c>arguments</c> instead of <c>EmbeddedBrowserArguments(arguments)</c> brings
-/// it back to the web consoles. Both mutations turn this file red. A new environment created
-/// anywhere else would bypass the helper, so that is refused too.
+/// is composed and then never handed to WebView2: dropping <c>options: options</c> from
+/// <c>CreateEnvironmentAsync</c> compiles to a <c>null</c> options argument, which brings the
+/// hidden pointer back to SSH, VNC and the editors, and passing the route's <c>arguments</c>
+/// instead of <c>EmbeddedBrowserArguments(arguments)</c> brings it back to the web consoles. A
+/// build carrying the first mutation was measured: the browser process started without the
+/// switch and the pointer vanished while typing. Both mutations turn this file red, and so does
+/// an environment created outside the helper. It reads the compiled methods, not the source.
 /// </remarks>
 public sealed class WebView2PointerWiringTests
 {
-    private const string CreateCall = "CoreWebView2Environment.CreateAsync(";
+    private const byte LdNull = 0x14;
+
+    // By name: this project holds no reference to the WebView2 assembly, the application does.
+    private static readonly Type WebView2Environment = Type.GetType(
+        "Microsoft.Web.WebView2.Core.CoreWebView2Environment, Microsoft.Web.WebView2.Core",
+        throwOnError: true)!;
+
+    private static readonly MethodInfo CreateAsync = WebView2Environment.GetMethods()
+        .Single(method => method.Name == "CreateAsync" && method.GetParameters().Length == 3);
+
+    private static readonly MethodInfo Compose = typeof(WebView2Helper).GetMethod(
+        nameof(WebView2Helper.EmbeddedBrowserArguments),
+        BindingFlags.NonPublic | BindingFlags.Static)!;
 
     [Fact]
-    public void EveryEnvironment_IsCreatedWithTheEmbeddedArguments()
+    public void EveryEnvironment_IsCreatedWithOptionsComposedFromTheEmbeddedArguments()
     {
-        string source = File.ReadAllText(HelperPath());
-        string[] calls = CallArgumentLists(source).ToArray();
+        List<CallSite> creations = CallSitesOf(CreateAsync, HelperMethods()).ToList();
 
         // Two today: the shared environment and the web console's own. Fewer means the sweep
         // stopped seeing a call, and checking nothing reads as a pass.
-        Assert.True(calls.Length >= 2, $"Found {calls.Length} environment creation(s) in WebView2Helper.cs.");
-        Assert.All(calls, call => Assert.Contains("options: options", call, StringComparison.Ordinal));
-
-        int composed = Regex.Matches(
-            source,
-            @"additionalBrowserArguments:\s*EmbeddedBrowserArguments\(").Count;
-        Assert.Equal(calls.Length, composed);
+        Assert.True(creations.Count >= 2, $"Found {creations.Count} environment creation(s) in WebView2Helper.");
+        Assert.All(creations, site =>
+        {
+            Assert.NotEqual(LdNull, site.PrecedingOpcode);
+            Assert.True(
+                CallSitesOf(Compose, [site.Method]).Any(),
+                $"{site.Method.DeclaringType?.Name}.{site.Method.Name} creates an environment without composing the embedded arguments.");
+        });
     }
 
     [Fact]
     public void NoEnvironment_IsCreatedOutsideTheHelper()
     {
-        string sourceRoot = Path.Combine(FindRepositoryRoot(), "src");
-        string helper = Path.GetFullPath(HelperPath());
+        IEnumerable<MethodBase> elsewhere = typeof(WebView2Helper).Assembly.GetTypes()
+            .Where(type => !IsHelperOrNestedInIt(type))
+            .SelectMany(MethodsOf);
 
-        string[] elsewhere = Directory
-            .EnumerateFiles(sourceRoot, "*.cs", SearchOption.AllDirectories)
-            .Where(file => !string.Equals(Path.GetFullPath(file), helper, StringComparison.OrdinalIgnoreCase))
-            .Where(file => File.ReadAllText(file).Contains(CreateCall, StringComparison.Ordinal))
-            .Select(file => Path.GetRelativePath(sourceRoot, file))
+        string[] callers = CallSitesOf(CreateAsync, elsewhere)
+            .Select(site => $"{site.Method.DeclaringType?.FullName}.{site.Method.Name}")
+            .Distinct()
             .ToArray();
 
-        Assert.Empty(elsewhere);
+        Assert.Empty(callers);
     }
 
-    /// <summary>The text between each creation call's parenthesis and the end of its statement.</summary>
-    private static IEnumerable<string> CallArgumentLists(string source)
-    {
-        int index = source.IndexOf(CreateCall, StringComparison.Ordinal);
-        while (index >= 0)
-        {
-            int end = source.IndexOf(';', index);
-            Assert.True(end > index, "An environment creation call has no end.");
-            yield return source[index..end];
-            index = source.IndexOf(CreateCall, end, StringComparison.Ordinal);
-        }
-    }
+    private static IEnumerable<MethodBase> HelperMethods() =>
+        typeof(WebView2Helper).Assembly.GetTypes().Where(IsHelperOrNestedInIt).SelectMany(MethodsOf);
 
-    private static string HelperPath() =>
-        Path.Combine(FindRepositoryRoot(), "src", "Heimdall.App", "Services", "WebView2Helper.cs");
-
-    private static string FindRepositoryRoot()
+    private static bool IsHelperOrNestedInIt(Type type)
     {
-        string? directory = AppContext.BaseDirectory;
-        while (directory is not null)
+        for (Type? current = type; current is not null; current = current.DeclaringType)
         {
-            if (File.Exists(Path.Combine(directory, "Heimdall.slnx")))
+            if (current == typeof(WebView2Helper))
             {
-                return directory;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static IEnumerable<MethodBase> MethodsOf(Type type)
+    {
+        const BindingFlags all = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance
+            | BindingFlags.Static | BindingFlags.DeclaredOnly;
+        return type.GetMethods(all).Cast<MethodBase>().Concat(type.GetConstructors(all));
+    }
+
+    /// <summary>
+    /// Every call or callvirt to <paramref name="target"/> in <paramref name="methods"/>, with the
+    /// opcode right before it: <c>ldnull</c> there is a literal null passed as the last argument.
+    /// </summary>
+    private static IEnumerable<CallSite> CallSitesOf(MethodInfo target, IEnumerable<MethodBase> methods)
+    {
+        foreach (MethodBase method in methods)
+        {
+            byte[]? il = method.GetMethodBody()?.GetILAsByteArray();
+            if (il is null)
+            {
+                continue;
             }
 
-            directory = Path.GetDirectoryName(directory);
-        }
+            for (int index = 1; index + 4 < il.Length; index++)
+            {
+                if (il[index] is not (0x28 or 0x6F))
+                {
+                    continue;
+                }
 
-        throw new DirectoryNotFoundException(
-            $"Cannot find repository root containing Heimdall.slnx from {AppContext.BaseDirectory}.");
+                MethodBase? called;
+                try
+                {
+                    called = method.Module.ResolveMethod(
+                        BitConverter.ToInt32(il, index + 1),
+                        method.DeclaringType?.GetGenericArguments(),
+                        method.IsGenericMethod ? method.GetGenericArguments() : null);
+                }
+                catch (Exception ex) when (ex is ArgumentException or BadImageFormatException)
+                {
+                    // An operand byte that only looks like a call opcode resolves to nothing.
+                    continue;
+                }
+
+                if (called == target)
+                {
+                    yield return new CallSite(method, il[index - 1]);
+                }
+            }
+        }
     }
+
+    private sealed record CallSite(MethodBase Method, byte PrecedingOpcode);
 }
