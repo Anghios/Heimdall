@@ -22,4 +22,8 @@
     <ProjectReference Include="..\..\src\Heimdall.Core\Heimdall.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Include="..\Shared\RefusedLoopbackPort.cs" Link="Shared\RefusedLoopbackPort.cs" />
+  </ItemGroup>
+
 </Project>

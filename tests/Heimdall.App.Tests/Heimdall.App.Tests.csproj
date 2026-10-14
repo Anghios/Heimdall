@@ -25,6 +25,10 @@
     <ProjectReference Include="..\..\src\Heimdall.App\Heimdall.App.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Include="..\Shared\RefusedLoopbackPort.cs" Link="Shared\RefusedLoopbackPort.cs" />
+  </ItemGroup>
+
   <!--
     The update relauncher tests drive a stand-in executable. The reference exists for
     build ordering only - none of its types are used - and the resolved apphost path is

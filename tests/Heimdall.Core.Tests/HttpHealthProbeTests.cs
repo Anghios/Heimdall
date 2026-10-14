@@ -22,6 +22,7 @@ using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using Heimdall.Core.SessionHealth;
+using Heimdall.TestSupport;
 
 namespace Heimdall.Core.Tests;
 
@@ -143,10 +144,10 @@ public sealed class HttpHealthProbeTests
     [Fact]
     public async Task AClosedPort_IsRefused()
     {
-        int port = LoopbackServer.FreePort();
+        using RefusedLoopbackPort refusedPort = RefusedLoopbackPort.Reserve();
         using HttpHealthProbe probe = new();
 
-        HealthState state = await probe.ProbeAsync(new Uri($"http://127.0.0.1:{port}/"), TimeoutMs, CancellationToken.None);
+        HealthState state = await probe.ProbeAsync(new Uri($"http://127.0.0.1:{refusedPort.Port}/"), TimeoutMs, CancellationToken.None);
 
         Assert.Equal(HealthStatus.Down, state.Status);
         Assert.Equal("refused", state.Reason);
@@ -349,15 +350,6 @@ public sealed class HttpHealthProbeTests
             client.Client.Close();
             return Task.CompletedTask;
         });
-
-        public static int FreePort()
-        {
-            TcpListener listener = new(IPAddress.Loopback, 0);
-            listener.Start();
-            int port = ((IPEndPoint)listener.LocalEndpoint).Port;
-            listener.Stop();
-            return port;
-        }
 
         private async Task AnswerAsync(Stream stream, string status, string extraHeaders, CancellationToken ct)
         {

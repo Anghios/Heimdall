@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-using System.Net;
 using System.Net.Sockets;
 using System.Reflection;
 using Heimdall.App.Services;
@@ -25,6 +24,7 @@ using Heimdall.Core.Models;
 using Heimdall.Core.Ssh;
 using Heimdall.Core.StateMachine;
 using Heimdall.Ssh;
+using Heimdall.TestSupport;
 using Renci.SshNet.Common;
 
 namespace Heimdall.App.Tests;
@@ -44,12 +44,12 @@ public sealed class SftpHandlerConnectTests : IDisposable
     [Fact]
     public async Task ConnectAsync_TunneledConnectFailureReleasesTunnelReference()
     {
-        int freePort = ReserveAndReleaseLoopbackPort();
+        using RefusedLoopbackPort refusedPort = RefusedLoopbackPort.Reserve();
         FakeTunnelService tunnelService = new FakeTunnelService
         {
             UsesTunnel = true,
             TargetHost = "127.0.0.1",
-            TargetPort = freePort
+            TargetPort = refusedPort.Port
         };
         SftpHandler handler = CreateHandler(tunnelService);
         ServerProfileDto server = CreateGatewayServer();
@@ -61,19 +61,19 @@ public sealed class SftpHandlerConnectTests : IDisposable
 
         Assert.False(result.Success);
         Assert.Equal(1, tunnelService.ReleaseCount);
-        Assert.Equal(freePort, tunnelService.ReleasedLocalPort);
+        Assert.Equal(refusedPort.Port, tunnelService.ReleasedLocalPort);
     }
 
     [Fact]
     public async Task ConnectAsync_DirectConnectFailureDoesNotReleaseTunnelReference()
     {
-        int freePort = ReserveAndReleaseLoopbackPort();
+        using RefusedLoopbackPort refusedPort = RefusedLoopbackPort.Reserve();
         FakeTunnelService tunnelService = new FakeTunnelService
         {
             UsesTunnel = false
         };
         SftpHandler handler = CreateHandler(tunnelService);
-        ServerProfileDto server = CreateDirectServer(freePort);
+        ServerProfileDto server = CreateDirectServer(refusedPort.Port);
 
         ConnectionResult result = await handler.ConnectAsync(
             server,
@@ -445,21 +445,6 @@ public sealed class SftpHandlerConnectTests : IDisposable
             SshUsername = "operator",
             UseDirectConnection = true
         };
-    }
-
-    private static int ReserveAndReleaseLoopbackPort()
-    {
-        TcpListener listener = new TcpListener(IPAddress.Loopback, 0);
-        listener.Start();
-        try
-        {
-            IPEndPoint endpoint = (IPEndPoint)listener.LocalEndpoint;
-            return endpoint.Port;
-        }
-        finally
-        {
-            listener.Stop();
-        }
     }
 
     private sealed class FakeTunnelService : ITunnelService
