@@ -87,6 +87,8 @@ The complete catalogue of what Heimdall does, protocol by protocol. If you are l
 - **Open with an external program**, per profile, for a console no current engine accepts (an old iLO): the program, or the default browser when none is named, gets the address with {Url}, {Host} and {Port}; command interpreters are refused, and an imported profile that names a program asks for confirmation before running it, like a local shell profile
 - **Through an SSH gateway**: the gateway's tunnel opens a SOCKS proxy and the console's tab goes through it with the console's real name, so its certificate, its pin, its redirects and a name only the admin network resolves all work. Every console behind one gateway shares one tunnel, released when the last tab closes; each gateway has a browser profile of its own, so a sign-in made directly is not shared with the same console reached through a gateway. Opening externally through a gateway is refused, since the external program would not use the tunnel
 - A button in the tab header, and another on the panel shown when a console cannot be loaded, opens the current page externally with the profile's program or the default browser: the way out for a console the embedded engine renders badly or refuses, such as an old iLO speaking TLS 1.0. Not offered behind a gateway, where it could not reach the console
+- A console opens at the zoom it was last left at, kept per profile
+- The reachability dot asks for the console's root page rather than only opening its port: a server error (5xx) is unreachable with its code in the tooltip, a handshake the system refuses is reachable with its reason
 - mRemoteNG HTTP and HTTPS connections import as web profiles, with their scheme, port and username
 
 ### Telnet
@@ -258,6 +260,7 @@ All tools open as session tabs (split with any session or tool, detach, reorder)
 | **System** | Chmod Calculator, Crontab Builder, DateTime Converter (timezone + relative), UUID Generator (v4 + v7), ULID Generator, Hosts File Editor, SSH Config Generator, Log Viewer / Tail (regex filter), Cron Job Manager (crontab + Windows tasks), Service Status Dashboard, **Notes** (Obsidian-style Markdown editor with Milkdown WYSIWYG + Dracula theme, collapsible sidebar with persisted width, right-click formatting menu, localized templates EN/FR, TreeView file explorer, accent-insensitive `[[wiki-links]]`, tags, drag-and-drop, Confluence/HTML export), **Diagram Editor** (draw.io embedded offline, New/Open/Save/Export PNG), **Command Library**, **Privilege Launcher** |
 
 ### Session Management
+- **Properties panel** under the tree (filter menu, `Settings > General > Session tree` or Ctrl+Shift+B): the selected session's protocol, address, authentication, user, SSH key, gateway, folder, environment, tags, latency and last opened time, each copied with a click; a folder under the cursor or a multi-selection is summarized by session count, connected count and protocol
 - Tabbed sessions with drag-to-reorder
 - Tab detach to floating window (Chrome-style drag-out or context menu); a split tab stays in the strip, and the status bar says to unsplit it first
 - Closing the selected tab selects the tab that takes its place, or the one before it when it was the last
