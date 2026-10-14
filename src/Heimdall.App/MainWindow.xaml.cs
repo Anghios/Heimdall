@@ -1888,10 +1888,24 @@ public partial class MainWindow : Window, IContextMenuCallbacks, ISessionTabCont
             _keyboardShortcutService,
             () =>
             {
-                if (GetMainVm() is { } vm)
+                if (GetMainVm() is not { } vm)
                 {
-                    vm.ServerList.ShowPropertiesPanel = !vm.ServerList.ShowPropertiesPanel;
+                    return;
                 }
+
+                if (SessionPropertiesPanelLayout.ShortcutReveals(vm.Sidebar.IsToolsTabActive, _uiState.IsSidebarHidden))
+                {
+                    vm.ServerList.ShowPropertiesPanel = true;
+                    vm.Sidebar.SetActiveTab(isTools: false);
+                    if (_uiState.IsSidebarHidden)
+                    {
+                        ToggleSidebar();
+                    }
+
+                    return;
+                }
+
+                vm.ServerList.ShowPropertiesPanel = !vm.ServerList.ShowPropertiesPanel;
             },
             () => !IsTerminalFocusedContext());
 

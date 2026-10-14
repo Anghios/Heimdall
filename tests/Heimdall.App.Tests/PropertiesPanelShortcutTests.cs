@@ -78,10 +78,50 @@ public sealed class PropertiesPanelShortcutTests
         Assert.Equal(binding, (string?)checkBox.Attribute("IsChecked"));
     }
 
-    [Fact]
-    public void TheMenu_ShowsTheShortcut()
+    /// <summary>
+    /// The menu wrote "Ctrl+Shift+B" in every language while the Settings line of the same panel
+    /// said "Ctrl+Maj+B" in French: the key names come from the catalogue now.
+    /// </summary>
+    [Theory]
+    [InlineData("en", "Ctrl+Shift+B")]
+    [InlineData("fr", "Ctrl+Maj+B")]
+    [InlineData("es", "Ctrl+May\u00fas+B")]
+    public void TheMenu_ShowsTheShortcutInTheUsersLanguage(string language, string expected)
     {
-        Assert.Equal("Ctrl+Shift+B", (string?)FindNamed("Mw_ShowPropertiesPanelMenu").Attribute("InputGestureText"));
+        Assert.Equal(
+            "{loc:Translate PropertiesPanelGesture}",
+            (string?)FindNamed("Mw_ShowPropertiesPanelMenu").Attribute("InputGestureText"));
+
+        using System.Text.Json.JsonDocument catalogue = System.Text.Json.JsonDocument.Parse(
+            File.ReadAllText(Path.Combine(FindRepositoryRoot(), "locales", $"{language}.json")));
+        Assert.Equal(expected, catalogue.RootElement.GetProperty("PropertiesPanelGesture").GetString());
+    }
+
+    /// <summary>
+    /// A spoken name that does not start with the visible label fails a voice-control user who
+    /// says what they see (WCAG 2.5.3): the long description is help text, not the name.
+    /// </summary>
+    [Fact]
+    public void TheMenuItem_IsNamedByItsVisibleLabel()
+    {
+        XElement item = FindNamed("Mw_ShowPropertiesPanelMenu");
+
+        Assert.Null(item.Attribute("AutomationProperties.Name"));
+        Assert.Equal("{loc:Translate FilterShowPropertiesPanelHelpText}", (string?)item.Attribute("AutomationProperties.HelpText"));
+    }
+
+    /// <summary>
+    /// On the Tools tab or with the sidebar hidden the panel cannot be seen: the shortcut shows it
+    /// there instead of switching it off unseen.
+    /// </summary>
+    [Theory]
+    [InlineData(false, false, false)]
+    [InlineData(true, false, true)]
+    [InlineData(false, true, true)]
+    [InlineData(true, true, true)]
+    public void TheShortcut_RevealsAPanelThatCannotBeSeen(bool toolsTab, bool sidebarHidden, bool expected)
+    {
+        Assert.Equal(expected, SessionPropertiesPanelLayout.ShortcutReveals(toolsTab, sidebarHidden));
     }
 
     private static XElement FindNamed(string name)

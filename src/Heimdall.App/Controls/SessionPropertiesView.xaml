@@ -74,7 +74,7 @@
                     </MultiBinding>
                 </Border.Background>
                 <TextBlock x:Name="Spv_Protocol"
-                           Text="{Binding ConnectionType}"
+                           Text="{Binding ProtocolDisplayName}"
                            FontSize="{StaticResource FontSizeCaption}" FontWeight="SemiBold"
                            Foreground="{DynamicResource BadgeTextBrush}"
                            TextTrimming="CharacterEllipsis"/>

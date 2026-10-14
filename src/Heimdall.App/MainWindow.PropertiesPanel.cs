@@ -35,8 +35,6 @@ namespace Heimdall.App;
 /// </remarks>
 public partial class MainWindow
 {
-    private const double PropertiesPanelSplitterHeight = 4d;
-
     private PropertyChangedEventHandler? _propertiesPanelServerListHandler;
     private PropertyChangedEventHandler? _propertiesPanelSidebarHandler;
 
@@ -44,7 +42,8 @@ public partial class MainWindow
     {
         _propertiesPanelServerListHandler = (_, e) =>
         {
-            if (string.Equals(e.PropertyName, nameof(ServerListViewModel.ShowPropertiesPanel), StringComparison.Ordinal))
+            if (e.PropertyName is nameof(ServerListViewModel.ShowPropertiesPanel)
+                or nameof(ServerListViewModel.PropertiesPanelHeight))
             {
                 Dispatcher.BeginInvoke(() => ApplyPropertiesPanelLayout(viewModel));
             }
@@ -111,7 +110,7 @@ public partial class MainWindow
         double height = SessionPropertiesPanelLayout.FitHeight(
             viewModel.ServerList.PropertiesPanelHeight,
             SidebarContentGrid.ActualHeight);
-        PropertiesSplitterRow.Height = new GridLength(PropertiesPanelSplitterHeight);
+        PropertiesSplitterRow.Height = new GridLength(SessionPropertiesPanelLayout.SplitterHeight);
         PropertiesPanelRow.MinHeight = SessionPropertiesPanelLayout.MinHeight;
         PropertiesPanelRow.Height = new GridLength(height);
     }

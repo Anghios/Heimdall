@@ -392,6 +392,45 @@ public sealed class SessionPropertiesPanelTests
             (string?)FindNamed(window, "Mw_PropertiesPanelCloseBtn").Attribute("ToolTip"));
     }
 
+    /// <summary>The tree and the folder summary name a protocol by its display name; the badge used the raw type.</summary>
+    [Fact]
+    public void TheProtocolBadge_ShowsTheDisplayName()
+    {
+        XDocument control = LoadXaml(Path.Combine("Controls", "SessionPropertiesView.xaml"));
+
+        Assert.Equal("{Binding ProtocolDisplayName}", (string?)FindNamed(control, "Spv_Protocol").Attribute("Text"));
+    }
+
+    /// <summary>
+    /// A Border has no automation peer, so the name it carried reached no screen reader: the panel
+    /// is a named region through its scroll viewer, and its title is a heading to jump to.
+    /// </summary>
+    [Fact]
+    public void ThePanel_IsANamedRegionWithAHeading()
+    {
+        XDocument window = LoadXaml("MainWindow.xaml");
+        XElement panel = FindNamed(window, "PropertiesPanel");
+
+        Assert.Null(panel.Attribute("AutomationProperties.Name"));
+        XElement scroller = Assert.Single(panel.Descendants(PresentationNamespace + "ScrollViewer"));
+        Assert.Equal("{loc:Translate PropertiesPanelTitle}", (string?)scroller.Attribute("AutomationProperties.Name"));
+        Assert.Contains(
+            panel.Descendants(PresentationNamespace + "TextBlock"),
+            text => (string?)text.Attribute("Text") == "{loc:Translate PropertiesPanelTitle}"
+                && (string?)text.Attribute("AutomationProperties.HeadingLevel") == "Level2");
+    }
+
+    [Fact]
+    public void TheSplitter_TakesItsHeightFromTheLayout()
+    {
+        XDocument window = LoadXaml("MainWindow.xaml");
+
+        Assert.Equal(
+            "{x:Static services:SessionPropertiesPanelLayout.SplitterHeight}",
+            (string?)FindNamed(window, "PropertiesPanelSplitter").Attribute("Height"));
+        Assert.True(SessionPropertiesPanelLayout.SplitterHeight >= 6d);
+    }
+
     private sealed class RecordingClipboard : IClipboardService
     {
         public List<string> Texts { get; } = [];

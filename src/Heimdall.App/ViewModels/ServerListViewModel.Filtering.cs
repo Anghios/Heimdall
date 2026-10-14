@@ -71,8 +71,17 @@ public partial class ServerListViewModel
     private bool _showPropertiesPanel;
 
     /// <summary>The height the properties panel was last dragged to, already clamped.</summary>
-    public double PropertiesPanelHeight { get; private set; } =
-        Services.SessionPropertiesPanelLayout.DefaultHeight;
+    /// <remarks>
+    /// Raised, so a height arriving from the settings (an import, a reset) is laid out at once
+    /// rather than on the next toggle of the panel.
+    /// </remarks>
+    public double PropertiesPanelHeight
+    {
+        get => _propertiesPanelHeight;
+        private set => SetProperty(ref _propertiesPanelHeight, value);
+    }
+
+    private double _propertiesPanelHeight = Services.SessionPropertiesPanelLayout.DefaultHeight;
 
     /// <summary>Whether the external credential provider is on, pushed to every row.</summary>
     private bool _usesCredentialProvider;
