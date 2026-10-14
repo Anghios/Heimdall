@@ -185,7 +185,7 @@ public sealed class SessionTabContextMenuFactory
         SessionTabViewModel current)
     {
         return ordered
-            .Where(session => !ReferenceEquals(session, current) && !session.IsPinned)
+            .Where(session => !ReferenceEquals(session, current) && !session.IsPinned && !session.IsTabGroupCollapsed)
             .ToList();
     }
 
@@ -217,7 +217,9 @@ public sealed class SessionTabContextMenuFactory
         var result = new List<SessionTabViewModel>(ordered.Count - index - 1);
         for (var i = index + 1; i < ordered.Count; i++)
         {
-            if (!ordered[i].IsPinned)
+            // A tab folded in a collapsed group is out of sight: closing it from a gesture the
+            // user aimed at the visible strip took tabs they had only put away.
+            if (!ordered[i].IsPinned && !ordered[i].IsTabGroupCollapsed)
             {
                 result.Add(ordered[i]);
             }

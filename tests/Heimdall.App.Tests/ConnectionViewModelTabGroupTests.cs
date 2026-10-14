@@ -425,6 +425,51 @@ public sealed class ConnectionViewModelTabGroupTests
         Assert.False(sut.HasOtherTabGroup(loose));
     }
 
+    /// <summary>
+    /// With only one folder's tabs open, a click on the chip leaves the group open, and the chip
+    /// used to give no reason why: it says so now, and stops saying it once another tab opens.
+    /// </summary>
+    [Fact]
+    public void TheOnlyGroupOpen_ItsChipSaysItCannotBeFolded()
+    {
+        ConnectionViewModel sut = CreateViewModel(groupByFolder: true);
+        SessionTabViewModel ops1 = Open(sut, "ops-1");
+        Open(sut, "ops-2");
+
+        Assert.Equal("SessionTabGroupChipLoneA11y", ops1.TabGroupAccessibleName);
+
+        Open(sut, "lab-1");
+
+        Assert.Equal("SessionTabGroupChipExpandedA11y", ops1.TabGroupAccessibleName);
+    }
+
+    /// <summary>
+    /// "Close others" and "Close to the right" are aimed at the strip the user sees: a folder
+    /// folded away is not in it, and its tabs used to be closed with the rest.
+    /// </summary>
+    [Fact]
+    public void BulkCloses_LeaveAFoldedGroupAlone()
+    {
+        ConnectionViewModel sut = CreateViewModel(groupByFolder: true);
+        SessionTabViewModel lab1 = Open(sut, "lab-1");
+        SessionTabViewModel ops1 = Open(sut, "ops-1");
+        SessionTabViewModel ops2 = Open(sut, "ops-2");
+        SessionTabViewModel lab2 = Open(sut, "lab-2");
+        sut.ActiveSession = lab1;
+        sut.ToggleTabGroupCollapsedCommand.Execute(ops1);
+        List<SessionTabViewModel> strip = [.. sut.ActiveSessions];
+
+        IReadOnlyList<SessionTabViewModel> others = SessionTabContextMenuFactory.SessionsToCloseOthers(strip, lab1);
+        IReadOnlyList<SessionTabViewModel> right = SessionTabContextMenuFactory.SessionsToCloseToRight(strip, lab1);
+
+        Assert.True(ops1.IsTabGroupCollapsed);
+        Assert.DoesNotContain(ops1, others);
+        Assert.DoesNotContain(ops2, others);
+        Assert.Contains(lab2, others);
+        Assert.DoesNotContain(ops1, right);
+        Assert.DoesNotContain(ops2, right);
+    }
+
     private ConnectionViewModel CreateViewModel(bool groupByFolder)
     {
         ConnectionViewModel viewModel = new(
