@@ -12,6 +12,66 @@
 
 All notable changes to Heimdall are documented in this file.
 
+## 2026-10-14: web consoles and a properties panel (v2026.101401)
+
+### Web consoles
+
+- **Web is a connection type** (#562, issue #558). A web console (iLO, iDRAC, switch, NAS admin
+  page) is a profile of the tree and opens in a tab rendered by WebView2. The address is built
+  from the profile's host and port, HTTPS or HTTP and an optional path, so the tree, the search,
+  the reachability check and the external tools read the same host as for every other type. Every
+  web tab shares one browser profile kept in the data directory. Navigation is limited to web
+  addresses, in the page and its frames; a popup opens in the same tab. An HTTP error, or a link
+  that fails after the console has loaded, leaves the session up.
+- **Certificates the system does not trust** are shown with their fingerprint and trusted once or
+  for good, per host and port, as for FTPS (#562). A changed certificate is asked again with a
+  warning and Enter does not accept it. `Settings > Security` lists the pins with search and
+  forgets one; every open tab then asks again (#563).
+- **The browser's sign-in prompt** (Basic, NTLM) is answered from the profile, for its own scheme,
+  host and port only, once per tab (#562). With the credential provider on, a profile that names a
+  user and stores no password gets it from the provider (#567).
+- **Through an SSH gateway** (#565): the gateway's tunnel opens a SOCKS proxy and the tab goes
+  through it with the console's real name. Every console behind one gateway shares one tunnel,
+  released with the last tab; each gateway has a browser profile of its own. Opening externally
+  through a gateway is refused.
+- **Open with an external program**, per profile, for a console no current engine accepts (#562).
+  `{Url}`, `{Host}` and `{Port}` are replaced; command interpreters are refused; an imported
+  profile that names a program asks for confirmation before running it. A tab header button and
+  the load-failure panel open the current page externally, and load errors read in words (#566).
+- **A console opens at the zoom it was left at**, kept per profile in the settings, clamped to the
+  engine's range; back at 100% the entry is removed (#571).
+- **The reachability dot asks for the console's root page** instead of opening its port (#572).
+  Below 500 is up, 5xx is down with the code in the tooltip, a handshake the system refuses is up
+  with its own reason, and one the peer cuts short is down. The probe sends no credentials,
+  cookies or body, follows no redirect, bypasses the proxy and does not check the certificate.
+- **mRemoteNG HTTP and HTTPS connections import as web profiles** (#562).
+
+### Properties panel
+
+- **The selected session's properties dock under the tree** (#561, issue #557), opt-in from the
+  filter menu, `Settings > General > Session tree` or Ctrl+Shift+B (#568). It follows the
+  selection even while a session tab covers the detail pane; drag the bar above it to resize it.
+- **A value copies with a click**, or with Tab and Enter (#564).
+- **SSH key, latency and last opened** are shown (#569). The last opened time is read once from
+  the connection history and kept current when a session opens.
+- **A folder under the tree cursor, or a multi-selection, is summarized** (#570): session count,
+  connected count and one line per protocol. The panel follows whatever the user touched last.
+
+### SSH gateways
+
+- **One rule decides whether a profile goes through an SSH gateway** (#573, #574): a protocol whose
+  handler tunnels, direct connection off, and a gateway on the profile or inherited from its
+  folder. The tunnel service, the preflight, the handlers, the embedded RDP view, the
+  reachability check, the "via" badge, the gateway overview, the gateway facet and the `$gateway`
+  variable of external tools all use it.
+- **A split pane and its reconnect inherit the folder defaults** (#573), gateway and SSH user, key
+  and port included, as a tab always did.
+
+### Tests
+
+- **Refused-connection tests hold their port** instead of releasing it (#575), which removed a
+  race measured under heavy load.
+
 ## 2026-10-13: session tabs arranged by folder (v2026.101301)
 
 ### Session tabs: arranged by the folder of their profile
