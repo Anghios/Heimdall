@@ -66,12 +66,38 @@ public static class WebView2Helper
             Path.GetTempPath(), "Heimdall", "WebView2", userDataSubfolder);
 
         string? browserExecutableFolder = IsBundled ? BundledRuntimePath : null;
+        var options = new CoreWebView2EnvironmentOptions(
+            additionalBrowserArguments: EmbeddedBrowserArguments(null));
 
         return await CoreWebView2Environment.CreateAsync(
             browserExecutableFolder: browserExecutableFolder,
-            userDataFolder: userDataFolder)
+            userDataFolder: userDataFolder,
+            options: options)
             .ConfigureAwait(false);
     }
+
+    /// <summary>
+    /// The switch every embedded view runs with: the pointer stays visible while the user types.
+    /// </summary>
+    internal const string HideCursorWhileTypingOff = "--disable-features=HideCursorWhileTyping";
+
+    /// <summary>
+    /// The browser arguments of one embedded view: the app-wide switch, then the route's own.
+    /// </summary>
+    /// <remarks>
+    /// Chromium hides the pointer while the user types when Windows asks for it
+    /// (<c>HideCursorWhileTyping</c>, on by default), and shows it again only when a mouse event
+    /// reaches the same window that hid it. A view closed while its pointer was hidden therefore
+    /// left the window without one, and no code on this side could bring it back: the counter that
+    /// hides the pointer belongs to the browser's own thread. That is what happened between runtime
+    /// 152 and 154, and the Fixed Version Runtime bundled with the Self-Contained edition never
+    /// updates out of it. The feature buys a pointer that follows the typing and costs a window the
+    /// user cannot point at, so every view turns it off.
+    /// </remarks>
+    internal static string EmbeddedBrowserArguments(string? routeArguments)
+        => string.IsNullOrWhiteSpace(routeArguments)
+            ? HideCursorWhileTypingOff
+            : $"{HideCursorWhileTypingOff} {routeArguments}";
 
     /// <summary>Sub-folder of the data directory holding the web consoles' browser profile.</summary>
     internal const string WebConsoleProfileFolder = "WebView2-Web";
@@ -117,9 +143,8 @@ public static class WebView2Helper
                 WebConsoleProfileFolderFor(gatewayId, proxyPort));
             string? browserExecutableFolder = IsBundled ? BundledRuntimePath : null;
             string? arguments = WebConsoleBrowserArguments(proxyPort);
-            CoreWebView2EnvironmentOptions? options = arguments is null
-                ? null
-                : new CoreWebView2EnvironmentOptions(additionalBrowserArguments: arguments);
+            CoreWebView2EnvironmentOptions options = new(
+                additionalBrowserArguments: EmbeddedBrowserArguments(arguments));
             Task<CoreWebView2Environment> created = CoreWebView2Environment.CreateAsync(
                 browserExecutableFolder: browserExecutableFolder,
                 userDataFolder: userDataFolder,

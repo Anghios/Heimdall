@@ -78,6 +78,7 @@ Index de tous les problèmes rencontrés pendant le développement et de leurs s
 61. [Paramètres - "Configuration restaurée" au démarrage](#settings-restored-from-backup)
 62. [Tunnel - "Plink s'est arrêté avant d'ouvrir le tunnel"](#tunnel-plink-exited-early)
 63. [VNC - le serveur demande un nom d'utilisateur ou un mot de passe](#vnc-credentials-required)
+64. [WebView2 - le pointeur disparait à la fermeture d'un terminal](#webview2-pointer-hidden-after-close)
 
 ---
 
@@ -1149,3 +1150,19 @@ N'utilisez **pas** `IServiceProvider.QueryService` dans ce cas. Sur `MsTscAx.MsT
 2. Pour le message sur le nom d'utilisateur, passer le serveur à l'authentification VNC par simple mot de passe si vous le maîtrisez (sur macOS, l'option du Partage d'écran qui autorise les visualiseurs VNC à contrôler l'écran avec un mot de passe), ou utiliser un autre client pour ce serveur.
 
 **Fichiers** : `Services/VncCredentialsPolicy.cs`, `Views/EmbeddedVncView.xaml.cs`, `Assets/vnc.html`
+
+---
+
+## 64. WebView2 - le pointeur disparait à la fermeture d'un terminal {#webview2-pointer-hidden-after-close}
+
+**Symptôme** : le pointeur disparaît pendant la frappe dans un terminal embarqué, et fermer cet onglet le laisse invisible sur toute la fenêtre, y compris sur les boutons qui serviraient à la fermer. Les clics atteignent bien leur cible, donc l'application reste utilisable, mais rien n'indique où le clic va tomber tant que le pointeur n'est pas revenu sur une autre vue embarquée.
+
+**Cause racine** : chaque vue embarquée est un WebView2, et Chromium masque le pointeur pendant la frappe quand Windows le demande, ce que fait par défaut l'option "Masquer le pointeur pendant la frappe" du panneau de configuration de la souris. Le pointeur ne revient que lorsqu'un événement de souris atteint la même fenêtre que celle qui l'a masqué, et le navigateur le masque par un compteur qui appartient à son propre thread : rien du côté de Heimdall ne peut le rétablir, et fermer la vue qui l'a masquée supprime la seule chose qui l'aurait fait. La régression est arrivée avec le runtime WebView2 152 et son correctif avec le 155, et le Fixed Version Runtime embarqué dans l'édition Self-Contained ne se met pas à jour tout seul.
+
+**Solution** :
+
+1. Chaque vue embarquée démarre maintenant avec `--disable-features=HideCursorWhileTyping` : le pointeur n'est plus masqué pendant la frappe, donc l'état ne peut plus rester derrière, quelle que soit la version du runtime présente sur la machine.
+2. Sur une version plus ancienne, mettez à jour le runtime WebView2 vers 155 ou plus, ou désactivez l'option Windows (Panneau de configuration > Souris > Options du pointeur > Masquer le pointeur pendant la frappe), puis relancez Heimdall.
+3. Un pointeur déjà perdu revient dès qu'il passe sur une autre vue embarquée. L'application n'a pas besoin d'être relancée et aucune session n'est perdue.
+
+**Fichiers** : `Services/WebView2Helper.cs`
