@@ -4494,6 +4494,8 @@
   "HealthReasonOther": "La conexión falló",
   "HealthReasonNoPort": "No hay puerto de sondeo para este protocolo",
   "HealthReasonNoHost": "No hay ningún host configurado",
+  "HealthReasonHttpError": "La consola respondi\u00f3 HTTP {0}",
+  "HealthReasonTlsFailed": "El puerto responde, pero la conexi\u00f3n segura fue rechazada",
   "HealthLastCheckedNever": "nunca",
   "SettingsSectionSessionHealthMonitor": "Supervisor de estado de sesión",
   "SettingsLabelSessionHealthMonitorEnabled": "Activar sondeos de accesibilidad en segundo plano",

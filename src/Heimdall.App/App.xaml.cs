@@ -893,6 +893,7 @@ public partial class App : System.Windows.Application
         services.AddSingleton<ExternalToolSettingsService>();
         services.AddSingleton<ExternalToolLaunchService>();
         services.AddSingleton<IHealthProbe, TcpHealthProbe>();
+        services.AddSingleton<IWebHealthProbe, HttpHealthProbe>();
         services.AddSingleton<SessionHealthMonitor>();
         services.AddSingleton<NetworkScannerService>();
         services.AddSingleton<ToolsTabPopulationService>();

@@ -102,6 +102,10 @@ will open.
 - A username and password in the profile answer the browser's own sign-in window (Basic or
   NTLM). A sign-in form inside the page is not filled in. With the credential provider turned
   on, give the profile a username only: the password comes from your vault.
+- With the reachability check on, a web console's dot asks for its page rather than only opening
+  its port: a console answering with a server error (5xx) shows as unreachable, with the code in
+  the tooltip. A console whose secure connection the system refuses, often an old one, still shows
+  as reachable, with the reason in the tooltip; one that cuts the connection off shows as unreachable.
 - A console opens at the zoom you last left it at (Ctrl and the mouse wheel, or Ctrl and + or -),
   kept per profile. Back at 100%, nothing is kept.
 - If a console looks wrong in its tab, the button at the top right of the tab opens the same page
