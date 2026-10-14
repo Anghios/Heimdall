@@ -420,6 +420,10 @@ public sealed class AppSettings
     // Key: "host:port" or "[ipv6]:port"; Value: certificate fingerprint + provenance.
     public Dictionary<string, FtpsCertificateEntry> TrustedWebCertificates { get; set; } = new();
 
+    // The zoom each web console was last left at. Key: profile id; Value: the browser's zoom
+    // factor. The default zoom is not stored.
+    public Dictionary<string, double> WebConsoleZoomByProfile { get; set; } = new();
+
     /// <summary>RDP certificates trusted per profile - a SET each, never one.</summary>
     /// <remarks>
     /// Keyed by profile identifier, and holding a LIST rather than a single value, because

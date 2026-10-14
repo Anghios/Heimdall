@@ -23,6 +23,7 @@ using Heimdall.App.Services.Handlers;
 using Heimdall.App.ViewModels;
 using Heimdall.App.ViewModels.Dialogs;
 using Heimdall.Core.Certificates;
+using Heimdall.Core.Codecs;
 using Heimdall.Core.Localization;
 using Heimdall.Core.Logging;
 using Heimdall.Core.Models;
@@ -65,6 +66,9 @@ public partial class EmbeddedWebView : UserControl, IDisposable, ISessionPaneOwn
 
     /// <summary>The pins the user gave to consoles the browser refused; set by the session manager.</summary>
     public WebCertificateTrust? CertificateTrust { get; set; }
+
+    /// <summary>The zoom each console was last left at; set by the session manager.</summary>
+    public WebZoomMemory? ZoomMemory { get; set; }
 
     /// <summary>The pane this view lives in, wherever a split, a merge or a detach moved it.</summary>
     internal SessionPaneModel? OwningPane => _ownerPane;
@@ -167,6 +171,15 @@ public partial class EmbeddedWebView : UserControl, IDisposable, ISessionPaneOwn
             {
                 CertificateTrust.CertificateRemoved += OnCertificateRemoved;
             }
+
+            // The zoom the console was last left at, then every change the user makes to it.
+            string profileId = ZoomProfileId(_session.ServerId);
+            if (ZoomMemory?.Get(profileId) is double zoom)
+            {
+                ConsoleWebView.ZoomFactor = zoom;
+            }
+
+            ConsoleWebView.ZoomFactorChanged += OnZoomFactorChanged;
 
             core.Navigate(_session.Address.AbsoluteUri);
         }
@@ -551,6 +564,21 @@ public partial class EmbeddedWebView : UserControl, IDisposable, ISessionPaneOwn
 
     private string Text(string key) => _localizer?[key] ?? key;
 
+    private void OnZoomFactorChanged(object? sender, EventArgs e)
+    {
+        if (!_disposed && _session is not null)
+        {
+            ZoomMemory?.Remember(ZoomProfileId(_session.ServerId), ConsoleWebView.ZoomFactor);
+        }
+    }
+
+    /// <summary>
+    /// The profile a console's zoom is kept under: the session id carries it, and a console
+    /// opened twice shares one zoom.
+    /// </summary>
+    internal static string ZoomProfileId(string serverId) =>
+        SessionIdCodec.TryGetInventoryId(serverId, out string inventoryId) ? inventoryId : serverId;
+
     public void Dispose()
     {
         if (_disposed)
@@ -564,6 +592,8 @@ public partial class EmbeddedWebView : UserControl, IDisposable, ISessionPaneOwn
         {
             CertificateTrust.CertificateRemoved -= OnCertificateRemoved;
         }
+
+        ConsoleWebView.ZoomFactorChanged -= OnZoomFactorChanged;
 
         if (ConsoleWebView.CoreWebView2 is { } core)
         {

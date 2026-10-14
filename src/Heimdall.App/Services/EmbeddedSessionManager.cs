@@ -72,6 +72,7 @@ public sealed class EmbeddedSessionManager : IEmbeddedSessionManager, IDisposabl
     /// holds in the next and is persisted; a fresh in-memory one when none is supplied.
     /// </summary>
     private readonly WebCertificateTrust _webCertificateTrust;
+    private readonly WebZoomMemory _webZoomMemory;
     private ConfigGatewayInventory? _gatewayInventory;
 
     /// <summary>
@@ -171,9 +172,11 @@ public sealed class EmbeddedSessionManager : IEmbeddedSessionManager, IDisposabl
         ISessionEventLog sessionEventLog,
         ISessionOperationLog sessionOperationLog,
         ConfigManager configManager,
-        WebCertificateTrust? webCertificateTrust = null)
+        WebCertificateTrust? webCertificateTrust = null,
+        WebZoomMemory? webZoomMemory = null)
     {
         _webCertificateTrust = webCertificateTrust ?? new WebCertificateTrust();
+        _webZoomMemory = webZoomMemory ?? new WebZoomMemory();
         _localizer = localizer;
         _dialogService = dialogService;
         _hostKeyStore = hostKeyStore;
@@ -591,7 +594,11 @@ public sealed class EmbeddedSessionManager : IEmbeddedSessionManager, IDisposabl
         if (string.Equals(connectionType, "WEB", StringComparison.OrdinalIgnoreCase)
             && session is WebSessionResult web)
         {
-            var view = new EmbeddedWebView { CertificateTrust = _webCertificateTrust };
+            var view = new EmbeddedWebView
+            {
+                CertificateTrust = _webCertificateTrust,
+                ZoomMemory = _webZoomMemory,
+            };
             view.SessionConnected += (serverId) =>
             {
                 _connectionSm.TryTransition(serverId, ConnectionState.Connected);
