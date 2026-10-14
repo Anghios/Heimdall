@@ -161,6 +161,14 @@
     <!-- Close button of a tab neither hovered nor selected. 0.3 measured 2.37:1 against the strip
          in the default dark theme, under the 3:1 a control needs (WCAG 1.4.11); 0.5 measures 4.19:1. -->
     <sys:Double x:Key="TabCloseButtonIdleOpacity">0.5</sys:Double>
+    <!-- State mark after a tab title, shown only for a session that needs a look. Each state has
+         its own shape, so colour is never the only cue (WCAG 1.4.1): a pulsing dot while it
+         connects, a ring once it dropped, a warning triangle when it failed. -->
+    <sys:Double x:Key="SessionTabStateMarkSize">8</sys:Double>
+    <sys:Double x:Key="SessionTabStateRingThickness">1.5</sys:Double>
+    <sys:Double x:Key="SessionTabStateGlyphFontSize">11</sys:Double>
+    <Thickness x:Key="SessionTabStateMarkMargin">6,0,0,0</Thickness>
+    <sys:String x:Key="SessionTabFailedGlyph">&#xE7BA;</sys:String>
     <!-- Transparent frame around the status dot: the hover target is the dot plus this on each side. -->
     <Thickness x:Key="SessionTreeStatusHitPadding">3</Thickness>
     <!-- The multiplication sign that closes a filter chip. -->

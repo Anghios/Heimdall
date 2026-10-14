@@ -101,11 +101,15 @@ public partial class MainWindow
                 ContentDropZone.Visibility = Visibility.Collapsed;
             }
 
-            // If the drop landed outside the drag-drop host (no target accepted it),
-            // detach the tab to a floating window. Explicit user cancel (Escape)
-            // also yields DragDropEffects.None and must not detach.
-            if (result == System.Windows.DragDropEffects.None
-                && !_tabState.DragWasCancelled
+            // A drop no target accepted detaches the tab, unless it was let go over another part
+            // of this window. Explicit user cancel (Escape) also yields DragDropEffects.None and
+            // must not detach.
+            bool releasedInsideWindow = IsCursorOver(this);
+            if (TabDropDecision.ShouldDetach(
+                    accepted: result != System.Windows.DragDropEffects.None,
+                    cancelled: _tabState.DragWasCancelled,
+                    releasedInsideWindow,
+                    releasedOverSessionContent: releasedInsideWindow && IsCursorOver(SessionContentHost))
                 && draggedSession is not null
                 && detachVm is not null)
             {
@@ -175,6 +179,7 @@ public partial class MainWindow
         }
 
         ClearTabDropHighlight();
+        AutoScrollTabStripDuringDrag(e);
 
         e.Effects = System.Windows.DragDropEffects.Move;
 
@@ -293,6 +298,35 @@ public partial class MainWindow
         {
             vm.Connection.CloseSessionCommand.Execute(session);
         }
+    }
+
+    /// <summary>
+    /// True when the pointer is over <paramref name="element"/>. Read from the system cursor:
+    /// once a drag ends, no WPF event carries the point it ended at.
+    /// </summary>
+    private static bool IsCursorOver(FrameworkElement element)
+    {
+        if (!element.IsVisible || !GetCursorPos(out NativeCursorPoint cursor))
+        {
+            return false;
+        }
+
+        System.Windows.Point local = element.PointFromScreen(new System.Windows.Point(cursor.X, cursor.Y));
+        return local.X >= 0
+            && local.Y >= 0
+            && local.X <= element.ActualWidth
+            && local.Y <= element.ActualHeight;
+    }
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
+    private static extern bool GetCursorPos(out NativeCursorPoint point);
+
+    [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+    private struct NativeCursorPoint
+    {
+        public int X;
+        public int Y;
     }
 
     /// <summary>True when the drag point is inside the tab strip rather than the content area.</summary>

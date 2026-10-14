@@ -77,6 +77,30 @@ internal static class TabDropDecision
     }
 
     /// <summary>
+    /// Whether a drag that no drop target took detaches the tab to a floating window.
+    /// </summary>
+    /// <remarks>
+    /// Any refused drop used to detach, so a tab let go over the session tree or the toolbar,
+    /// while reordering, popped out into a window of its own. Outside the window is the gesture,
+    /// and so is the session content area, which is the only "outside" a maximised window on a
+    /// single monitor has.
+    /// </remarks>
+    /// <param name="accepted">A drop target took the tab.</param>
+    /// <param name="cancelled">The user pressed Escape.</param>
+    /// <param name="releasedInsideWindow">The pointer was released over the main window.</param>
+    /// <param name="releasedOverSessionContent">The pointer was released over the session content area.</param>
+    internal static bool ShouldDetach(
+        bool accepted,
+        bool cancelled,
+        bool releasedInsideWindow,
+        bool releasedOverSessionContent)
+    {
+        return !accepted
+            && !cancelled
+            && (!releasedInsideWindow || releasedOverSessionContent);
+    }
+
+    /// <summary>
     /// Whether a tab may be dropped onto <paramref name="target"/> to take its place. With the
     /// tabs arranged by folder, only within its own folder: the arrangement puts a tab moved into
     /// another folder straight back, so the drop used to land and then undo itself unexplained.

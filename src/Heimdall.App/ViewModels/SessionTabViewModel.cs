@@ -92,6 +92,13 @@ public partial class SessionTabViewModel : ObservableObject
     private string _accessibleName = string.Empty;
 
     /// <summary>
+    /// Name of the tab's close button, naming the tab it closes. Assigned by
+    /// <see cref="ConnectionViewModel"/> beside <see cref="AccessibleName"/>.
+    /// </summary>
+    [ObservableProperty]
+    private string _closeAccessibleName = string.Empty;
+
+    /// <summary>
     /// User-supplied custom tab title. When non-blank it overrides the auto title
     /// (and suppresses the RDP mode suffix). Session-lifetime only; never persisted.
     /// </summary>
@@ -321,8 +328,11 @@ public partial class SessionTabViewModel : ObservableObject
     public string Status
     {
         get => PrimaryPane.Status;
-        set { PrimaryPane.Status = value; OnPropertyChanged(); }
+        set { PrimaryPane.Status = value; OnPropertyChanged(); OnPropertyChanged(nameof(HeaderState)); }
     }
+
+    /// <summary>The condition the tab header marks, folded from <see cref="Status"/>.</summary>
+    public SessionTabHeaderState HeaderState => SessionTabHeaderStates.From(Status, HasFailureDetails);
 
     public string EnvironmentColor
     {
@@ -349,6 +359,7 @@ public partial class SessionTabViewModel : ObservableObject
             PrimaryPane.FailureDetails = value;
             OnPropertyChanged();
             OnPropertyChanged(nameof(HasFailureDetails));
+            OnPropertyChanged(nameof(HeaderState));
         }
     }
 
@@ -592,6 +603,7 @@ public partial class SessionTabViewModel : ObservableObject
         OnPropertyChanged(nameof(EnvironmentColor));
         OnPropertyChanged(nameof(FailureDetails));
         OnPropertyChanged(nameof(HasFailureDetails));
+        OnPropertyChanged(nameof(HeaderState));
         OnPropertyChanged(nameof(IsSplit));
         OnPropertyChanged(nameof(SplitOrientation));
         OnPropertyChanged(nameof(SplitRatio));
@@ -628,6 +640,7 @@ public partial class SessionTabViewModel : ObservableObject
         {
             case nameof(SessionPaneModel.Status):
                 OnPropertyChanged(nameof(Status));
+                OnPropertyChanged(nameof(HeaderState));
                 break;
             case nameof(SessionPaneModel.HostControl):
                 OnPropertyChanged(nameof(HostControl));
@@ -640,6 +653,7 @@ public partial class SessionTabViewModel : ObservableObject
             case nameof(SessionPaneModel.FailureDetails):
                 OnPropertyChanged(nameof(FailureDetails));
                 OnPropertyChanged(nameof(HasFailureDetails));
+                OnPropertyChanged(nameof(HeaderState));
                 break;
         }
     }

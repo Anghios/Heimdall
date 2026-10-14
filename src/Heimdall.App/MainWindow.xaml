@@ -1524,7 +1524,6 @@
                                     QueryContinueDrag="OnTabQueryContinueDrag"
                                     Loaded="OnSessionTabStripLoaded"
                                     SelectionChanged="OnSessionTabSelectionChanged"
-                                    Tag="{loc:Translate A11yCloseSessionTab}"
                                     AutomationProperties.Name="{loc:Translate NavTabSessions}">
                             <TabControl.ItemContainerStyle>
                                 <Style TargetType="{x:Type TabItem}"
@@ -1542,9 +1541,13 @@
                             </TabControl.ItemContainerStyle>
                             <TabControl.ItemTemplate>
                                 <DataTemplate DataType="{x:Type vm:SessionTabViewModel}">
+                                    <!-- The tooltip is written as it opens (OnSessionTabToolTipOpening): full
+                                         title, endpoint, user, folder and state. The bound value only
+                                         makes it open; the title alone was all it used to say. -->
                                     <Border x:Name="TabHeaderBorder" Padding="10,6" Background="Transparent"
                                             BorderThickness="0,0,0,2" BorderBrush="Transparent"
-                                            ToolTip="{Binding HeaderToolTip}">
+                                            ToolTip="{Binding HeaderToolTip}"
+                                            ToolTipOpening="OnSessionTabToolTipOpening">
                                         <!-- The bottom border is the folder group bar: every tab of a group carries its
                                              colour. Always two pixels thick, so a grouped tab is as tall as any other. -->
                                         <StackPanel Orientation="Horizontal">
@@ -1609,7 +1612,7 @@
                                                         Opacity="{StaticResource TabCloseButtonIdleOpacity}" IsHitTestVisible="True"
                                                         Command="{Binding DataContext.Connection.CloseSessionCommand, RelativeSource={RelativeSource AncestorType=TabControl}}"
                                                         CommandParameter="{Binding}"
-                                                        AutomationProperties.Name="{Binding Tag, RelativeSource={RelativeSource AncestorType=TabControl}}"
+                                                        AutomationProperties.Name="{Binding CloseAccessibleName}"
                                                         Style="{DynamicResource SecondaryButtonStyle}"/>
                                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                                     <!-- Broadcast target marker: pick this session as a SelectedPanes broadcast
@@ -1697,8 +1700,53 @@
                                                     <TextBlock Text="{Binding DisplayTitle}" FontSize="{StaticResource FontSizeBody}" FontWeight="SemiBold"
                                                                Foreground="{DynamicResource TextPrimaryBrush}"
                                                                VerticalAlignment="Center"
-                                                               ToolTip="{Binding HeaderToolTip}"
                                                                TextTrimming="CharacterEllipsis" MaxWidth="160"/>
+                                                    <!-- The state in words is on the tab's own name and in its tooltip;
+                                                         this is the mark the eye scans the strip for. -->
+                                                    <Grid x:Name="TabStateMark"
+                                                          Margin="{StaticResource SessionTabStateMarkMargin}"
+                                                          VerticalAlignment="Center"
+                                                          Visibility="Collapsed">
+                                                        <Ellipse x:Name="TabStateConnectingDot"
+                                                                 Width="{StaticResource SessionTabStateMarkSize}"
+                                                                 Height="{StaticResource SessionTabStateMarkSize}"
+                                                                 Fill="{DynamicResource AccentBrush}"
+                                                                 Visibility="Collapsed">
+                                                            <Ellipse.Style>
+                                                                <Style TargetType="Ellipse">
+                                                                    <Style.Resources>
+                                                                        <Storyboard x:Key="TabStatePulse">
+                                                                            <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                                                                             From="1" To="0.2" Duration="0:0:0.6"
+                                                                                             AutoReverse="True" RepeatBehavior="Forever"/>
+                                                                        </Storyboard>
+                                                                    </Style.Resources>
+                                                                    <Style.Triggers>
+                                                                        <Trigger Property="Visibility" Value="Visible">
+                                                                            <Trigger.EnterActions>
+                                                                                <BeginStoryboard Name="TabStatePulseStoryboard" Storyboard="{StaticResource TabStatePulse}"/>
+                                                                            </Trigger.EnterActions>
+                                                                            <Trigger.ExitActions>
+                                                                                <StopStoryboard BeginStoryboardName="TabStatePulseStoryboard"/>
+                                                                            </Trigger.ExitActions>
+                                                                        </Trigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </Ellipse.Style>
+                                                        </Ellipse>
+                                                        <Ellipse x:Name="TabStateDroppedRing"
+                                                                 Width="{StaticResource SessionTabStateMarkSize}"
+                                                                 Height="{StaticResource SessionTabStateMarkSize}"
+                                                                 Stroke="{DynamicResource TextSecondaryBrush}"
+                                                                 StrokeThickness="{StaticResource SessionTabStateRingThickness}"
+                                                                 Visibility="Collapsed"/>
+                                                        <TextBlock x:Name="TabStateFailedGlyph"
+                                                                   Text="{StaticResource SessionTabFailedGlyph}"
+                                                                   FontFamily="Segoe MDL2 Assets"
+                                                                   FontSize="{StaticResource SessionTabStateGlyphFontSize}"
+                                                                   Foreground="{DynamicResource ErrorTextBrush}"
+                                                                   Visibility="Collapsed"/>
+                                                    </Grid>
                                                     <TextBlock x:Name="BusyIndicator" Text="&#x25CF;" FontSize="8"
                                                                Foreground="{DynamicResource AccentBrush}"
                                                                VerticalAlignment="Center" Margin="5,0,0,0"
@@ -1757,6 +1805,18 @@
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding IsBusy}" Value="True">
                                             <Setter TargetName="BusyIndicator" Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding HeaderState}" Value="{x:Static vm:SessionTabHeaderState.Transitioning}">
+                                            <Setter TargetName="TabStateMark" Property="Visibility" Value="Visible"/>
+                                            <Setter TargetName="TabStateConnectingDot" Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding HeaderState}" Value="{x:Static vm:SessionTabHeaderState.Disconnected}">
+                                            <Setter TargetName="TabStateMark" Property="Visibility" Value="Visible"/>
+                                            <Setter TargetName="TabStateDroppedRing" Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding HeaderState}" Value="{x:Static vm:SessionTabHeaderState.Failed}">
+                                            <Setter TargetName="TabStateMark" Property="Visibility" Value="Visible"/>
+                                            <Setter TargetName="TabStateFailedGlyph" Property="Visibility" Value="Visible"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding IsPostConnectRunning}" Value="True">
                                             <Setter TargetName="PostConnectIndicator" Property="Visibility" Value="Visible"/>

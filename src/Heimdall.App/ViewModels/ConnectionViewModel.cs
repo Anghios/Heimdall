@@ -166,7 +166,8 @@ public partial class ConnectionViewModel : ObservableObject
             or nameof(SessionTabViewModel.Title)
             or nameof(SessionTabViewModel.CustomTitle)
             or nameof(SessionTabViewModel.RdpModeOverrideSuffix)
-            or nameof(SessionTabViewModel.DisplayTitle))
+            or nameof(SessionTabViewModel.DisplayTitle)
+            or nameof(SessionTabViewModel.HeaderState))
         {
             RefreshAccessibleNames();
         }
@@ -198,21 +199,35 @@ public partial class ConnectionViewModel : ObservableObject
             foreach (SessionTabViewModel session in _trackedSessions)
             {
                 string title = session.DisplayTitle;
-                if (occurrences[title] <= 1)
+                string name = title;
+                if (occurrences[title] > 1)
                 {
-                    session.AccessibleName = title;
-                    continue;
+                    int ordinal = assigned.GetValueOrDefault(title) + 1;
+                    assigned[title] = ordinal;
+                    name = $"{title} ({ordinal})";
                 }
 
-                int ordinal = assigned.GetValueOrDefault(title) + 1;
-                assigned[title] = ordinal;
-                session.AccessibleName = $"{title} ({ordinal})";
+                ApplyAccessibleNames(session, name);
             }
         }
         finally
         {
             _refreshingAccessibleNames = false;
         }
+    }
+
+    /// <summary>
+    /// Names a tab and its close button from the disambiguated title. A tab that needs a look
+    /// says why after its name, so a screen reader hears the dropped session among the healthy
+    /// ones; the close button names the tab it closes, since every tab has one.
+    /// </summary>
+    private void ApplyAccessibleNames(SessionTabViewModel session, string name)
+    {
+        string? stateKey = SessionTabHeaderStates.ResolveKey(session.HeaderState, session.Status);
+        session.AccessibleName = stateKey is null
+            ? name
+            : _localizer.Format("SessionTabAccessibleNameWithState", name, _localizer[stateKey]);
+        session.CloseAccessibleName = _localizer.Format("A11yCloseSessionTabNamed", name);
     }
 
     /// <summary>Every open session: the tabs in the strip and those detached to their own window.</summary>
@@ -698,7 +713,7 @@ public partial class ConnectionViewModel : ObservableObject
         if (connectedCount > 0)
         {
             string title = _localizer["ConfirmCloseAllTabs"];
-            string message = _localizer.Format("ConfirmCloseAllTabsMessage", connectedCount);
+            string message = _localizer.Format("ConfirmCloseAllTabsMessage", ActiveSessions.Count, connectedCount);
             bool confirmed = await _dialogService.ShowConfirmAsync(title, message, "warning");
             if (!confirmed)
             {

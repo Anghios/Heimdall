@@ -657,6 +657,81 @@ public sealed class ConnectionViewModelCloseTests
         Assert.False(ConnectionViewModel.IsAtSessionThreshold(null, 1));
     }
 
+    [Fact]
+    public async Task CloseAllSessions_Prompt_CountsEveryTabAndTheConnectedOnes()
+    {
+        LocalizationManager localizer = await LoadEnglishAsync();
+        TrackingDialogService dialogService = new(false);
+        ConnectionViewModel sut = CreateViewModel(dialogService, new TrackingSplitService(), localizer);
+        AddTabs(
+            sut,
+            CreateSplitSession("Connected", "Disconnected"),
+            CreateSplitSession("Disconnected", "Disconnected"),
+            CreateSplitSession("Error", "Disconnected"));
+
+        await sut.CloseAllSessionsCommand.ExecuteAsync(null);
+
+        // The message filled its one placeholder with the connected count and called it the total.
+        Assert.Equal(localizer.Format("ConfirmCloseAllTabsMessage", 3, 1), dialogService.LastConfirmMessage);
+    }
+
+    [Fact]
+    public async Task AccessibleName_DroppedSession_SaysItsStateAfterItsName_AndLosesItOnReconnect()
+    {
+        LocalizationManager localizer = await LoadEnglishAsync();
+        ConnectionViewModel sut = CreateViewModel(new TrackingDialogService(false), new TrackingSplitService(), localizer);
+        SessionTabViewModel session = new() { Title = "srv01" };
+        session.PrimaryPane.Status = SessionStatusTokens.Connected;
+        AddTabs(sut, session);
+        Assert.Equal("srv01", session.AccessibleName);
+
+        // Written on the pane, as a host does, not through the tab's own setter.
+        session.PrimaryPane.Status = SessionStatusTokens.Disconnected;
+
+        Assert.Equal(
+            localizer.Format("SessionTabAccessibleNameWithState", "srv01", localizer["SessionStatusDisconnected"]),
+            session.AccessibleName);
+
+        session.PrimaryPane.Status = SessionStatusTokens.Connected;
+
+        Assert.Equal("srv01", session.AccessibleName);
+    }
+
+    [Fact]
+    public async Task AccessibleName_FreeTextFailure_IsNamedByTheGenericError_NotByTheReason()
+    {
+        LocalizationManager localizer = await LoadEnglishAsync();
+        ConnectionViewModel sut = CreateViewModel(new TrackingDialogService(false), new TrackingSplitService(), localizer);
+        SessionTabViewModel session = new() { Title = "srv01" };
+        AddTabs(sut, session);
+
+        session.PrimaryPane.Status = "Host key mismatch for srv01";
+
+        Assert.Equal(
+            localizer.Format("SessionTabAccessibleNameWithState", "srv01", localizer["SessionStatusError"]),
+            session.AccessibleName);
+    }
+
+    [Fact]
+    public async Task CloseAccessibleName_NamesTheTabItCloses_WithTheOrdinalOfACollision()
+    {
+        LocalizationManager localizer = await LoadEnglishAsync();
+        ConnectionViewModel sut = CreateViewModel(new TrackingDialogService(false), new TrackingSplitService(), localizer);
+        SessionTabViewModel first = CreatePinnableSession("srv01", pinned: false);
+        SessionTabViewModel second = CreatePinnableSession("srv01", pinned: false);
+        AddTabs(sut, first, second);
+
+        Assert.Equal(localizer.Format("A11yCloseSessionTabNamed", "srv01 (1)"), first.CloseAccessibleName);
+        Assert.Equal(localizer.Format("A11yCloseSessionTabNamed", "srv01 (2)"), second.CloseAccessibleName);
+    }
+
+    private static async Task<LocalizationManager> LoadEnglishAsync()
+    {
+        LocalizationManager localizer = new();
+        await localizer.LoadAsync(Path.Combine(AppContext.BaseDirectory, "locales"), "en");
+        return localizer;
+    }
+
     private static ConnectionViewModel CreatePinningViewModel()
         => CreateViewModel(new TrackingDialogService(false), new TrackingSplitService());
 
