@@ -136,7 +136,7 @@ public sealed class TunnelService : ITunnelService
             bool preferDistinctLoopback = false)
     {
         ct.ThrowIfCancellationRequested();
-        if (server.UseDirectConnection || string.IsNullOrEmpty(server.SshGatewayId))
+        if (SshGatewayRoute.GatewayIdFor(server, settings.GroupDefaults) is not { } gatewayId)
         {
             return new TunnelSetupOutcome(true, false, server.RemoteServer, remotePort, null, null);
         }
@@ -144,7 +144,7 @@ public sealed class TunnelService : ITunnelService
         bool useOsAssignedLocalPort = ShouldUseOsAssignedLocalPort(server, settings);
         TunnelResult tunnelResult = await EstablishTunnelAsync(
                 server.Id,
-                server.SshGatewayId,
+                gatewayId,
                 server.RemoteServer,
                 remotePort,
                 server.LocalPort,

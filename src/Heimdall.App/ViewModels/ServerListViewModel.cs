@@ -1010,12 +1010,7 @@ public partial class ServerListViewModel : ObservableObject, IDisposable, ISessi
 
             // Apply group-level inherited defaults (gateway, SSH username, key path)
             // before preflight and connection. Server's own values take priority.
-            if (settings.GroupDefaults.Count > 0 && !string.IsNullOrEmpty(serverDto.Group))
-            {
-                var groupDefaults = Core.Configuration.GroupDefaultsDto.Resolve(
-                    serverDto.Group, settings.GroupDefaults);
-                groupDefaults.ApplyTo(serverDto);
-            }
+            Core.Configuration.GroupDefaultsDto.ApplyInherited(serverDto, settings.GroupDefaults);
 
             // Resolve credentials from external provider if configured and server
             // has no stored password. The retrieved password is DPAPI-encrypted into

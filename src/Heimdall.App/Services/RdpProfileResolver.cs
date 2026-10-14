@@ -114,7 +114,8 @@ internal static class RdpProfileResolver
             return null;
         }
 
-        bool direct = server.UseDirectConnection || string.IsNullOrWhiteSpace(server.SshGatewayId);
+        // The connection pipeline has applied the group defaults by now.
+        bool direct = !SshGatewayRoute.IsThroughGateway(server, groupDefaults: null);
 
         return direct
             ? new RdpCertificateProbeTarget(server.RemoteServer, server.RemotePort)
