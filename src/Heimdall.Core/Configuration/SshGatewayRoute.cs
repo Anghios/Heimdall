@@ -24,8 +24,8 @@ namespace Heimdall.Core.Configuration;
 /// <remarks>
 /// <para>
 /// The one copy of that decision. The tunnel service, the handlers that open or refuse a route,
-/// the embedded RDP view that picks the endpoint and the health monitor that decides whether to
-/// probe all ask here. Each used to keep its own copy, and the copies disagreed: the monitor
+/// the embedded RDP view that picks the endpoint, the health monitor that decides whether to
+/// probe, the session row's gateway badge and the gateway overview all ask here. Each used to keep its own copy, and the copies disagreed: the monitor
 /// ignored <see cref="ServerProfileDto.UseDirectConnection"/> and the protocol, so a profile that
 /// opened direct showed as unprobed behind a gateway, while a split pane never received the
 /// gateway its group supplied and opened direct where its tab tunnelled.
@@ -56,7 +56,7 @@ public static class SshGatewayRoute
     /// </param>
     public static string? GatewayIdFor(
         ServerProfileDto server,
-        Dictionary<string, GroupDefaultsDto>? groupDefaults)
+        IReadOnlyDictionary<string, GroupDefaultsDto>? groupDefaults)
     {
         ArgumentNullException.ThrowIfNull(server);
 
@@ -84,6 +84,6 @@ public static class SshGatewayRoute
     /// </summary>
     public static bool IsThroughGateway(
         ServerProfileDto server,
-        Dictionary<string, GroupDefaultsDto>? groupDefaults)
+        IReadOnlyDictionary<string, GroupDefaultsDto>? groupDefaults)
         => GatewayIdFor(server, groupDefaults) is not null;
 }

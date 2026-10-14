@@ -155,6 +155,46 @@ public sealed class GatewayOverviewBuilderTests
         Assert.Equal(0, overview.MissingReferenceCount);
     }
 
+    [Fact]
+    public void Build_ListsASessionUnderTheGatewayItInheritsFromItsFolder()
+    {
+        SshGatewayDto gateway = CreateGateway("gw-1", "Bastion", "bastion.example.test", 22, "ops");
+        ServerProfileDto inherited = CreateServer("server-1", "Inherited", gatewayId: null, sortOrder: 1);
+        inherited.Group = "PROD/Linux";
+        Dictionary<string, GroupDefaultsDto> defaults = new()
+        {
+            ["PROD"] = new GroupDefaultsDto { SshGatewayId = "gw-1" },
+        };
+
+        GatewayOverview overview = GatewayOverviewBuilder.Build([gateway], [inherited], defaults);
+
+        Assert.Equal("server-1", Assert.Single(Assert.Single(overview.Gateways).Sessions).Id);
+        Assert.Equal(1, overview.RoutedSessionCount);
+    }
+
+    [Fact]
+    public void Build_LeavesOutASessionSetToConnectDirectly()
+    {
+        SshGatewayDto gateway = CreateGateway("gw-1", "Bastion", "bastion.example.test", 22, "ops");
+        ServerProfileDto own = CreateServer("server-1", "Own", "gw-1", sortOrder: 1);
+        own.UseDirectConnection = true;
+        ServerProfileDto missing = CreateServer("server-2", "Missing", "gw-deleted", sortOrder: 2);
+        missing.UseDirectConnection = true;
+        ServerProfileDto inherited = CreateServer("server-3", "Inherited", gatewayId: null, sortOrder: 3);
+        inherited.Group = "PROD";
+        inherited.UseDirectConnection = true;
+        Dictionary<string, GroupDefaultsDto> defaults = new()
+        {
+            ["PROD"] = new GroupDefaultsDto { SshGatewayId = "gw-1" },
+        };
+
+        GatewayOverview overview = GatewayOverviewBuilder.Build([gateway], [own, missing, inherited], defaults);
+
+        Assert.Empty(Assert.Single(overview.Gateways).Sessions);
+        Assert.Empty(overview.MissingReferences);
+        Assert.Equal(0, overview.RoutedSessionCount);
+    }
+
     private static SshGatewayDto CreateGateway(
         string id,
         string name,

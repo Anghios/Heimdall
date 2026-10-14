@@ -34,12 +34,12 @@ public partial class ServerListViewModel
 
         AppSettings settings = _currentSettings ?? new AppSettings();
         Dictionary<string, ProjectDto> projectMap = BuildProjectMap(settings);
-        Dictionary<string, SshGatewayDto> gatewayMap = BuildGatewayMap(settings);
+        SessionGatewayContext gateways = SessionGatewayContext.FromSettings(settings);
 
         server.UpdateFromDto(
             persistedServer,
             ResolveProject(projectMap, persistedServer.ProjectId),
-            gatewayMap,
+            gateways,
             _localizer);
 
         ResortStableTreeProjection();
@@ -71,7 +71,7 @@ public partial class ServerListViewModel
 
         _currentSettings = result.Settings;
         Dictionary<string, ProjectDto> projectMap = BuildProjectMap(result.Settings);
-        Dictionary<string, SshGatewayDto> gatewayMap = BuildGatewayMap(result.Settings);
+        SessionGatewayContext gateways = SessionGatewayContext.FromSettings(result.Settings);
         Dictionary<string, ServerProfileDto> persistedById = result.Servers.ToDictionary(
             server => server.Id,
             StringComparer.Ordinal);
@@ -83,7 +83,7 @@ public partial class ServerListViewModel
                 server.UpdateFromDto(
                     persistedServer,
                     ResolveProject(projectMap, persistedServer.ProjectId),
-                    gatewayMap,
+                    gateways,
                     _localizer);
             }
         }
