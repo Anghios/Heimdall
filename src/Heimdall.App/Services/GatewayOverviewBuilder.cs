@@ -15,7 +15,6 @@
  */
 
 using Heimdall.Core.Configuration;
-using Heimdall.Core.Models;
 
 namespace Heimdall.App.Services;
 
@@ -56,9 +55,9 @@ public static class GatewayOverviewBuilder
 
         foreach (ServerProfileDto server in servers ?? [])
         {
-            string? gatewayId = server.SshGatewayId;
-            if (!ProtocolCapabilities.SupportsSshGateway(server.ConnectionType)
-                || string.IsNullOrWhiteSpace(gatewayId))
+            // The gateway the connection goes through: an inherited one lists the session too,
+            // and a profile set to connect directly is not listed under a gateway it never uses.
+            if (SshGatewayRoute.GatewayIdFor(server, groupDefaults) is not { } gatewayId)
             {
                 continue;
             }

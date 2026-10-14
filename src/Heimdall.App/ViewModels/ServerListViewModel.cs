@@ -275,10 +275,10 @@ public partial class ServerListViewModel : ObservableObject, IDisposable, ISessi
 
             _currentSettings = settings;
             ApplyPersistedViewPreferences(settings);
-            Dictionary<string, SshGatewayDto> gatewayMap = BuildGatewayMap(settings);
+            SessionGatewayContext gateways = SessionGatewayContext.FromSettings(settings);
             foreach (ServerItemViewModel server in _allServers)
             {
-                server.RefreshGatewayState(gatewayMap);
+                server.RefreshGatewayState(gateways);
             }
 
             RefreshLookupCollections(settings);
@@ -541,7 +541,7 @@ public partial class ServerListViewModel : ObservableObject, IDisposable, ISessi
             }
         }
 
-        var gatewayMap = BuildGatewayMap(settings);
+        var gateways = SessionGatewayContext.FromSettings(settings);
 
         // Every row is rebuilt, and a new row starts on the grey "not probed yet" dot while the
         // next probe may be minutes away, so a move, an undo or a new folder used to grey out
@@ -560,7 +560,7 @@ public partial class ServerListViewModel : ObservableObject, IDisposable, ISessi
                 dto,
                 ResolveProject(projectMap, dto.ProjectId),
                 _connectionSm.GetState(dto.Id).ToString(),
-                gatewayMap,
+                gateways,
                 _localizer))
             .ToList();
         foreach (ServerItemViewModel server in _allServers)
@@ -1634,7 +1634,7 @@ public partial class ServerListViewModel : ObservableObject, IDisposable, ISessi
             result.Server,
             ResolveProject(BuildProjectMap(settings), result.Server.ProjectId),
             _connectionSm.GetState(result.Server.Id).ToString(),
-            BuildGatewayMap(settings),
+            SessionGatewayContext.FromSettings(settings),
             _localizer));
         RebuildHealthServerIndex();
 
@@ -1692,7 +1692,7 @@ public partial class ServerListViewModel : ObservableObject, IDisposable, ISessi
             result.Server,
             ResolveProject(BuildProjectMap(settings), result.Server.ProjectId),
             _connectionSm.GetState(result.Server.Id).ToString(),
-            BuildGatewayMap(settings),
+            SessionGatewayContext.FromSettings(settings),
             _localizer));
         RebuildHealthServerIndex();
 
@@ -1808,7 +1808,7 @@ public partial class ServerListViewModel : ObservableObject, IDisposable, ISessi
         server.UpdateFromDto(
             result.Server,
             ResolveProject(BuildProjectMap(settings), result.Server.ProjectId),
-            BuildGatewayMap(settings),
+            SessionGatewayContext.FromSettings(settings),
             _localizer);
 
         RefreshLookupCollections(settings);
@@ -2374,14 +2374,6 @@ public partial class ServerListViewModel : ObservableObject, IDisposable, ISessi
             .Where(project => !string.IsNullOrWhiteSpace(project.Id))
             .GroupBy(project => project.Id, StringComparer.Ordinal)
             .ToDictionary(group => group.Key, group => group.Last(), StringComparer.Ordinal);
-    }
-
-    private static Dictionary<string, SshGatewayDto> BuildGatewayMap(AppSettings settings)
-    {
-        return settings.SshGateways
-            .Where(gw => !string.IsNullOrWhiteSpace(gw.Id))
-            .GroupBy(gw => gw.Id, StringComparer.OrdinalIgnoreCase)
-            .ToDictionary(g => g.Key, g => g.Last(), StringComparer.OrdinalIgnoreCase);
     }
 
     /// <summary>

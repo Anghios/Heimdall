@@ -28,7 +28,7 @@ public sealed class ServerItemViewModelGatewayTests
     {
         ServerProfileDto dto = CreateServer(gatewayId: null);
 
-        ServerItemViewModel vm = ServerItemViewModel.FromDto(dto, gatewayMap: new Dictionary<string, SshGatewayDto>());
+        ServerItemViewModel vm = ServerItemViewModel.FromDto(dto, gateways: new SessionGatewayContext(new Dictionary<string, SshGatewayDto>()));
 
         Assert.False(vm.IsGatewayBadgeVisible);
         Assert.False(vm.IsGatewayMissing);
@@ -42,7 +42,7 @@ public sealed class ServerItemViewModelGatewayTests
     {
         ServerProfileDto dto = CreateServer("gw-1");
 
-        ServerItemViewModel vm = ServerItemViewModel.FromDto(dto, gatewayMap: null);
+        ServerItemViewModel vm = ServerItemViewModel.FromDto(dto, gateways: null);
 
         Assert.False(vm.IsGatewayBadgeVisible);
         Assert.False(vm.IsGatewayMissing);
@@ -60,7 +60,7 @@ public sealed class ServerItemViewModelGatewayTests
             ["gw-1"] = new SshGatewayDto { Id = "gw-1", Name = "Bastion" }
         };
 
-        ServerItemViewModel vm = ServerItemViewModel.FromDto(dto, gatewayMap: gatewayMap);
+        ServerItemViewModel vm = ServerItemViewModel.FromDto(dto, gateways: new SessionGatewayContext(gatewayMap));
 
         Assert.True(vm.IsGatewayBadgeVisible);
         Assert.False(vm.IsGatewayMissing);
@@ -80,7 +80,7 @@ public sealed class ServerItemViewModelGatewayTests
             ["gw-1"] = new SshGatewayDto { Id = "gw-1", Name = "Bastion" }
         };
 
-        ServerItemViewModel vm = ServerItemViewModel.FromDto(dto, gatewayMap: gatewayMap);
+        ServerItemViewModel vm = ServerItemViewModel.FromDto(dto, gateways: new SessionGatewayContext(gatewayMap));
 
         Assert.False(vm.IsGatewayBadgeVisible);
         Assert.False(vm.IsGatewayMissing);
@@ -94,7 +94,7 @@ public sealed class ServerItemViewModelGatewayTests
     {
         ServerProfileDto dto = CreateServer("gw-missing");
 
-        ServerItemViewModel vm = ServerItemViewModel.FromDto(dto, gatewayMap: new Dictionary<string, SshGatewayDto>());
+        ServerItemViewModel vm = ServerItemViewModel.FromDto(dto, gateways: new SessionGatewayContext(new Dictionary<string, SshGatewayDto>()));
 
         Assert.True(vm.IsGatewayBadgeVisible);
         Assert.True(vm.IsGatewayMissing);
@@ -109,14 +109,14 @@ public sealed class ServerItemViewModelGatewayTests
     {
         ServerItemViewModel vm = ServerItemViewModel.FromDto(
             CreateServer("gw-missing"),
-            gatewayMap: new Dictionary<string, SshGatewayDto>());
+            gateways: new SessionGatewayContext(new Dictionary<string, SshGatewayDto>()));
 
         Dictionary<string, SshGatewayDto> gatewayMap = new(StringComparer.Ordinal)
         {
             ["gw-1"] = new SshGatewayDto { Id = "gw-1", Name = "Prod Bastion" }
         };
 
-        vm.UpdateFromDto(CreateServer("gw-1"), gatewayMap: gatewayMap);
+        vm.UpdateFromDto(CreateServer("gw-1"), gateways: new SessionGatewayContext(gatewayMap));
 
         Assert.True(vm.IsGatewayBadgeVisible);
         Assert.False(vm.IsGatewayMissing);
@@ -133,7 +133,7 @@ public sealed class ServerItemViewModelGatewayTests
 
         ServerItemViewModel vm = ServerItemViewModel.FromDto(
             dto,
-            gatewayMap: new Dictionary<string, SshGatewayDto>(),
+            gateways: new SessionGatewayContext(new Dictionary<string, SshGatewayDto>()),
             localizer: localizer);
 
         Assert.True(vm.IsGatewayBadgeVisible);

@@ -220,7 +220,7 @@ public partial class ServerItemViewModel : ObservableObject, IInlineRenameNode, 
     /// (e.g. SshPort, FtpPort, SshKeyPath) that are not exposed as ViewModel fields.
     /// </summary>
     private ServerProfileDto? _sourceDto;
-    private IReadOnlyDictionary<string, SshGatewayDto>? _gatewayMap;
+    private SessionGatewayContext? _gateways;
 
     private string _normalizedSearchText = "";
     private bool _searchTextCacheInvalid = true;
@@ -461,13 +461,13 @@ public partial class ServerItemViewModel : ObservableObject, IInlineRenameNode, 
         ServerProfileDto dto,
         ProjectDto? project = null,
         string connectionState = "Disconnected",
-        IReadOnlyDictionary<string, SshGatewayDto>? gatewayMap = null,
+        SessionGatewayContext? gateways = null,
         LocalizationManager? localizer = null)
     {
         var viewModel = new ServerItemViewModel
         {
             _sourceDto = dto,
-            _gatewayMap = gatewayMap,
+            _gateways = gateways,
             _localizer = localizer,
             Id = dto.Id,
             DisplayName = dto.DisplayName,
@@ -498,11 +498,11 @@ public partial class ServerItemViewModel : ObservableObject, IInlineRenameNode, 
     public void UpdateFromDto(
         ServerProfileDto dto,
         ProjectDto? project = null,
-        IReadOnlyDictionary<string, SshGatewayDto>? gatewayMap = null,
+        SessionGatewayContext? gateways = null,
         LocalizationManager? localizer = null)
     {
         _sourceDto = dto;
-        _gatewayMap = gatewayMap;
+        _gateways = gateways;
         _localizer = localizer ?? _localizer;
         DisplayName = dto.DisplayName;
         Origin = dto.Origin;
@@ -620,7 +620,7 @@ public partial class ServerItemViewModel : ObservableObject, IInlineRenameNode, 
         if (_sourceDto is not null)
         {
             AuthSummary = BuildAuthSummary(_sourceDto);
-            ApplyGatewayState(_sourceDto.SshGatewayId, _gatewayMap);
+            ApplyGatewayState(_sourceDto);
         }
 
         // The key comes from the DTO and the other two are formatted for the current language.
@@ -649,12 +649,12 @@ public partial class ServerItemViewModel : ObservableObject, IInlineRenameNode, 
     /// the row was built. <see cref="RefreshLocalizedState" /> re-runs the same resolution but
     /// against the captured map, which is why it cannot serve here.
     /// </remarks>
-    internal void RefreshGatewayState(IReadOnlyDictionary<string, SshGatewayDto>? gatewayMap)
+    internal void RefreshGatewayState(SessionGatewayContext? gateways)
     {
-        _gatewayMap = gatewayMap;
+        _gateways = gateways;
         if (_sourceDto is not null)
         {
-            ApplyGatewayState(_sourceDto.SshGatewayId, _gatewayMap);
+            ApplyGatewayState(_sourceDto);
         }
     }
 
@@ -732,13 +732,16 @@ public partial class ServerItemViewModel : ObservableObject, IInlineRenameNode, 
         };
     }
 
-    private void ApplyGatewayState(
-        string? gatewayId,
-        IReadOnlyDictionary<string, SshGatewayDto>? gatewayMap)
+    /// <summary>
+    /// Resolves the badge, its tooltip and the detail line from the gateway the connection goes
+    /// through, as <see cref="SshGatewayRoute"/> decides it: a gateway inherited from the folder
+    /// shows, and one the profile names but bypasses with a direct connection does not.
+    /// </summary>
+    private void ApplyGatewayState(ServerProfileDto dto)
     {
-        if (!ProtocolCapabilities.SupportsSshGateway(ConnectionType)
-            || string.IsNullOrWhiteSpace(gatewayId)
-            || gatewayMap is null)
+        SessionGatewayContext? context = _gateways;
+        if (context is null
+            || SshGatewayRoute.GatewayIdFor(dto, context.GroupDefaults) is not { } gatewayId)
         {
             GatewayName = "";
             HasGateway = false;
@@ -751,7 +754,7 @@ public partial class ServerItemViewModel : ObservableObject, IInlineRenameNode, 
         }
 
         HasGateway = true;
-        if (gatewayMap.TryGetValue(gatewayId, out var gateway))
+        if (context.Gateways.TryGetValue(gatewayId, out var gateway))
         {
             var gatewayName = gateway.Name ?? "";
             GatewayName = gatewayName;

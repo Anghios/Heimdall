@@ -71,7 +71,7 @@ public sealed class ServerItemViewModelGatewayBadgeTests
         ServerItemViewModel routed = CreateServer("routed", "gw1");
         routed.ShowGatewayBadge = false;
 
-        routed.RefreshGatewayState(Gateways);
+        routed.RefreshGatewayState(new SessionGatewayContext(Gateways));
 
         Assert.True(routed.HasGateway);
         Assert.False(routed.IsGatewayBadgeVisible);
@@ -97,5 +97,5 @@ public sealed class ServerItemViewModelGatewayBadgeTests
                 ConnectionType = "SSH",
                 SshGatewayId = gatewayId
             },
-            gatewayMap: Gateways);
+            gateways: new SessionGatewayContext(Gateways));
 }

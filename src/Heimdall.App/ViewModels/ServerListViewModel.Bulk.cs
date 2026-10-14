@@ -1134,17 +1134,11 @@ public partial class ServerListViewModel
 
         bool HasInheritedGateway(ServerProfileDto dto)
         {
-            if (gatewaySettings is null
-                || gatewaySettings.GroupDefaults.Count == 0
-                || string.IsNullOrWhiteSpace(dto.Group))
-            {
-                return false;
-            }
-
-            GroupDefaultsDto defaults = GroupDefaultsDto.Resolve(
-                dto.Group,
-                gatewaySettings.GroupDefaults);
-            return !string.IsNullOrWhiteSpace(defaults.SshGatewayId);
+            // The profile as the choice leaves it: no gateway of its own, not forced direct.
+            ServerProfileDto inheriting = dto.CloneFaithfully();
+            inheriting.SshGatewayId = null;
+            inheriting.UseDirectConnection = false;
+            return SshGatewayRoute.IsThroughGateway(inheriting, gatewaySettings?.GroupDefaults);
         }
 
         static bool IsWinRmHttps(ServerProfileDto dto)
@@ -1669,7 +1663,7 @@ public partial class ServerListViewModel
 
         _currentSettings = settings;
         var projectMap = BuildProjectMap(settings);
-        var gatewayMap = BuildGatewayMap(settings);
+        var gateways = SessionGatewayContext.FromSettings(settings);
 
         foreach (var vm in plan.ToRemove)
         {
@@ -1687,7 +1681,7 @@ public partial class ServerListViewModel
             oldVm.UpdateFromDto(
                 newDto,
                 ResolveProject(projectMap, newDto.ProjectId),
-                gatewayMap,
+                gateways,
                 _localizer);
         }
 
@@ -1697,7 +1691,7 @@ public partial class ServerListViewModel
                 newDto,
                 ResolveProject(projectMap, newDto.ProjectId),
                 _connectionSm.GetState(newDto.Id).ToString(),
-                gatewayMap,
+                gateways,
                 _localizer);
             _allServers.Add(newVm);
         }

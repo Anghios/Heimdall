@@ -75,5 +75,5 @@ public sealed class ServerFilterSpecGatewayTests
                 ConnectionType = "SSH",
                 SshGatewayId = gatewayId
             },
-            gatewayMap: Gateways);
+            gateways: new SessionGatewayContext(Gateways));
 }

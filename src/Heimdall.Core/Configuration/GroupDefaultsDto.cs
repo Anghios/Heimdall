@@ -57,7 +57,7 @@ public sealed class GroupDefaultsDto
     /// <param name="groupName">Full group path of the server.</param>
     /// <param name="allDefaults">All configured group defaults.</param>
     /// <returns>Merged defaults with the most specific values taking priority.</returns>
-    public static GroupDefaultsDto Resolve(string? groupName, Dictionary<string, GroupDefaultsDto> allDefaults)
+    public static GroupDefaultsDto Resolve(string? groupName, IReadOnlyDictionary<string, GroupDefaultsDto> allDefaults)
     {
         if (string.IsNullOrWhiteSpace(groupName) || allDefaults.Count == 0)
             return new GroupDefaultsDto();
@@ -102,7 +102,7 @@ public sealed class GroupDefaultsDto
     /// Every connection passes through here before its handler runs, so the handlers, the tunnel
     /// service and the session views read the same effective profile whichever path opened it.
     /// </remarks>
-    public static void ApplyInherited(ServerProfileDto server, Dictionary<string, GroupDefaultsDto> allDefaults)
+    public static void ApplyInherited(ServerProfileDto server, IReadOnlyDictionary<string, GroupDefaultsDto> allDefaults)
     {
         ArgumentNullException.ThrowIfNull(server);
         ArgumentNullException.ThrowIfNull(allDefaults);
