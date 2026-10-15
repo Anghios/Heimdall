@@ -213,6 +213,10 @@ L'interface existe en anglais, en français et en espagnol. Chaque catalogue sou
 les deux sens et sur les paramètres de format. Ajouter une langue fait l'objet d'une
 liste de contrôle dans [CONTRIBUTING.fr.md](../../CONTRIBUTING.fr.md).
 
+Le nombre de clés est cité dans six documents, et un test échoue dès qu'une clé est
+ajoutée ou retirée. `scripts/Update-DocumentedKeyCount.ps1` écrit le nombre du
+catalogue dans les six ; `-Check` se contente de signaler.
+
 Conventions de nommage :
 
 - Clés en CamelCase par contexte, par exemple `ErrorPlinkNotFound` ou
