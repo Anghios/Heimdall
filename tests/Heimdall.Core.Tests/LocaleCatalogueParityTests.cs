@@ -185,7 +185,10 @@ public sealed class LocaleCatalogueParityTests
         string written = count.ToString("#,0", System.Globalization.CultureInfo.InvariantCulture)
             .Replace(",", separator, StringComparison.Ordinal);
 
-        Assert.Contains(written, File.ReadAllText(path), StringComparison.Ordinal);
+        Assert.True(
+            File.ReadAllText(path).Contains(written, StringComparison.Ordinal),
+            $"{relativePath} does not quote the catalogue's {written} keys."
+            + " Run scripts/Update-DocumentedKeyCount.ps1 to write the count into every document.");
     }
 
     /// <summary>

@@ -212,6 +212,10 @@ holds the same 7,027 keys, and `LocaleCatalogueParityTests` enforces that in bot
 directions and across format placeholders. Adding a language is a documented
 checklist in [CONTRIBUTING.md](../CONTRIBUTING.md).
 
+The key count is quoted in six documents, and a test fails as soon as a key is added
+or removed. `scripts/Update-DocumentedKeyCount.ps1` writes the catalogue's count into
+all six; `-Check` only reports.
+
 Key conventions:
 
 - CamelCase keys by context, for example `ErrorPlinkNotFound` or
