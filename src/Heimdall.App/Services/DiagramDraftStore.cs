@@ -17,6 +17,7 @@
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
+using Heimdall.Core.Configuration;
 
 namespace Heimdall.App.Services;
 
@@ -43,10 +44,7 @@ internal sealed class DiagramDraftStore
 
     /// <summary>Creates a store under the application's own data directory.</summary>
     public DiagramDraftStore()
-        : this(Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "Heimdall",
-            DraftDirectoryName))
+        : this(Path.Combine(ApplicationDataPathResolver.Resolve(), DraftDirectoryName))
     {
     }
 

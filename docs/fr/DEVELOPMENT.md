@@ -64,6 +64,18 @@ Les résumés TRX par projet peuvent masquer les tests ignorés ou annoncer des
 totaux plus faibles. Utilisez la commande agrégée au niveau de la solution pour
 mesurer la vraie référence.
 
+### Un dossier de données à part pour les tests à la main
+
+```powershell
+Heimdall.exe --data-dir D:\heimdall-hand-test
+```
+
+Les profils, les paramètres, les journaux, les brouillons de diagrammes et la
+bibliothèque de commandes sont alors lus et écrits dans ce dossier au lieu de
+`%LOCALAPPDATA%`. Le verrou d'instance unique dépend du dossier de données : cette
+instance tourne donc à côté de la vôtre. `--data-dir=<chemin>` fonctionne aussi, et
+un chemin relatif part du dossier courant. Sans l'option, rien ne change.
+
 ## Pièges du script de build
 
 `Build.ps1 -SkipTests` saute la passe de tests, mais saute aussi la compilation

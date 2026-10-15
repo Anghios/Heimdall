@@ -46,9 +46,7 @@ public sealed class HealthCheckService : IHealthCheckService
         _gitSyncService = gitSyncService;
         _logger = logger;
 
-        _appDataPath = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "TwinShell");
+        _appDataPath = Heimdall.Core.Configuration.ApplicationDataPathResolver.ResolveTwinShellDirectory();
     }
 
     public async Task<HealthCheckReport> CheckAllAsync()
