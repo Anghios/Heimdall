@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+using System.Diagnostics;
 using System.Reflection;
 
 namespace Heimdall.Sftp.Tests;
@@ -37,6 +38,13 @@ public sealed class FtpBrowserDisconnectTests
     /// load cannot turn a correct Disconnect red, only give a wrong one longer to show itself.
     /// </summary>
     private static readonly TimeSpan HeldLockObservationWindow = TimeSpan.FromMilliseconds(100);
+
+    /// <summary>
+    /// How long a Disconnect that cannot take the lock may run under the production bound of 250
+    /// milliseconds. The rest is scheduling margin: a CPU saturated by sixteen busy processes and
+    /// a solution build stretched Disconnect to 1.25 seconds at most over 200 runs.
+    /// </summary>
+    private static readonly TimeSpan HeldLockDisconnectReturnBound = TimeSpan.FromSeconds(5);
 
     /// <remarks>
     /// This used to run against the production bound of 250 milliseconds and assert that Disconnect
@@ -120,6 +128,14 @@ public sealed class FtpBrowserDisconnectTests
     /// The synchronous Disconnect waited on the operation lock with no timeout, pinning a
     /// thread for the whole of a stalled transfer, and Dispose then disposed the semaphore
     /// under any waiter - the opposite of the decision the SFTP browser pins by test.
+    /// <para>
+    /// Disconnect runs on a thread of its own and is awaited by Join, so neither its start nor
+    /// the bound depends on the thread pool. It used to be started by Task.Run and raced against
+    /// Task.Delay: both need a pool thread, and a starved pool spent the bound before Disconnect
+    /// ran at all. It failed that way once in a full-solution run on a loaded machine. Replaying
+    /// that body with the pool blocked by sleeping work items, Disconnect started up to 13.8
+    /// seconds late while its own run never exceeded 267 milliseconds.
+    /// </para>
     /// </remarks>
     [Fact]
     public async Task Disconnect_WhenOperationIsActive_ReturnsWithinItsBound()
@@ -128,13 +144,40 @@ public sealed class FtpBrowserDisconnectTests
         SemaphoreSlim operationLock = GetOperationLock(browser);
         await operationLock.WaitAsync();
 
+        Exception? failure = null;
+        long startedAt = 0;
+        Thread disconnect = new(() =>
+        {
+            Interlocked.Exchange(ref startedAt, Stopwatch.GetTimestamp());
+            try
+            {
+                browser.Disconnect();
+            }
+            catch (Exception exception)
+            {
+                failure = exception;
+            }
+        })
+        {
+            IsBackground = true,
+        };
+
         try
         {
-            Task disconnect = Task.Run(browser.Disconnect);
-            Task finished = await Task.WhenAny(disconnect, Task.Delay(TimeSpan.FromSeconds(5)));
+            long launchedAt = Stopwatch.GetTimestamp();
+            disconnect.Start();
+            bool returned = disconnect.Join(HeldLockDisconnectReturnBound);
 
-            Assert.Same(disconnect, finished);
-            await disconnect;
+            long started = Interlocked.Read(ref startedAt);
+            Assert.True(
+                returned,
+                $"Disconnect did not return within {HeldLockDisconnectReturnBound.TotalMilliseconds} ms "
+                + $"while the lock was held; its thread started "
+                + (started == 0
+                    ? "never"
+                    : $"{Stopwatch.GetElapsedTime(launchedAt, started).TotalMilliseconds:F0} ms after launch")
+                + ".");
+            Assert.Null(failure);
         }
         finally
         {
