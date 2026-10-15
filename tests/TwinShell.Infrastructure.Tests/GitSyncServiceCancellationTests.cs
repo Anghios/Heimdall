@@ -129,6 +129,39 @@ public sealed class GitSyncServiceCancellationTests
         syncService.LastExportCancellationToken.CanBeCanceled.Should().BeTrue();
     }
 
+    [Fact]
+    public void RepositoryFixture_Dispose_RemovesTheWholeTree()
+    {
+        GitRepositoryFixture fixture = GitRepositoryFixture.Create();
+        string objectsPath = Path.Combine(fixture.LocalPath, ".git", "objects");
+        Directory.EnumerateFiles(objectsPath, "*", SearchOption.AllDirectories)
+            .Should().Contain(filePath => File.GetAttributes(filePath).HasFlag(FileAttributes.ReadOnly));
+
+        fixture.Dispose();
+
+        Directory.Exists(fixture.RootPath).Should().BeFalse();
+    }
+
+    [Fact]
+    public void FileLockHolders_NamesTheProcessHoldingAFile()
+    {
+        string filePath = Path.Combine(Path.GetTempPath(), "heimdall_lock_holder_" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            using (FileStream held = new(filePath, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None))
+            {
+                FileLockHolders.Describe(filePath)
+                    .Should().Contain(holder => holder.EndsWith("(" + Environment.ProcessId + ")", StringComparison.Ordinal));
+            }
+
+            FileLockHolders.Describe(filePath).Should().BeEmpty();
+        }
+        finally
+        {
+            File.Delete(filePath);
+        }
+    }
+
     private static GitSyncService CreateService(
         GitRepositoryFixture fixture,
         ControllableSyncService syncService)
@@ -151,7 +184,7 @@ public sealed class GitSyncServiceCancellationTests
 
     /// <summary>
     /// Minimal scope factory whose scopes resolve only <see cref="ISyncService"/>
-    /// (to the supplied fake) and return null for everything else — enough for
+    /// (to the supplied fake) and return null for everything else, enough for
     /// <see cref="GitSyncService"/> to run import/export through a scope while the
     /// optional sync-history repository stays absent.
     /// </summary>
@@ -192,6 +225,14 @@ public sealed class GitSyncServiceCancellationTests
 
         internal string BranchName { get; }
 
+        /// <summary>
+        /// Creates the fixture in a fresh GUID directory. When Windows refuses libgit2's
+        /// replace-rename of <c>.git/config.lock</c> (seen once on 2026-10-15, not reproduced
+        /// in 48000 attempts since), the failure is rethrown with the processes that the
+        /// Restart Manager reports as holding the file, so the next occurrence names its
+        /// cause instead of leaving it to inference. It is never retried: a retry would hide
+        /// the evidence while the cause is unproven.
+        /// </summary>
         internal static GitRepositoryFixture Create()
         {
             string rootPath = Path.Combine(
@@ -199,6 +240,41 @@ public sealed class GitSyncServiceCancellationTests
                 "heimdall_git_sync_" + Guid.NewGuid().ToString("N"));
             string localPath = Path.Combine(rootPath, "local");
             string barePath = Path.Combine(rootPath, "remote.git");
+            try
+            {
+                string branchName = InitializeRepositories(localPath, barePath);
+                return new GitRepositoryFixture(rootPath, localPath, barePath, branchName);
+            }
+            catch (LibGit2SharpException ex) when (ex.Message.Contains(LockfileRenameFailure, StringComparison.Ordinal))
+            {
+                string holders = DescribeHolders(localPath, barePath);
+                DeleteTree(rootPath);
+                throw new InvalidOperationException(ex.Message + " | holders: " + holders, ex);
+            }
+            catch
+            {
+                DeleteTree(rootPath);
+                throw;
+            }
+        }
+
+        private const string LockfileRenameFailure = "failed to rename lockfile";
+
+        private static string DescribeHolders(string localPath, string barePath)
+        {
+            IEnumerable<string> candidates = new[] { localPath, barePath }
+                .Select(repositoryPath => Path.Combine(repositoryPath, ".git", "config"))
+                .Append(Path.Combine(barePath, "config"))
+                .SelectMany(configPath => new[] { configPath, configPath + ".lock" });
+            List<string> holders = candidates
+                .SelectMany(filePath => FileLockHolders.Describe(filePath)
+                    .Select(holder => Path.GetFileName(filePath) + "=" + holder))
+                .ToList();
+            return holders.Count == 0 ? "none reported" : string.Join(", ", holders);
+        }
+
+        private static string InitializeRepositories(string localPath, string barePath)
+        {
             Directory.CreateDirectory(localPath);
             Directory.CreateDirectory(barePath);
 
@@ -225,19 +301,31 @@ public sealed class GitSyncServiceCancellationTests
                 branchUpdater => branchUpdater.Remote = "origin",
                 branchUpdater => branchUpdater.UpstreamBranch = branch.CanonicalName);
 
-            return new GitRepositoryFixture(rootPath, localPath, barePath, branchName);
+            return branchName;
         }
 
-        public void Dispose()
+        public void Dispose() => DeleteTree(RootPath);
+
+        /// <summary>
+        /// Deletes a fixture tree. Git writes its object files read-only, which makes
+        /// <see cref="Directory.Delete(string, bool)"/> refuse the whole tree, so the
+        /// attributes are cleared first.
+        /// </summary>
+        internal static void DeleteTree(string rootPath)
         {
-            if (!Directory.Exists(RootPath))
+            if (!Directory.Exists(rootPath))
             {
                 return;
             }
 
             try
             {
-                Directory.Delete(RootPath, recursive: true);
+                foreach (string filePath in Directory.EnumerateFiles(rootPath, "*", SearchOption.AllDirectories))
+                {
+                    File.SetAttributes(filePath, FileAttributes.Normal);
+                }
+
+                Directory.Delete(rootPath, recursive: true);
             }
             catch (IOException)
             {
