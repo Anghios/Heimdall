@@ -12,6 +12,29 @@
 
 All notable changes to Heimdall are documented in this file.
 
+## 2026-10-15: a separate data directory for test runs, and clearer build failures (v2026.101501)
+
+### Testing and tooling
+
+- **`--data-dir <path>`** (#588) sets the data root first thing at startup.
+  `ApplicationDataPathResolver.UseDataRoot` takes an absolute path once; everything that resolves
+  through it follows (settings, profiles, logs, history, update staging, web console profile), and
+  so does the single-instance lock, keyed on the data root. The diagram drafts and recent list and
+  the TwinShell database now resolve through it too. Without the option, `Resolve()` returns the
+  same path as before.
+- **The build's test step keeps its output and says why it failed** (#586). It ran under
+  `$ErrorActionPreference = 'Stop'` with `2>&1`, so Windows PowerShell turned xUnit's first
+  `[FAIL]` line into a terminating error before the failure was printed, and `--verbosity quiet`
+  dropped the assertion messages. `Invoke-NativeLogged` runs it under 'Continue' and writes
+  `Dist\logs\tests-<version>.log`; the console logger at minimal writes each failure; the screen
+  shows each failing test with its message. Guarded in CI by `scripts/Test-NativeCommandLogging.ps1`,
+  which also proves the naive form throws.
+- **`scripts/Invoke-Mutant.ps1`** (#589): one exact replacement, build, test filter, byte-for-byte
+  restore, rebuild whatever happened, retest. Refuses a mutant that does not land, does not build
+  or runs no test. CONTRIBUTING points to it.
+- **`scripts/Update-DocumentedKeyCount.ps1`** (#590) writes the catalogue's key count into the six
+  documents `TheDocumentedKeyCountMatchesTheCatalogue` checks; the test's failure message names it.
+
 ## 2026-10-14: session tabs that show their state, and a properties panel you can act from (v2026.101402)
 
 ### Session tabs
