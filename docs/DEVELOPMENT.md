@@ -62,6 +62,18 @@ is spotting a run that lost a whole assembly.
 Per-project TRX summaries can hide skipped tests or report smaller totals.
 Use the aggregated solution command when checking the real baseline.
 
+### A separate data directory for hand tests
+
+```powershell
+Heimdall.exe --data-dir D:\heimdall-hand-test
+```
+
+The profiles, settings, logs, diagram drafts and the command library are then
+read from and written to that directory instead of `%LOCALAPPDATA%`. The
+single-instance lock is keyed on the data directory, so this instance runs beside
+your own. `--data-dir=<path>` works too, and a relative path is taken from the
+current directory. Without the option nothing changes.
+
 ## Build Script Gotchas
 
 `Build.ps1 -SkipTests` skips the test pass and also skips building test

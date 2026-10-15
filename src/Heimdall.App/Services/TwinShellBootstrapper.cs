@@ -41,9 +41,7 @@ namespace Heimdall.App.Services;
 /// </summary>
 internal static class TwinShellBootstrapper
 {
-    private static readonly string DbDir = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "TwinShell");
+    private static readonly string DbDir = ApplicationDataPathResolver.ResolveTwinShellDirectory();
 
     private static readonly string DbPath = Path.Combine(DbDir, "twinshell.db");
 

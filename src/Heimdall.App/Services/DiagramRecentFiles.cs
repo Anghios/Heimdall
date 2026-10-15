@@ -16,6 +16,7 @@
 
 using System.IO;
 using System.Text.Json;
+using Heimdall.Core.Configuration;
 
 namespace Heimdall.App.Services;
 
@@ -39,10 +40,7 @@ internal sealed class DiagramRecentFiles
 
     /// <summary>Creates a list under the application's own data directory.</summary>
     public DiagramRecentFiles()
-        : this(Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "Heimdall",
-            FileName))
+        : this(Path.Combine(ApplicationDataPathResolver.Resolve(), FileName))
     {
     }
 

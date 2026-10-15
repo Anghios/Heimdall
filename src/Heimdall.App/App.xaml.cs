@@ -146,6 +146,14 @@ public partial class App : System.Windows.Application
             return;
         }
 
+        // First, before anything resolves a path: a second instance with its own data directory
+        // (a hand test, a demo profile) shares nothing with the user's own, its single-instance
+        // lock included, which is keyed on the data root.
+        if (DataDirectoryArgument.Find(e.Args) is { } dataDirectory)
+        {
+            ApplicationDataPathResolver.UseDataRoot(dataDirectory);
+        }
+
         // Headless privilege launch mode: the app was re-launched elevated
         // via UAC to perform token-based process creation (SYSTEM / TrustedInstaller).
         // Do the work and exit immediately - no UI, no DI, no splash.
