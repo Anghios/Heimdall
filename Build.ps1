@@ -203,16 +203,76 @@ if ($versionWritten) {
     Write-Host "[$step/$totalSteps] Version $buildNumber (assembly: $assemblyVer) passed to MSBuild; $(Split-Path $AppProject -Leaf) left untouched (dry run)" -ForegroundColor Magenta
 }
 
+# Runs a native command with its stderr folded into its output, records every line in
+# $LogPath, and returns the lines with the exit code. Under $ErrorActionPreference = 'Stop',
+# Windows PowerShell turns the first redirected stderr line into a terminating error: the test
+# step died on xUnit's first [FAIL] line, before it could print the failure, so a red gate
+# named a test and never said why (seen 2026-10-14 on an SFTP test that failed twice). The
+# log keeps the whole run, assertion messages included.
+function Invoke-NativeLogged {
+    param(
+        [Parameter(Mandatory)] [scriptblock] $Command,
+        [Parameter(Mandatory)] [string] $LogPath
+    )
+
+    $prevEAP = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        $lines = @(& $Command 2>&1 | ForEach-Object { "$_" })
+        $exitCode = $LASTEXITCODE
+    } finally {
+        $ErrorActionPreference = $prevEAP
+    }
+
+    $logDir = Split-Path -Parent $LogPath
+    if (-not (Test-Path -LiteralPath $logDir)) {
+        New-Item -ItemType Directory -Path $logDir -Force | Out-Null
+    }
+    Set-Content -LiteralPath $LogPath -Value $lines -Encoding UTF8
+
+    return [pscustomobject]@{ ExitCode = $exitCode; Lines = $lines }
+}
+
+# The lines of a failed test run worth showing on screen: each failing test and its assertion
+# message, up to the stack trace. The rest, the trace included, stays in the log.
+function Select-TestFailureLines {
+    param([string[]] $Lines)
+
+    $maxBlockLines = 12
+    $selected = New-Object System.Collections.Generic.List[string]
+    for ($i = 0; $i -lt $Lines.Count; $i++) {
+        if ($Lines[$i] -notmatch '\[FAIL\]') {
+            continue
+        }
+
+        $last = [Math]::Min($Lines.Count - 1, $i + $maxBlockLines)
+        $j = $i
+        while ($j -le $last -and ($j -eq $i -or $Lines[$j] -notmatch 'Stack Trace:|Arborescence des appels|\[FAIL\]')) {
+            $selected.Add($Lines[$j])
+            $j++
+        }
+        $i = $j - 1
+    }
+
+    return $selected.ToArray()
+}
+
 # ── Step 2: Run tests ─────────────────────────────────────────────────────
 
 $step++
 if (-not $SkipTests) {
     Write-Host "[$step/$totalSteps] Running tests..." -ForegroundColor Yellow
-    $testResult = dotnet test $SolutionFile.FullName --verbosity quiet --nologo 2>&1
-    $testExitCode = $LASTEXITCODE
-    if ($testExitCode -ne 0) {
+    $testLog = Join-Path $ProjectRoot "Dist\logs\tests-$buildNumber.log"
+    $testRun = Invoke-NativeLogged -LogPath $testLog -Command {
+        # --verbosity quiet alone dropped the assertion messages: the failure was named and
+        # never explained. The console logger at minimal writes each failure with its message.
+        dotnet test $SolutionFile.FullName --verbosity quiet --nologo --logger "console;verbosity=minimal"
+    }
+    $testResult = $testRun.Lines
+    if ($testRun.ExitCode -ne 0) {
         Write-Host "Tests FAILED. Aborting build." -ForegroundColor Red
-        $testResult | ForEach-Object { Write-Host $_ }
+        Select-TestFailureLines -Lines $testResult | ForEach-Object { Write-Host $_ }
+        Write-Host "Full test output: $testLog" -ForegroundColor Yellow
         exit 1
     }
     $passedMatch = ($testResult | Select-String 'réussite\s*:\s*(\d+)|Passed\s*:\s*(\d+)' | ForEach-Object { $_.Matches[0].Groups[1].Value, $_.Matches[0].Groups[2].Value } | Where-Object { $_ }) -join '+'
