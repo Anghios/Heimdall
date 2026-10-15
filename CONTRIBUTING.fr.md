@@ -53,6 +53,17 @@ exprès, de regarder le nouveau test passer au rouge, puis de remettre en état 
 de test de ce dépôt décrivent le mutant qui les a prouvés, et une pull request qui dit lequel elle
 a utilisé est relue plus vite.
 
+`scripts/Invoke-Mutant.ps1` fait l'aller-retour à votre place : il remplace un morceau de texte
+exact, compile, lance un filtre de tests, restaure le fichier octet pour octet, recompile et relance
+le filtre. Il refuse un mutant qui ne se pose pas, ne compile pas ou ne lance aucun test, et il ne
+laisse jamais derrière lui les binaires du mutant.
+
+```powershell
+./scripts/Invoke-Mutant.ps1 -File src/Heimdall.App/Services/TabDropDecision.cs `
+    -Find '&& (!releasedInsideWindow || releasedOverSessionContent);' -Replace ';' `
+    -Project tests/Heimdall.App.Tests/Heimdall.App.Tests.csproj -Filter 'FullyQualifiedName~ShouldDetach'
+```
+
 **Le sujet de commit dit ce qui a changé, pas ce qui a été tapé.** Les sujets sont des phrases en
 minuscules qui parlent de comportement, avec un type et une portée :
 

@@ -51,6 +51,17 @@ purpose, watch the new test go red, and put that back: several test files in thi
 describe the mutant they were proved against, and a pull request that says which one it used is
 reviewed faster.
 
+`scripts/Invoke-Mutant.ps1` does the round trip for you: it replaces one exact piece of text,
+builds, runs a test filter, restores the file byte for byte, rebuilds and runs the filter again.
+It refuses a mutant that does not land, does not build or runs no test, and it never leaves the
+mutant's binaries behind.
+
+```powershell
+./scripts/Invoke-Mutant.ps1 -File src/Heimdall.App/Services/TabDropDecision.cs `
+    -Find '&& (!releasedInsideWindow || releasedOverSessionContent);' -Replace ';' `
+    -Project tests/Heimdall.App.Tests/Heimdall.App.Tests.csproj -Filter 'FullyQualifiedName~ShouldDetach'
+```
+
 **The commit subject says what changed, not what was typed.** Subjects are lowercase statements
 about behaviour, with a type and a scope:
 
