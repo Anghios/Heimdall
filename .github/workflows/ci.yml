@@ -104,6 +104,15 @@ jobs:
           # The script runs in a child scope, so its `exit 1` does not end this block.
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+      # Pure PowerShell, no .NET needed. Proves the build's test step survives a failing
+      # run under 'Stop' and keeps its output: it used to die on xUnit's first [FAIL]
+      # line, before printing the failure, so a red gate never said why.
+      - name: Check the build keeps a failing test run's output
+        shell: pwsh
+        run: |
+          ./scripts/Test-NativeCommandLogging.ps1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
       - name: Setup .NET 10
         uses: actions/setup-dotnet@v6
         with:
