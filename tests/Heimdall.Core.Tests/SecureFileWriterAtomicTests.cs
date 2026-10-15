@@ -251,9 +251,10 @@ public sealed class SecureFileWriterAtomicTests : IDisposable
             var error = await Record.ExceptionAsync(
                 () => SecureFileWriter.WriteAllTextAtomicAsync(path, "NEW-CONTENT"));
 
-            // The failure is surfaced (fail-closed), not swallowed into the fallback.
-            Assert.NotNull(error);
-            Assert.True(error is IOException or UnauthorizedAccessException, $"Unexpected: {error.GetType()}");
+            // The failure is surfaced (fail-closed), not swallowed into the fallback, and it names
+            // what happened: a holder that refused delete sharing, not a denied access.
+            IOException ioError = Assert.IsType<IOException>(error);
+            Assert.Equal(SharingViolationHResult, ioError.HResult);
 
             // The temp is cleaned up and the original is untouched (no partial write).
             Assert.Empty(StrayTemps());
@@ -261,6 +262,48 @@ public sealed class SecureFileWriterAtomicTests : IDisposable
 
         Assert.Equal("ORIGINAL", await File.ReadAllTextAsync(path));
     }
+
+    // A scanner, an indexer or a backup opens the file with every sharing flag. The classic
+    // MoveFileEx replace refused any open destination and reported it as "Access to the path is
+    // denied", which is how saves into fresh test directories failed intermittently.
+    [Fact]
+    public async Task WriteAllTextAtomicAsync_TargetHeldByAReaderThatSharesDelete_IsReplaced()
+    {
+        var path = TempFile();
+        await SecureFileWriter.WriteAllTextAtomicAsync(path, "ORIGINAL");
+
+        using (var reader = new FileStream(
+                   path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
+        {
+            await SecureFileWriter.WriteAllTextAtomicAsync(path, "NEW-CONTENT");
+
+            // The reader keeps the content it opened; the name already points at the new file.
+            using var readerText = new StreamReader(reader);
+            Assert.Equal("ORIGINAL", await readerText.ReadToEndAsync());
+            Assert.Equal("NEW-CONTENT", await File.ReadAllTextAsync(path));
+        }
+
+        AssertRestrictiveAcl(path);
+        Assert.Empty(StrayTemps());
+    }
+
+    [Fact]
+    public async Task WriteAllBytesAtomic_TargetHeldByAReaderThatSharesDelete_IsReplaced()
+    {
+        var path = TempFile("restore.json");
+        await File.WriteAllBytesAsync(path, [0x6F, 0x6C, 0x64]);
+        byte[] content = [0x6E, 0x65, 0x77];
+
+        using (new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
+        {
+            await SecureFileWriter.WriteAllBytesAtomicAsync(path, content);
+        }
+
+        Assert.Equal(content, await File.ReadAllBytesAsync(path));
+        Assert.Empty(StrayTemps());
+    }
+
+    private const int SharingViolationHResult = unchecked((int)0x80070020);
 
     [Fact]
     public async Task WriteAllTextAtomicAsync_NullPath_Throws()

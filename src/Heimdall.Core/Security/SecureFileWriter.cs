@@ -152,8 +152,9 @@ public static class SecureFileWriter
     /// The content is written to a uniquely-named temp file IN THE SAME DIRECTORY
     /// (same volume) with the restrictive ACL applied at create (current user +
     /// Administrators + SYSTEM, inheritance disabled), then the target is replaced
-    /// by an atomic same-volume rename (<see cref="File.Move(string, string, bool)"/>
-    /// -> MoveFileEx MOVEFILE_REPLACE_EXISTING). The renamed file carries the temp's
+    /// by an atomic same-volume rename with POSIX semantics (<see cref="PosixFileReplace"/>,
+    /// falling back to <see cref="File.Move(string, string, bool)"/> on volumes without it),
+    /// so a reader holding the target open with delete sharing does not fail the save. The renamed file carries the temp's
     /// restrictive ACL, so the final file ends up restricted without a separate
     /// post-write ACL pass and without a TOCTOU window.
     /// </summary>
@@ -521,8 +522,19 @@ public static class SecureFileWriter
         public void ApplyRestrictedAcl(string path)
             => new FileInfo(path).SetAccessControl(BuildRestrictedSecurity());
 
+        /// <summary>
+        /// Replaces through a POSIX rename, so a reader that allowed deletion (a scanner, an indexer,
+        /// a backup) no longer fails the save; the classic rename remains for volumes without it.
+        /// </summary>
         public void Move(string sourcePath, string destinationPath, bool overwrite)
-            => File.Move(sourcePath, destinationPath, overwrite);
+        {
+            if (overwrite && PosixFileReplace.TryReplace(sourcePath, destinationPath))
+            {
+                return;
+            }
+
+            File.Move(sourcePath, destinationPath, overwrite);
+        }
 
         public void Delete(string path)
             => File.Delete(path);
