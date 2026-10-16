@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+using System.Globalization;
 using System.IO;
 using System.Text.Json;
 using System.Windows;
@@ -366,21 +367,6 @@ public partial class EmbeddedVncView : UserControl, IDisposable, ISessionPaneOwn
             return;
         }
 
-        if (message == "clipboard-read:")
-        {
-            Dispatcher.Invoke(() =>
-            {
-                if (Clipboard.ContainsText())
-                {
-                    var text = Clipboard.GetText();
-                    var b64 = Convert.ToBase64String(
-                        System.Text.Encoding.UTF8.GetBytes(text));
-                    PostWebMessage($"clipboard-paste:{b64}");
-                }
-            });
-            return;
-        }
-
         if (message.StartsWith("credentials-required:", StringComparison.Ordinal))
         {
             HandleCredentialsRequest(message["credentials-required:".Length..]);
@@ -421,6 +407,40 @@ public partial class EmbeddedVncView : UserControl, IDisposable, ISessionPaneOwn
         Core.Logging.FileLogger.Warn("EmbeddedVNC blocked navigation to an untrusted document.");
     }
 
+    // ---- Display controls, carried by the header ----
+
+    /// <summary>The scaling modes the page accepts, in the order the header offers them.</summary>
+    internal static readonly string[] ScalingModes = ["remote", "scale", "none"];
+
+    /// <summary>The compression levels the page accepts, best quality first.</summary>
+    internal static readonly int[] QualityLevels = [0, 3, 6, 9];
+
+    /// <summary>What a session starts on when the header's selection says nothing.</summary>
+    internal const string DefaultScalingMode = "scale";
+
+    /// <summary>The quality a session starts on when the header's selection says nothing.</summary>
+    internal const int DefaultQualityLevel = 6;
+
+    /// <summary>The message that carries a scaling mode to the page.</summary>
+    internal static string ScalingMessage(string mode) => $"scaling:{mode}";
+
+    /// <summary>The message that carries a quality level to the page.</summary>
+    internal static string QualityMessage(int level) => $"quality:{level}";
+
+    /// <summary>The scaling mode the header currently shows.</summary>
+    private string SelectedScalingMode() =>
+        (ScalingSelector.SelectedItem as ComboBoxItem)?.Tag as string ?? DefaultScalingMode;
+
+    /// <summary>The quality level the header currently shows.</summary>
+    private int SelectedQualityLevel() =>
+        int.TryParse(
+            (QualitySelector.SelectedItem as ComboBoxItem)?.Tag as string,
+            NumberStyles.None,
+            CultureInfo.InvariantCulture,
+            out int level)
+            ? level
+            : DefaultQualityLevel;
+
     private void SendConnectCommand()
     {
         if (_proxy is null || !_webViewReady)
@@ -445,6 +465,12 @@ public partial class EmbeddedVncView : UserControl, IDisposable, ISessionPaneOwn
 
         var json = JsonSerializer.Serialize(connectParams);
         PostWebMessage($"connect:{json}");
+
+        // The header carries the display controls, so the session opens on what it shows rather
+        // than on the page's own defaults. The page applies them in the order they arrive and
+        // keeps them until the client exists.
+        PostWebMessage(ScalingMessage(SelectedScalingMode()));
+        PostWebMessage(QualityMessage(SelectedQualityLevel()));
     }
 
     private void PostWebMessage(string message)
@@ -579,6 +605,46 @@ public partial class EmbeddedVncView : UserControl, IDisposable, ISessionPaneOwn
     private void OnSplitClick(object sender, RoutedEventArgs e)
     {
         RequestSplit?.Invoke(_sessionTab);
+    }
+
+    /// <summary>
+    /// Hands the local clipboard to the session, which is what the header's Clipboard button
+    /// promises: the remote pastes what was copied here.
+    /// </summary>
+    private void OnClipboardClick(object sender, RoutedEventArgs e)
+    {
+        SendLocalClipboardToSession();
+    }
+
+    /// <summary>
+    /// Sends the local clipboard text to the page, which pastes it into the session. The request
+    /// used to arrive from the page, from its own toolbar button; the header carries that button
+    /// now, so it is made here and the page only receives the paste.
+    /// </summary>
+    private void SendLocalClipboardToSession()
+    {
+        Dispatcher.Invoke(() =>
+        {
+            if (Clipboard.ContainsText())
+            {
+                var text = Clipboard.GetText();
+                var b64 = Convert.ToBase64String(
+                    System.Text.Encoding.UTF8.GetBytes(text));
+                PostWebMessage($"clipboard-paste:{b64}");
+            }
+        });
+    }
+
+    /// <summary>Sends the scaling mode the user picked to the page.</summary>
+    private void OnScalingSelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        PostWebMessage(ScalingMessage(SelectedScalingMode()));
+    }
+
+    /// <summary>Sends the quality level the user picked to the page.</summary>
+    private void OnQualitySelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        PostWebMessage(QualityMessage(SelectedQualityLevel()));
     }
 
     /// <summary>Shows the reconnect overlay and header button after an unexpected disconnect.</summary>
